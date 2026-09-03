@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Odin 启动台</string>
+    <string name="tile_afk_label">息屏挂机</string>
+    <string name="tile_afk_active">挂机中</string>
+    <string name="tile_afk_inactive">息屏挂机</string>
+    <string name="afk_overlay_unlock_hint">双击或长按屏幕解锁</string>
+    <string name="afk_notification_title">OLED 防烧屏挂机运行中</string>
+    <string name="afk_notification_text">游戏保持全速运行，点击恢复正常显示</string>
+    <string name="fan_notification_title">充电风扇智能守护</string>
+    <string name="fan_notification_text">未运行游戏，风扇保持静音停转</string>
+</resources>

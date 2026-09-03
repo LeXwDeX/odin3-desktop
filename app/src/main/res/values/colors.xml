@@ -1,0 +1,7 @@
+<resources>
+    <color name="black">#000000</color>
+    <color name="oled_black">#000000</color>
+    <color name="oled_dim_text">#383838</color>
+    <color name="white">#FFFFFF</color>
+    <color name="odin_accent">#00E5FF</color>
+</resources>
