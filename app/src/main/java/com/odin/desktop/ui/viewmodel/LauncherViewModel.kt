@@ -27,6 +27,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         (application as com.odin.desktop.OdinDesktopApplication).database.tabDao(),
         application.database.appMappingDao()
     )
+    private val shaderRepository = com.odin.desktop.shader.repository.ShaderConfigRepository(
+        (application as com.odin.desktop.OdinDesktopApplication).database.appShaderConfigDao()
+    )
+
+    // --- 专属 VideoShader 设置模态框 ---
+    private val _isShaderConfigDialogOpen = MutableStateFlow(false)
+    val isShaderConfigDialogOpen: StateFlow<Boolean> = _isShaderConfigDialogOpen.asStateFlow()
+
+    private val _currentAppShaderConfig = MutableStateFlow<com.odin.desktop.shader.model.AppShaderConfigEntity?>(null)
+    val currentAppShaderConfig: StateFlow<com.odin.desktop.shader.model.AppShaderConfigEntity?> = _currentAppShaderConfig.asStateFlow()
+
+    private val _shaderConfigFocusIndex = MutableStateFlow(0)
+    val shaderConfigFocusIndex: StateFlow<Int> = _shaderConfigFocusIndex.asStateFlow()
 
     // --- 焦点与区域状态 ---
     private val _focusZone = MutableStateFlow(FocusZone.APPS)
@@ -364,6 +377,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             FocusZone.APP_ACTION_MODAL -> {}
             FocusZone.APP_BATCH_MANAGE_MODAL -> {}
+            FocusZone.SHADER_CONFIG_MODAL -> {}
         }
     }
 
@@ -422,6 +436,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             FocusZone.APP_ACTION_MODAL -> {}
             FocusZone.APP_BATCH_MANAGE_MODAL -> {}
+            FocusZone.SHADER_CONFIG_MODAL -> {}
         }
     }
 
@@ -468,6 +483,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     _batchManageFocusIndex.value -= 1
                 }
             }
+            FocusZone.SHADER_CONFIG_MODAL -> {
+                if (_shaderConfigFocusIndex.value > 0) {
+                    _shaderConfigFocusIndex.value -= 1
+                }
+            }
         }
     }
 
@@ -512,7 +532,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         _appActionTabPickerFocusIndex.value += 1
                     }
                 } else {
-                    if (_appActionFocusIndex.value < 2) {
+                    if (_appActionFocusIndex.value < 3) {
                         _appActionFocusIndex.value += 1
                     }
                 }
@@ -521,6 +541,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val count = getFilteredBatchApps().size
                 if (_batchManageFocusIndex.value < count - 1) {
                     _batchManageFocusIndex.value += 1
+                }
+            }
+            FocusZone.SHADER_CONFIG_MODAL -> {
+                if (_shaderConfigFocusIndex.value < 4) {
+                    _shaderConfigFocusIndex.value += 1
                 }
             }
         }
@@ -595,7 +620,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                                 openAppDetails(app)
                                 closeAppActionDialog()
                             }
-                            2 -> { // 从当前分类移除
+                            2 -> { // 专属 VideoShader 设置
+                                closeAppActionDialog()
+                                openShaderConfigDialog(app)
+                            }
+                            3 -> { // 从当前分类移除
                                 val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
                                 if (currentTab != null && currentTab.name != "全部应用") {
                                     removeAppFromCurrentTab(app)
@@ -606,6 +635,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             }
                         }
                     }
+                }
+            }
+            FocusZone.SHADER_CONFIG_MODAL -> {
+                when (_shaderConfigFocusIndex.value) {
+                    0 -> toggleShaderEnable()
+                    1 -> toggleShaderDynamic()
+                    2 -> cycleShaderIntensity()
+                    3 -> cycleShaderPhosphor()
+                    4 -> toggleShaderVignette()
                 }
             }
             FocusZone.APP_BATCH_MANAGE_MODAL -> {
@@ -647,6 +685,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             } else {
                 exitReorderMode()
             }
+            return true
+        }
+        if (_isShaderConfigDialogOpen.value) {
+            closeShaderConfigDialog()
             return true
         }
         if (_isAppActionDialogOpen.value) {
@@ -1010,6 +1052,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 openAppDetails(app)
                 closeAppActionDialog()
             }
+            com.odin.desktop.ui.components.AppActionType.SHADER_CONFIG -> {
+                closeAppActionDialog()
+                openShaderConfigDialog(app)
+            }
             com.odin.desktop.ui.components.AppActionType.REMOVE_ICON -> {
                 removeAppFromCurrentTab(app)
             }
@@ -1070,6 +1116,100 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 withContext(Dispatchers.Main) {
                     _selectedAppIndex.value = 0
                 }
+            }
+        }
+    }
+
+    // --- 专属 VideoShader 滤镜设置逻辑 ---
+    fun openShaderConfigDialog(app: InstalledApp) {
+        viewModelScope.launch {
+            val config = shaderRepository.getConfig(app.packageName)
+                ?: com.odin.desktop.shader.model.AppShaderConfigEntity.defaultFor(app.packageName)
+            _currentAppShaderConfig.value = config
+            _shaderConfigFocusIndex.value = 0
+            _isShaderConfigDialogOpen.value = true
+            _focusZone.value = FocusZone.SHADER_CONFIG_MODAL
+            if (config.isEnabled) {
+                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, config)
+            }
+        }
+    }
+
+    fun closeShaderConfigDialog() {
+        _isShaderConfigDialogOpen.value = false
+        _focusZone.value = FocusZone.APPS
+        com.odin.desktop.shader.engine.VideoShaderEngine.stopPreview(context)
+    }
+
+    fun toggleShaderEnable() {
+        val current = _currentAppShaderConfig.value ?: return
+        val updated = current.copy(isEnabled = !current.isEnabled)
+        _currentAppShaderConfig.value = updated
+        viewModelScope.launch {
+            shaderRepository.saveConfig(updated)
+            if (updated.isEnabled) {
+                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
+            } else {
+                com.odin.desktop.shader.engine.VideoShaderEngine.stopPreview(context)
+            }
+        }
+    }
+
+    fun toggleShaderDynamic() {
+        val current = _currentAppShaderConfig.value ?: return
+        val updated = current.copy(isDynamic = !current.isDynamic)
+        _currentAppShaderConfig.value = updated
+        viewModelScope.launch {
+            shaderRepository.saveConfig(updated)
+            if (updated.isEnabled) {
+                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
+            }
+        }
+    }
+
+    fun cycleShaderIntensity() {
+        val current = _currentAppShaderConfig.value ?: return
+        val next = when {
+            current.scanlineIntensity <= 0.35f -> 0.50f
+            current.scanlineIntensity <= 0.60f -> 0.75f
+            else -> 0.30f
+        }
+        val updated = current.copy(scanlineIntensity = next)
+        _currentAppShaderConfig.value = updated
+        viewModelScope.launch {
+            shaderRepository.saveConfig(updated)
+            if (updated.isEnabled) {
+                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
+            }
+        }
+    }
+
+    fun cycleShaderPhosphor() {
+        val current = _currentAppShaderConfig.value ?: return
+        val next = when {
+            current.phosphorIntensity <= 0.05f -> 0.20f
+            current.phosphorIntensity <= 0.25f -> 0.40f
+            else -> 0.0f
+        }
+        val updated = current.copy(phosphorIntensity = next)
+        _currentAppShaderConfig.value = updated
+        viewModelScope.launch {
+            shaderRepository.saveConfig(updated)
+            if (updated.isEnabled) {
+                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
+            }
+        }
+    }
+
+    fun toggleShaderVignette() {
+        val current = _currentAppShaderConfig.value ?: return
+        val next = if (current.vignetteIntensity > 0.1f) 0.0f else 0.35f
+        val updated = current.copy(vignetteIntensity = next)
+        _currentAppShaderConfig.value = updated
+        viewModelScope.launch {
+            shaderRepository.saveConfig(updated)
+            if (updated.isEnabled) {
+                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
             }
         }
     }

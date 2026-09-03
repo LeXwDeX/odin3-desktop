@@ -11,6 +11,9 @@ class AppMonitorAccessibilityService : AccessibilityService() {
             val packageName = event.packageName?.toString() ?: return
             currentForegroundPackage = packageName
 
+            // 联动嵌入式 VideoShader 渲染引擎 (针对目标应用自动启停)
+            com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(this, packageName)
+
             // 广播前台包名变更给风扇守护
             val intent = Intent(ACTION_FOREGROUND_CHANGED).apply {
                 putExtra(EXTRA_PACKAGE_NAME, packageName)

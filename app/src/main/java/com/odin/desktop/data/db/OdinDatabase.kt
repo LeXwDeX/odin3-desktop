@@ -13,15 +13,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+import com.odin.desktop.shader.dao.AppShaderConfigDao
+import com.odin.desktop.shader.model.AppShaderConfigEntity
+
 @Database(
-    entities = [TabEntity::class, AppMappingEntity::class],
-    version = 1,
+    entities = [TabEntity::class, AppMappingEntity::class, AppShaderConfigEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class OdinDatabase : RoomDatabase() {
 
     abstract fun tabDao(): TabDao
     abstract fun appMappingDao(): AppMappingDao
+    abstract fun appShaderConfigDao(): AppShaderConfigDao
 
     companion object {
         @Volatile
@@ -34,6 +38,7 @@ abstract class OdinDatabase : RoomDatabase() {
                     OdinDatabase::class.java,
                     "odin_desktop.db"
                 )
+                    .fallbackToDestructiveMigration()
                     .addCallback(DatabaseCallback())
                     .build()
                 INSTANCE = instance

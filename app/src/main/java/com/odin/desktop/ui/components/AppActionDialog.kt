@@ -44,6 +44,7 @@ import com.odin.desktop.ui.theme.TextWhite
 enum class AppActionType {
     MOVE_TO_TAB,
     APP_DETAILS,
+    SHADER_CONFIG,
     REMOVE_ICON
 }
 
@@ -84,6 +85,11 @@ fun AppActionDialog(
             type = AppActionType.APP_DETAILS,
             title = "⚙️ 进入应用属性详情 (系统设置)",
             subtitle = "可在此停止运行、卸载应用、管理存储与权限"
+        ),
+        AppActionItem(
+            type = AppActionType.SHADER_CONFIG,
+            title = "🎨 专属滤镜着色器 (VideoShader)",
+            subtitle = "定制 CRT 扫描线 (静态/动态)、PVM 荧光格与复古显示效果"
         ),
         AppActionItem(
             type = AppActionType.REMOVE_ICON,

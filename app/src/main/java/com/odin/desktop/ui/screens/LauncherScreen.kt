@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.odin.desktop.ui.components.AppActionDialog
 import com.odin.desktop.ui.components.AppBatchManageDialog
 import com.odin.desktop.ui.components.AppHorizontalRow
+import com.odin.desktop.ui.components.AppShaderConfigDialog
 import com.odin.desktop.ui.components.BottomDockBar
 import com.odin.desktop.ui.components.ConfigDialog
 import com.odin.desktop.ui.components.TopTabBar
@@ -79,6 +80,10 @@ fun LauncherScreen(
 
     val isReorderingApps by viewModel.isReorderingApps.collectAsState()
     val pickedAppIndex by viewModel.pickedAppIndex.collectAsState()
+
+    val isShaderConfigDialogOpen by viewModel.isShaderConfigDialogOpen.collectAsState()
+    val currentAppShaderConfig by viewModel.currentAppShaderConfig.collectAsState()
+    val shaderConfigFocusIndex by viewModel.shaderConfigFocusIndex.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(orientationMode) {
         onOrientationChange(orientationMode)
@@ -273,5 +278,19 @@ fun LauncherScreen(
         onSearchChange = { query -> viewModel.setBatchManageSearchQuery(query) },
         onDismiss = { viewModel.closeBatchManageDialog() },
         onToggleApp = { app -> viewModel.toggleAppInCurrentTab(app) }
+    )
+
+    // 8. 专属 VideoShader 滤镜配置模态框
+    AppShaderConfigDialog(
+        isOpen = isShaderConfigDialogOpen,
+        app = appUnderAction,
+        config = currentAppShaderConfig,
+        focusIndex = shaderConfigFocusIndex,
+        onDismiss = { viewModel.closeShaderConfigDialog() },
+        onToggleEnable = { viewModel.toggleShaderEnable() },
+        onToggleDynamic = { viewModel.toggleShaderDynamic() },
+        onCycleIntensity = { viewModel.cycleShaderIntensity() },
+        onCyclePhosphor = { viewModel.cycleShaderPhosphor() },
+        onToggleVignette = { viewModel.toggleShaderVignette() }
     )
 }

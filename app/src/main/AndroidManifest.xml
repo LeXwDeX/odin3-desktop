@@ -63,6 +63,18 @@
             </intent-filter>
         </service>
 
+        <!-- Quick Settings Tile: VideoShader 滤镜快捷开关 -->
+        <service
+            android:name=".shader.overlay.ShaderTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_tile_afk"
+            android:label="VideoShader 滤镜"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
         <!-- Fullscreen Pure Black AFK Overlay Service -->
         <service
             android:name=".service.afk.AfkOverlayService"
