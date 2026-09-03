@@ -298,6 +298,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         filterAppsForCurrentTab()
     }
 
+    fun selectTab(index: Int) {
+        if (_isConfigOpen.value || _isAppActionDialogOpen.value || _isAppBatchManageDialogOpen.value || _isReorderingApps.value) return
+        if (index in _tabs.value.indices) {
+            _selectedTabIndex.value = index
+            _isConfigFocusedInTabs.value = false
+            _selectedAppIndex.value = 0
+            _focusZone.value = FocusZone.APPS
+            filterAppsForCurrentTab()
+        }
+    }
+
     // --- 方向导航 (D-Pad / 摇杆) ---
     fun onNavigateLeft() {
         when (_focusZone.value) {
@@ -606,6 +617,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
             }
+        }
+    }
+
+    // --- 触摸或点击 App 项 ---
+    fun onAppClick(app: InstalledApp, index: Int) {
+        _focusZone.value = FocusZone.APPS
+        _selectedAppIndex.value = index
+        if (_isReorderingApps.value) {
+            togglePickApp()
+        } else {
+            launchApp(app)
         }
     }
 

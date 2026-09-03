@@ -41,7 +41,7 @@ fun AppHorizontalRow(
     focusZone: FocusZone,
     isReordering: Boolean = false,
     pickedIndex: Int? = null,
-    onAppClick: (InstalledApp) -> Unit,
+    onAppClick: (InstalledApp, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -103,7 +103,7 @@ fun AppHorizontalRow(
                             isReordering = isReordering,
                             isPicked = isPicked,
                             cardIndex = index,
-                            onClick = { onAppClick(app) }
+                            onClick = { onAppClick(app, index) }
                         )
                     }
                 }

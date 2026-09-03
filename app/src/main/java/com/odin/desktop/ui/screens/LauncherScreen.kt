@@ -111,7 +111,9 @@ fun LauncherScreen(
                 focusZone = focusZone,
                 isReordering = isReorderingApps,
                 pickedIndex = pickedAppIndex,
-                onAppClick = { viewModel.onConfirm() }
+                onAppClick = { app, index ->
+                    viewModel.onAppClick(app, index)
+                }
             )
         }
 
@@ -190,7 +192,7 @@ fun LauncherScreen(
                 isConfigFocused = isConfigFocused,
                 focusZone = focusZone,
                 onTabSelected = { index ->
-                    viewModel.onPrevTab()
+                    viewModel.selectTab(index)
                 },
                 onConfigClick = {
                     viewModel.openConfigDialog()
