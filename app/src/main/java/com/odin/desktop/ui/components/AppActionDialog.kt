@@ -89,7 +89,7 @@ fun AppActionDialog(
         AppActionItem(
             type = AppActionType.SHADER_CONFIG,
             title = "🎨 专属滤镜着色器 (VideoShader)",
-            subtitle = "定制 CRT 扫描线 (静态/动态)、PVM 荧光格与复古显示效果"
+            subtitle = "定制 GameNative CRT 扫描线 (应用内生效)"
         ),
         AppActionItem(
             type = AppActionType.REMOVE_ICON,

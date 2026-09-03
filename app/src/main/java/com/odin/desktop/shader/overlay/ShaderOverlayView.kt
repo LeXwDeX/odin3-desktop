@@ -41,11 +41,6 @@ class ShaderOverlayView(context: Context) : View(context) {
 
         val elapsedSeconds = (SystemClock.uptimeMillis() - startTimeMs) / 1000f
         pipeline.onDraw(canvas, w, h, elapsedSeconds)
-
-        // 仅在启用“动态扫描线”时才持续请求下一帧重绘，静态模式绘制一次即休眠，达到 0 额外能耗
-        if (config.isDynamic) {
-            postInvalidateOnAnimation()
-        }
     }
 
     fun release() {

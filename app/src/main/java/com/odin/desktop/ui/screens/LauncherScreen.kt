@@ -280,7 +280,7 @@ fun LauncherScreen(
         onToggleApp = { app -> viewModel.toggleAppInCurrentTab(app) }
     )
 
-    // 8. 专属 VideoShader 滤镜配置模态框
+    // 8. 专属 VideoShader 滤镜配置模态框 (1. 选择 Shader 类型  2. 预览 Shader)
     AppShaderConfigDialog(
         isOpen = isShaderConfigDialogOpen,
         app = appUnderAction,
@@ -288,9 +288,7 @@ fun LauncherScreen(
         focusIndex = shaderConfigFocusIndex,
         onDismiss = { viewModel.closeShaderConfigDialog() },
         onToggleEnable = { viewModel.toggleShaderEnable() },
-        onToggleDynamic = { viewModel.toggleShaderDynamic() },
-        onCycleIntensity = { viewModel.cycleShaderIntensity() },
-        onCyclePhosphor = { viewModel.cycleShaderPhosphor() },
-        onToggleVignette = { viewModel.toggleShaderVignette() }
+        onPreviewShader = { viewModel.onPreviewShaderClicked() },
+        onSelectItem = { index -> viewModel.selectShaderConfigIndex(index) }
     )
 }

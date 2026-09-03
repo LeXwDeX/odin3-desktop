@@ -104,6 +104,12 @@ object VideoShaderEngine {
     private fun showOverlay(context: Context, config: AppShaderConfigEntity) {
         if (!Settings.canDrawOverlays(context)) return
 
+        // 核心准则：Shader 仅在应用内生效，启动台或系统界面严禁加载 Shader
+        val pkg = currentForegroundPackage
+        if (pkg == null || pkg == context.packageName || pkg == "com.android.systemui") {
+            return
+        }
+
         if (windowManager == null) {
             windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         }

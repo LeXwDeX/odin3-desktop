@@ -54,62 +54,27 @@ fun AppShaderConfigDialog(
     focusIndex: Int,
     onDismiss: () -> Unit,
     onToggleEnable: () -> Unit,
-    onToggleDynamic: () -> Unit,
-    onCycleIntensity: () -> Unit,
-    onCyclePhosphor: () -> Unit,
-    onToggleVignette: () -> Unit
+    onPreviewShader: () -> Unit,
+    onSelectItem: (Int) -> Unit
 ) {
     if (!isOpen || app == null) return
 
     val currentConfig = config ?: AppShaderConfigEntity.defaultFor(app.packageName)
 
-    val intensityLabel = when {
-        currentConfig.scanlineIntensity <= 0.35f -> "弱 (30%)"
-        currentConfig.scanlineIntensity <= 0.60f -> "中 (50%)"
-        else -> "强 (75%)"
-    }
-
-    val phosphorLabel = when {
-        currentConfig.phosphorIntensity <= 0.05f -> "关"
-        currentConfig.phosphorIntensity <= 0.25f -> "弱 (20%)"
-        else -> "强 (40%)"
-    }
-
     val items = listOf(
         ShaderSettingItem(
-            id = "enable",
-            title = "🎮 滤镜生效状态",
-            valueLabel = if (currentConfig.isEnabled) "已开启" else "已关闭",
+            id = "shader_type",
+            title = "1. 选择 Shader 类型",
+            valueLabel = if (currentConfig.isEnabled) "GameNative CRT 扫描线 (已开启)" else "无 (已关闭)",
             valueColor = if (currentConfig.isEnabled) GreenActive else TextDim,
-            description = "进入该应用时是否自动激活全屏 VideoShader"
+            description = "进入该应用时自动激活全屏 Shader 滤镜 (离开即自动恢复)"
         ),
         ShaderSettingItem(
-            id = "dynamic",
-            title = "⚡ 扫描线运动形态",
-            valueLabel = if (currentConfig.isDynamic) "动态滚动 (微波动画)" else "静态固定 (0 额外功耗)",
-            valueColor = if (currentConfig.isDynamic) CyanAccent else TextWhite,
-            description = "静态仅绘制一次即可持续呈现，动态扫描线具有平滑扫频动画"
-        ),
-        ShaderSettingItem(
-            id = "intensity",
-            title = "📐 扫描线浓度深度",
-            valueLabel = intensityLabel,
-            valueColor = CyanAccent,
-            description = "控制水平阴影扫描光栅的明暗对比度"
-        ),
-        ShaderSettingItem(
-            id = "phosphor",
-            title = "📺 PVM 显像管 RGB 格子",
-            valueLabel = phosphorLabel,
-            valueColor = if (currentConfig.phosphorIntensity > 0.05f) OrangeWarning else TextDim,
-            description = "模拟索尼特丽珑 RGB 三原色荧光点阵排布"
-        ),
-        ShaderSettingItem(
-            id = "vignette",
-            title = "🔘 CRT 弧面微暗角",
-            valueLabel = if (currentConfig.vignetteIntensity > 0.1f) "开启" else "关闭",
-            valueColor = if (currentConfig.vignetteIntensity > 0.1f) CyanAccent else TextDim,
-            description = "边缘微弱暗角模拟球面老式监视器透镜效果"
+            id = "preview_shader",
+            title = "2. 预览 Shader (预留)",
+            valueLabel = "待接入截图",
+            valueColor = OrangeWarning,
+            description = "【功能预留】等待导入游戏画面截图后，将开启实时参数调优"
         )
     )
 
@@ -117,7 +82,7 @@ fun AppShaderConfigDialog(
         isOpen = isOpen,
         onDismissRequest = onDismiss,
         title = "专属 VideoShader 滤镜设置",
-        footerHint = "【上下键选择 • A 键切换 • B 键保存返回】",
+        footerHint = "【上下键选择 • A 键切换/执行 • B 键保存返回】",
         maxWidth = 620.dp
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -146,7 +111,7 @@ fun AppShaderConfigDialog(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = app.packageName,
+                        text = "${app.packageName} • 仅在该应用前台时生效",
                         color = TextDim,
                         fontSize = 11.sp
                     )
@@ -155,7 +120,7 @@ fun AppShaderConfigDialog(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 设置项列表
+            // 设置项列表 (1. 选择 Shader 类型  2. 预览 Shader)
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -172,15 +137,9 @@ fun AppShaderConfigDialog(
                             .background(bg)
                             .border(1.5.dp, border, RoundedCornerShape(8.dp))
                             .clickable {
-                                when (index) {
-                                    0 -> onToggleEnable()
-                                    1 -> onToggleDynamic()
-                                    2 -> onCycleIntensity()
-                                    3 -> onCyclePhosphor()
-                                    4 -> onToggleVignette()
-                                }
+                                onSelectItem(index)
                             }
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),

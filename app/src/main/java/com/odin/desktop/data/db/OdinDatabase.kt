@@ -49,21 +49,10 @@ abstract class OdinDatabase : RoomDatabase() {
         private class DatabaseCallback : Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                // 首次安装预置常用掌机分类 Tab
-                INSTANCE?.let { database ->
-                    CoroutineScope(Dispatchers.IO).launch {
-                        prepopulateDefaults(database.tabDao())
-                    }
-                }
-            }
-
-            private suspend fun prepopulateDefaults(tabDao: TabDao) {
-                val defaultTabs = listOf(
-                    TabEntity(name = "游戏与模拟器", sortOrder = 0, isDefault = true, isGameTab = true),
-                    TabEntity(name = "系统工具", sortOrder = 1, isDefault = false, isGameTab = false),
-                    TabEntity(name = "全部应用", sortOrder = 2, isDefault = false, isGameTab = false)
-                )
-                tabDao.insertTabs(defaultTabs)
+                // 首次安装或表创建时直接执行原生 SQL 预置常用掌机分类 Tab
+                db.execSQL("INSERT OR IGNORE INTO tabs (name, sortOrder, isDefault, isGameTab) VALUES ('游戏与模拟器', 0, 1, 1)")
+                db.execSQL("INSERT OR IGNORE INTO tabs (name, sortOrder, isDefault, isGameTab) VALUES ('系统应用', 1, 0, 0)")
+                db.execSQL("INSERT OR IGNORE INTO tabs (name, sortOrder, isDefault, isGameTab) VALUES ('全部应用', 2, 0, 0)")
             }
         }
     }

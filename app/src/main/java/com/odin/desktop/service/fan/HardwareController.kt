@@ -229,12 +229,12 @@ object HardwareController {
 
     fun cycleFanMode(context: Context): Int {
         val current = getFanMode(context)
-        // 循环：智能 (4) -> 疾风 (5) -> 静音 (1) -> 关闭 (0) -> 智能 (4)
+        // 循环：关闭 (0) -> 静音 (1) -> 智能 (4) -> 极速 (5) -> 关闭 (0)
         val next = when (current) {
+            FAN_OFF -> FAN_QUIET
+            FAN_QUIET -> FAN_SMART
             FAN_SMART -> FAN_SPORT
-            FAN_SPORT -> FAN_QUIET
-            FAN_QUIET -> FAN_OFF
-            else -> FAN_SMART
+            else -> FAN_OFF
         }
         setFanMode(context, next)
         return next

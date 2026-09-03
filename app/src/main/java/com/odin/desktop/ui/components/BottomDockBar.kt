@@ -50,11 +50,11 @@ fun BottomDockBar(
         else -> "正常"
     }
 
-    // 2. 风扇：智能 -> 疾风 -> 静音 -> 关闭
+    // 2. 风扇：关闭 -> 静音 -> 智能 -> 极速
     val fanLabel = when (fanMode) {
         HardwareController.FAN_OFF -> "关闭"
         HardwareController.FAN_QUIET -> "静音"
-        HardwareController.FAN_SPORT -> "疾风"
+        HardwareController.FAN_SPORT -> "极速"
         else -> "智能"
     }
 

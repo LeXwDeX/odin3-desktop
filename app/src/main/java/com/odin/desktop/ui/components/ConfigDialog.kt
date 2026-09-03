@@ -321,7 +321,7 @@ private fun AutoFanSection(
 ) {
     Column {
         Text("自动风扇控制策略：", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text("掌机在充电且未处于游戏状态，且 CPU & GPU 温度 <= 60°C 时将自动关闭风扇静音。", color = TextDim, fontSize = 12.sp)
+        Text("掌机在充电且未处于游戏状态，且 CPU & GPU 温度 <= 60°C 时将自动关闭风扇，保持安静。", color = TextDim, fontSize = 12.sp)
         Spacer(modifier = Modifier.height(18.dp))
 
         val isFocused = inSubMenu && subFocusIndex == 0

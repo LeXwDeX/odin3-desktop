@@ -152,21 +152,51 @@ class AppRepository(
     }
 
     suspend fun sanitizeDefaultTabs() {
-        val tabs = tabDao.getAllTabs().toMutableList()
+        var tabs = tabDao.getAllTabs().toMutableList()
+        // 核心兜底：若数据库无 Tab，立即初始化预置默认分类
+        if (tabs.isEmpty()) {
+            val defaultTabs = listOf(
+                TabEntity(name = "游戏与模拟器", sortOrder = 0, isDefault = true, isGameTab = true),
+                TabEntity(name = "系统应用", sortOrder = 1, isDefault = false, isGameTab = false),
+                TabEntity(name = "全部应用", sortOrder = 2, isDefault = false, isGameTab = false)
+            )
+            tabDao.insertTabs(defaultTabs)
+            tabs = tabDao.getAllTabs().toMutableList()
+        }
+
+        // 兼容更名：将原有“系统工具”自动对齐为“系统应用”
+        val oldSystemTools = tabs.find { it.name == "系统工具" }
+        if (oldSystemTools != null && tabs.none { it.name == "系统应用" }) {
+            tabDao.updateTab(oldSystemTools.copy(name = "系统应用"))
+            tabs = tabDao.getAllTabs().toMutableList()
+        }
+
+        // 确保三大默认 Tab (游戏与模拟器, 系统应用, 全部应用) 齐备
+        val currentNames = tabs.map { it.name }.toSet()
+        if (!currentNames.contains("游戏与模拟器")) {
+            tabDao.insertTab(TabEntity(name = "游戏与模拟器", sortOrder = 0, isDefault = true, isGameTab = true))
+        }
+        if (!currentNames.contains("系统应用")) {
+            tabDao.insertTab(TabEntity(name = "系统应用", sortOrder = 1, isDefault = false, isGameTab = false))
+        }
+        if (!currentNames.contains("全部应用")) {
+            val total = tabDao.getTabCount()
+            tabDao.insertTab(TabEntity(name = "全部应用", sortOrder = total, isDefault = false, isGameTab = false))
+        }
+
         val mediaTab = tabs.find { it.name == "影音媒体" }
         if (mediaTab != null) {
             val mappings = appMappingDao.getAppsForTabFlow(mediaTab.id).firstOrNull() ?: emptyList()
             if (mappings.isEmpty()) {
                 tabDao.deleteTabById(mediaTab.id)
-                tabs.remove(mediaTab)
             }
         }
 
-        // 确保【全部应用】在末尾，且保证首个 Tab (游戏与模拟器) 默认设为首页
-        val remaining = tabDao.getAllTabs().toMutableList()
-        val allAppsTab = remaining.find { it.name == "全部应用" }
-        if (allAppsTab != null && allAppsTab.sortOrder != remaining.size - 1) {
-            val others = remaining.filter { it.id != allAppsTab.id }.sortedBy { it.sortOrder }
+        // 重新拉取并校准排序：首个 Tab 默认设为首页，【全部应用】固定在末尾
+        val updatedTabs = tabDao.getAllTabs().toMutableList()
+        val allAppsTab = updatedTabs.find { it.name == "全部应用" }
+        if (allAppsTab != null) {
+            val others = updatedTabs.filter { it.id != allAppsTab.id }.sortedBy { it.sortOrder }
             val reordered = mutableListOf<TabEntity>()
             others.forEachIndexed { idx, t ->
                 reordered.add(t.copy(sortOrder = idx, isDefault = (idx == 0)))
@@ -180,13 +210,13 @@ class AppRepository(
 
     suspend fun autoPopulateDefaultTabMappings() {
         val tabs = tabDao.getAllTabs()
-        val systemToolsTab = tabs.find { it.name == "系统工具" }
-        val gameTab = tabs.find { it.isGameTab }
+        val systemTab = tabs.find { it.name == "系统应用" || it.name == "系统工具" }
+        val gameTab = tabs.find { it.isGameTab || it.name == "游戏与模拟器" }
         val apps = getInstalledLaunchableApps()
 
-        // 1. 系统工具：默认摆放本系统的 Google 原生与系统应用
-        if (systemToolsTab != null) {
-            val existingSystemApps = appMappingDao.getAppsForTabFlow(systemToolsTab.id).firstOrNull() ?: emptyList()
+        // 1. 系统应用：默认摆放本系统的 Google 原生与系统应用
+        if (systemTab != null) {
+            val existingSystemApps = appMappingDao.getAppsForTabFlow(systemTab.id).firstOrNull() ?: emptyList()
             if (existingSystemApps.isEmpty()) {
                 val googleAndSystemPkgs = apps.filter { app ->
                     val pkg = app.packageName
@@ -199,7 +229,7 @@ class AppRepository(
                     app.isSystemApp
                 }
                 for (app in googleAndSystemPkgs) {
-                    appMappingDao.insertMapping(AppMappingEntity(tabId = systemToolsTab.id, packageName = app.packageName))
+                    appMappingDao.insertMapping(AppMappingEntity(tabId = systemTab.id, packageName = app.packageName))
                 }
             }
         }
@@ -218,7 +248,8 @@ class AppRepository(
                     app.packageName.contains("armsx2", ignoreCase = true) ||
                     app.packageName.contains("es_de", ignoreCase = true) ||
                     app.packageName.contains("citron", ignoreCase = true) ||
-                    app.packageName.contains("yuzu", ignoreCase = true)
+                    app.packageName.contains("yuzu", ignoreCase = true) ||
+                    app.packageName.contains("skyemu", ignoreCase = true)
                 }
                 for (app in knownGameOrEmu) {
                     appMappingDao.insertMapping(AppMappingEntity(tabId = gameTab.id, packageName = app.packageName))

@@ -544,7 +544,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
             }
             FocusZone.SHADER_CONFIG_MODAL -> {
-                if (_shaderConfigFocusIndex.value < 4) {
+                if (_shaderConfigFocusIndex.value < 1) {
                     _shaderConfigFocusIndex.value += 1
                 }
             }
@@ -640,10 +640,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             FocusZone.SHADER_CONFIG_MODAL -> {
                 when (_shaderConfigFocusIndex.value) {
                     0 -> toggleShaderEnable()
-                    1 -> toggleShaderDynamic()
-                    2 -> cycleShaderIntensity()
-                    3 -> cycleShaderPhosphor()
-                    4 -> toggleShaderVignette()
+                    1 -> onPreviewShaderClicked()
                 }
             }
             FocusZone.APP_BATCH_MANAGE_MODAL -> {
@@ -739,6 +736,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
         if (launchIntent != null) {
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            // 联动 VideoShader 引擎：进入目标应用时按配置自动生效 (Shader 仅在应用内生效)
+            com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(context, app.packageName)
             context.startActivity(launchIntent)
         } else {
             Toast.makeText(context, "无法启动 ${app.label}", Toast.LENGTH_SHORT).show()
@@ -758,7 +757,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         _fanMode.value = result.fanMode
                     }
                 }
-                1 -> { // 风扇模式：智能 -> 疾风 -> 静音 -> 关闭 (性能不动)
+                1 -> { // 风扇模式：关闭 -> 静音 -> 智能 -> 极速 (性能不动)
                     val next = HardwareController.cycleFanMode(context)
                     withContext(Dispatchers.Main) { _fanMode.value = next }
                 }
@@ -1120,7 +1119,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // --- 专属 VideoShader 滤镜设置逻辑 ---
+    // --- 专属 VideoShader 滤镜设置逻辑 (对齐 GameNative 极简架构) ---
     fun openShaderConfigDialog(app: InstalledApp) {
         viewModelScope.launch {
             val config = shaderRepository.getConfig(app.packageName)
@@ -1129,16 +1128,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             _shaderConfigFocusIndex.value = 0
             _isShaderConfigDialogOpen.value = true
             _focusZone.value = FocusZone.SHADER_CONFIG_MODAL
-            if (config.isEnabled) {
-                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, config)
-            }
         }
     }
 
     fun closeShaderConfigDialog() {
         _isShaderConfigDialogOpen.value = false
         _focusZone.value = FocusZone.APPS
-        com.odin.desktop.shader.engine.VideoShaderEngine.stopPreview(context)
     }
 
     fun toggleShaderEnable() {
@@ -1147,70 +1142,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _currentAppShaderConfig.value = updated
         viewModelScope.launch {
             shaderRepository.saveConfig(updated)
-            if (updated.isEnabled) {
-                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
-            } else {
-                com.odin.desktop.shader.engine.VideoShaderEngine.stopPreview(context)
+            withContext(Dispatchers.Main) {
+                val stateText = if (updated.isEnabled) "已开启 GameNative CRT 扫描线 (仅在应用内生效)" else "已关闭 Shader 滤镜"
+                Toast.makeText(context, stateText, Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    fun toggleShaderDynamic() {
-        val current = _currentAppShaderConfig.value ?: return
-        val updated = current.copy(isDynamic = !current.isDynamic)
-        _currentAppShaderConfig.value = updated
-        viewModelScope.launch {
-            shaderRepository.saveConfig(updated)
-            if (updated.isEnabled) {
-                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
-            }
-        }
+    fun onPreviewShaderClicked() {
+        Toast.makeText(context, "【功能预留】等待导入游戏画面截图后，将开启实时参数调优", Toast.LENGTH_SHORT).show()
     }
 
-    fun cycleShaderIntensity() {
-        val current = _currentAppShaderConfig.value ?: return
-        val next = when {
-            current.scanlineIntensity <= 0.35f -> 0.50f
-            current.scanlineIntensity <= 0.60f -> 0.75f
-            else -> 0.30f
-        }
-        val updated = current.copy(scanlineIntensity = next)
-        _currentAppShaderConfig.value = updated
-        viewModelScope.launch {
-            shaderRepository.saveConfig(updated)
-            if (updated.isEnabled) {
-                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
-            }
-        }
-    }
-
-    fun cycleShaderPhosphor() {
-        val current = _currentAppShaderConfig.value ?: return
-        val next = when {
-            current.phosphorIntensity <= 0.05f -> 0.20f
-            current.phosphorIntensity <= 0.25f -> 0.40f
-            else -> 0.0f
-        }
-        val updated = current.copy(phosphorIntensity = next)
-        _currentAppShaderConfig.value = updated
-        viewModelScope.launch {
-            shaderRepository.saveConfig(updated)
-            if (updated.isEnabled) {
-                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
-            }
-        }
-    }
-
-    fun toggleShaderVignette() {
-        val current = _currentAppShaderConfig.value ?: return
-        val next = if (current.vignetteIntensity > 0.1f) 0.0f else 0.35f
-        val updated = current.copy(vignetteIntensity = next)
-        _currentAppShaderConfig.value = updated
-        viewModelScope.launch {
-            shaderRepository.saveConfig(updated)
-            if (updated.isEnabled) {
-                com.odin.desktop.shader.engine.VideoShaderEngine.previewShader(context, updated)
-            }
+    fun selectShaderConfigIndex(index: Int) {
+        _shaderConfigFocusIndex.value = index
+        when (index) {
+            0 -> toggleShaderEnable()
+            1 -> onPreviewShaderClicked()
         }
     }
 }
