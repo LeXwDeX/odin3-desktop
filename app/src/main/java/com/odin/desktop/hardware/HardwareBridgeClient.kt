@@ -48,7 +48,7 @@ internal object HardwareBridgeClient {
                     val reason = when (result.getOrNull(1)) {
                         "ROLLBACK_INCOMPLETE" -> "操作未全部完成，部分旧状态未能恢复，请检查设备设置。"
                         "READBACK_MISMATCH" -> "系统未保持所选设置，已尝试恢复原状态。"
-                        "READ_UNAVAILABLE" -> "系统性能模式暂时不可读，请刷新状态。"
+                        "READ_UNAVAILABLE" -> "硬件状态暂时无法确认，请稍后刷新。"
                         "BAD_REQUEST" -> "此硬件操作不在允许范围内。"
                         "AUTH_FAILED" -> "硬件控制认证失败，请通过 ADB 重新连接。"
                         else -> "系统拒绝了硬件操作，已尝试恢复原状态。"

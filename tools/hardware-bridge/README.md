@@ -2,20 +2,22 @@
 
 This ADB-started Java process runs as the normal Android shell UID 2000. It restores the desktop's hardware controls when ordinary-app writes to OEM private System settings are rejected. It does not require root, change an OEM package, replace thermal services, or offer arbitrary shell commands.
 
-The app reads actual system state after every acknowledgement. Performance comes from `persist.vendor.debug.mode` through the authenticated fixed `PERFORMANCE_GET` request; the actual app process cannot reliably read this property itself. `Settings.System.performance_mode` is only a compatibility mirror. A successful readback confirms the requested setting/property, not physical RPM, current, or LED output. Verify the corresponding hardware behavior on the device.
+The app reads actual system state after every acknowledgement. Performance comes from `persist.vendor.debug.mode` through the authenticated fixed `PERFORMANCE_GET` request; the actual app process cannot reliably read this property itself. `Settings.System.performance_mode` is a compatibility mirror which also triggers SystemUI's fan observer. Fan reads and writes check the configured mode plus the Odin 3 PWM enable/duty/period nodes. This confirms the driver command, not physical RPM, airflow, current, or LED output. SMART permits zero duty and its software thermal-loop liveness cannot be established from a single sample.
 
 ## Allowed controls
 
 | Request | Exact destination | Values |
 | --- | --- | --- |
 | `PERFORMANCE_GET` | Read-only property `persist.vendor.debug.mode`, with no caller-supplied argument | Returns only validated 0, 1, or 2; inaccessible/invalid state returns an error |
-| `PERFORMANCE` | System `performance_mode` and property `persist.vendor.debug.mode` | 0 normal, 1 performance, 2 high performance |
+| `PERFORMANCE` | System `performance_mode`, property `persist.vendor.debug.mode`, then `fan_mode` | 0 normal, 1 performance, 2 high performance; retains configured MAX, otherwise normal OFF / elevated SMART |
+| `PERFORMANCE_FAN` | Same performance destinations, followed by an explicit final fan mode in one transaction | Performance 0/1/2 and fan 0/4/5; elevated performance plus OFF is rejected |
+| `FAN_GET` | Fixed System fan key and read-only Odin 3 PWM nodes | Returns `FAN` and mode; known OFF/MAX driver mismatches fail, SMART allows duty 0..50000 with enabled PWM |
 | `SET fan_mode` | System `fan_mode` | 0 off, 4 OEM smart control, 5 maximum fixed mode |
 | `LIGHTS` | System `joystick_light_enabled` and `joystick_handle_light_enabled` | `0,0` or `1,1` |
 | `SET joystick_led_light_picker_color` | Same-named System key | Two comma-separated `#RRGGBB` / `#AARRGGBB` colors |
 | `CHARGE` | System `percent_80_charge_limit` and `charging_limit_power_limit` | Both 0 or both 1 |
 
-The server reads previous values before writing, then reads all transaction fields after writing. Failure triggers restoration and readback of previous values. An incomplete rollback has a distinct error. A disconnected response is not evidence of success; refresh actual state. The OEM's independently running SettingsController applies fan, light, and charging settings. Its confirmed 5 V path observes `charging_limit_power_limit`: 1 requests 5 V, 0 returns to the OEM default path. The bridge never writes battery or thermal sysfs directly.
+The server reads previous values before writing, then reads all transaction fields after writing. SystemUI changes the fan asynchronously when the performance mirror changes. For transitions which could downgrade the final fan, the bridge first selects a cooling preset and waits for the OEM's known OFF/QUIET response before applying the final mode. It checks fan configuration and PWM three times; timeout is a failure, not success after a fixed sleep. A same-value setting with mismatched PWM is re-armed through another cooling preset, never through a temporary OFF request. Failure restores the performance mirror and property first, then the old fan last, and verifies the combined state. An incomplete rollback has a distinct error. A disconnected response is not evidence of success; refresh actual state. The independent `com.odin.settings` OEM backend applies fan, light, and charging settings. Its confirmed 5 V path observes `charging_limit_power_limit`: 1 requests 5 V, 0 returns to the OEM default path. The bridge never writes battery or thermal sysfs directly.
 
 ## Build and connect
 

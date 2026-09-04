@@ -23,6 +23,11 @@ public final class OdinHardwareBridge {
     static final String CHARGE = "percent_80_charge_limit";
     static final String POWER = "charging_limit_power_limit";
     static final String CHARGING_SEPARATION = "is_charging_separation";
+    private static final ScheduledExecutorService COMMAND_TIMEOUTS = Executors.newSingleThreadScheduledExecutor(task -> {
+        Thread thread = new Thread(task, "odin-command-timeout");
+        thread.setDaemon(true);
+        return thread;
+    });
     private final byte[] key;
     private final Store store;
     private final Object transaction = new Object();
@@ -115,8 +120,16 @@ public final class OdinHardwareBridge {
                 return value != null && value.matches("[012]") ? "OK\tPERFORMANCE\t" + value : "ERR\tREAD_UNAVAILABLE";
             } catch (Exception unavailable) { return "ERR\tREAD_UNAVAILABLE"; }
         }
+        if (parts.length == 1 && "FAN_GET".equals(parts[0])) {
+            try {
+                String fan = store.get(FAN);
+                if (fan == null || !fan.matches("[0-6]") || !store.fanMatches(fan)) return "ERR\tREAD_UNAVAILABLE";
+                return "OK\tFAN\t" + fan;
+            } catch (Exception unavailable) { return "ERR\tREAD_UNAVAILABLE"; }
+        }
         LinkedHashMap<String, String> changes = new LinkedHashMap<>();
         String property = null;
+        String requestedFan = null;
         String reply;
         if (parts.length == 3 && "SET".equals(parts[0]) && !PERFORMANCE.equals(parts[1]) && allowed(parts[1], parts[2])) {
             changes.put(parts[1], parts[2]);
@@ -125,6 +138,13 @@ public final class OdinHardwareBridge {
             changes.put(PERFORMANCE, parts[1]);
             property = parts[1];
             reply = "PERFORMANCE\t" + parts[1];
+        } else if (parts.length == 3 && "PERFORMANCE_FAN".equals(parts[0]) &&
+                parts[1].matches("[012]") && parts[2].matches("[045]") &&
+                ("0".equals(parts[1]) || !"0".equals(parts[2]))) {
+            changes.put(PERFORMANCE, parts[1]);
+            property = parts[1];
+            requestedFan = parts[2];
+            reply = "PERFORMANCE_FAN\t" + parts[1] + "\t" + parts[2];
         } else if (parts.length == 2 && "CHARGE".equals(parts[0]) && parts[1].matches("[01]")) {
             changes.put(CHARGE, parts[1]); changes.put(POWER, parts[1]);
             reply = "CHARGE\t" + parts[1];
@@ -136,8 +156,13 @@ public final class OdinHardwareBridge {
         LinkedHashMap<String, String> previous = new LinkedHashMap<>();
         String oldProperty = null;
         boolean started = false;
-        boolean propertyAttempted = false;
         try {
+            if (property != null) {
+                String fan = store.get(FAN);
+                if (fan == null || !fan.matches("[0-6]")) throw new IOException("Invalid existing fan");
+                changes.put(FAN, requestedFan != null ? requestedFan :
+                    "5".equals(fan) ? "5" : "0".equals(property) ? "0" : "4");
+            }
             for (String name : changes.keySet()) {
                 String old = store.get(name);
                 if (!restorable(name, old)) throw new IOException("Invalid existing value");
@@ -148,10 +173,17 @@ public final class OdinHardwareBridge {
                 if (!oldProperty.matches("[012]")) throw new IOException("Invalid existing mode");
             }
             started = true;
-            store.putAll(changes);
             if (property != null) {
-                propertyAttempted = true;
+                String observerFan = preparePerformanceObserver(property, changes.get(FAN));
+                store.put(PERFORMANCE, property);
                 store.property(property);
+                // SystemUI's performance observer resets fan_mode; OEM init can reset PWM too.
+                store.settlePerformance(observerFan);
+                applyFan(changes.get(FAN));
+            } else if (changes.containsKey(FAN)) {
+                applyFan(changes.get(FAN));
+            } else {
+                store.putAll(changes);
             }
             // Read all fields after the whole transaction, including the actual active property.
             for (Map.Entry<String, String> entry : changes.entrySet()) {
@@ -162,22 +194,87 @@ public final class OdinHardwareBridge {
         } catch (Exception failure) {
             boolean restored = true;
             if (started) {
-                if (propertyAttempted) {
-                    try { store.property(oldProperty); restored &= oldProperty.equals(store.property()); }
+                if (property != null) {
+                    // Restoring the mirror triggers SystemUI again. Restore BOTH performance
+                    // inputs first and the fan LAST, including a partially rejected mirror write.
+                    String observerFan = null;
+                    try { observerFan = preparePerformanceObserver(previous.get(PERFORMANCE), previous.get(FAN)); }
+                    catch (Exception ignored) { restored = false; }
+                    try { store.put(PERFORMANCE, previous.get(PERFORMANCE)); }
+                    catch (Exception ignored) { restored = false; }
+                    try { store.property(oldProperty); }
+                    catch (Exception ignored) { restored = false; }
+                    try { store.settlePerformance(observerFan); }
+                    catch (Exception ignored) { restored = false; }
+                    try { restoreFan(previous.get(FAN)); }
+                    catch (Exception ignored) { restored = false; }
+                } else {
+                    List<String> names = new ArrayList<>(previous.keySet());
+                    Collections.reverse(names);
+                    for (String name : names) {
+                        try {
+                            if (FAN.equals(name)) restoreFan(previous.get(name));
+                            else store.put(name, previous.get(name));
+                        } catch (Exception ignored) { restored = false; }
+                    }
+                }
+                // Check the final combined state; an earlier per-field read can be invalidated
+                // by a later observer notification from another field in the same rollback.
+                for (String name : previous.keySet()) {
+                    try { restored &= Objects.equals(previous.get(name), store.get(name)); }
                     catch (Exception ignored) { restored = false; }
                 }
-                List<String> names = new ArrayList<>(previous.keySet());
-                Collections.reverse(names);
-                for (String name : names) {
-                    try {
-                        store.put(name, previous.get(name));
-                        restored &= Objects.equals(previous.get(name), store.get(name));
-                    } catch (Exception ignored) { restored = false; }
+                if (property != null) {
+                    try { restored &= Objects.equals(oldProperty, store.property()); }
+                    catch (Exception ignored) { restored = false; }
+                }
+                if (previous.get(FAN) != null) {
+                    try { store.awaitFan(previous.get(FAN)); }
+                    catch (Exception ignored) { restored = false; }
                 }
             }
             return "ERR\t" + (!restored ? "ROLLBACK_INCOMPLETE" :
                 failure instanceof ReadbackMismatch ? "READBACK_MISMATCH" : "WRITE_REJECTED");
         }
+    }
+
+    private String preparePerformanceObserver(String performance, String fan) throws Exception {
+        if (Objects.equals(performance, store.get(PERFORMANCE))) return null;
+        // SystemUI has no completion API or fixed Handler delay. For transitions which could
+        // downgrade our final fan, use its deterministic fan write as an acknowledgement.
+        // Preselect MAX so NORMAL must produce 0, and STANDARD must produce QUIET (1).
+        if ((performance == null || "0".equals(performance)) && !"0".equals(fan)) {
+            applyFan("4");
+            return "0";
+        }
+        if ("1".equals(performance) && "5".equals(fan)) {
+            applyFan("5");
+            return "1";
+        }
+        return null;
+    }
+
+    private void restoreFan(String mode) throws Exception {
+        if (mode != null && allowed(FAN, mode)) applyFan(mode);
+        else store.put(FAN, mode);
+    }
+
+    private void applyFan(String target) throws Exception {
+        if (!"4".equals(target) && Objects.equals(target, store.get(FAN)) && store.fanMatches(target)) {
+            store.awaitFan(target);
+            return;
+        }
+        // A same-value Settings write does not notify observers. Explicit SMART requests
+        // also re-arm the software thermal loop, whose liveness is not proved by static PWM.
+        // Re-arm via a cooling mode,
+        // never by temporarily stopping the fan, when the key and driver have diverged.
+        if (Objects.equals(target, store.get(FAN))) {
+            String intermediate = "4".equals(target) ? "5" : "4";
+            store.put(FAN, intermediate);
+            store.awaitFan(intermediate);
+        }
+        store.put(FAN, target);
+        store.awaitFan(target);
     }
 
     static boolean allowed(String name, String value) {
@@ -205,6 +302,12 @@ public final class OdinHardwareBridge {
         }
         String property() throws Exception;
         void property(String value) throws Exception;
+        default void settlePerformance() throws Exception { }
+        default void settlePerformance(String expectedObserverFan) throws Exception { settlePerformance(); }
+        default boolean fanMatches(String value) throws Exception { return Objects.equals(value, get(FAN)); }
+        default void awaitFan(String value) throws Exception {
+            if (!Objects.equals(value, get(FAN)) || !fanMatches(value)) throw new ReadbackMismatch();
+        }
     }
 
     private static final class ShellStore implements Store {
@@ -236,15 +339,48 @@ public final class OdinHardwareBridge {
         }
         public String property() throws Exception { return run("/system/bin/getprop", PROPERTY); }
         public void property(String value) throws Exception { run("/system/bin/setprop", PROPERTY, value); }
+        public void settlePerformance(String expectedObserverFan) throws Exception {
+            if (expectedObserverFan == null) return;
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+            while (System.nanoTime() < deadline) {
+                if (expectedObserverFan.equals(get(FAN))) return;
+                Thread.sleep(50);
+            }
+            throw new ReadbackMismatch();
+        }
+        public boolean fanMatches(String mode) throws Exception {
+            if (!mode.matches("[045]")) return true; // Other OEM presets are reported as configured.
+            String[] values = run("/system/bin/cat", "/sys/class/gpio5_pwm2/state",
+                "/sys/class/gpio5_pwm2/duty", "/sys/class/gpio5_pwm2/period").split("\\s+");
+            if (values.length != 3) return false;
+            if ("0".equals(mode)) return "0".equals(values[0]) && "0".equals(values[1]);
+            if (!"1".equals(values[0]) || !"50000".equals(values[2])) return false;
+            // OEM SMART is a software thermal loop and may legitimately request zero duty.
+            long duty;
+            try { duty = Long.parseLong(values[1]); } catch (NumberFormatException invalid) { return false; }
+            return "4".equals(mode) ? duty >= 0 && duty <= 50000 : duty == 25000;
+        }
+        public void awaitFan(String mode) throws Exception {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            int consecutive = 0;
+            while (System.nanoTime() < deadline) {
+                if (mode.equals(get(FAN)) && fanMatches(mode)) {
+                    if (++consecutive == 3) return;
+                } else consecutive = 0;
+                Thread.sleep(75);
+            }
+            throw new ReadbackMismatch();
+        }
     }
 
-    private static String run(String... command) throws Exception {
+    static String run(String... command) throws Exception {
         Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
+        ScheduledFuture<?> deadline = COMMAND_TIMEOUTS.schedule(process::destroyForcibly, 2, TimeUnit.SECONDS);
         try {
-            if (!process.waitFor(2, TimeUnit.SECONDS)) {
-                process.destroyForcibly();
-                throw new IOException("Command timeout");
-            }
+            // Android's timed wait polls at ~100ms intervals, adding that cost to every tiny
+            // settings/getprop command. Native wait returns at exit; the separate deadline
+            // retains the same two-second limit without quantizing all successful requests.
+            process.waitFor();
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             InputStream stream = process.getInputStream();
             int b;
@@ -255,6 +391,7 @@ public final class OdinHardwareBridge {
             if (process.exitValue() != 0) throw new IOException("Command rejected");
             return new String(output.toByteArray(), StandardCharsets.UTF_8).trim();
         } finally {
+            deadline.cancel(false);
             process.getInputStream().close(); process.getErrorStream().close(); process.getOutputStream().close();
         }
     }

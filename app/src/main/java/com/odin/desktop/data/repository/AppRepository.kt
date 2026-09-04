@@ -152,8 +152,8 @@ class AppRepository(
     }
 
     suspend fun sanitizeDefaultTabs() {
-        var tabs = tabDao.getAllTabs().toMutableList()
-        // 核心兜底：若数据库无 Tab，立即初始化预置默认分类
+        val tabs = tabDao.getAllTabs()
+        // 1. 首次启动初始化种子数据 (仅在没有任何 Tab 时执行一次)
         if (tabs.isEmpty()) {
             val defaultTabs = listOf(
                 TabEntity(name = "游戏与模拟器", sortOrder = 0, isDefault = true, isGameTab = true),
@@ -161,51 +161,17 @@ class AppRepository(
                 TabEntity(name = "全部应用", sortOrder = 2, isDefault = false, isGameTab = false)
             )
             tabDao.insertTabs(defaultTabs)
-            tabs = tabDao.getAllTabs().toMutableList()
+            autoPopulateDefaultTabMappings()
+            return
         }
 
-        // 兼容更名：将原有“系统工具”自动对齐为“系统应用”
-        val oldSystemTools = tabs.find { it.name == "系统工具" }
-        if (oldSystemTools != null && tabs.none { it.name == "系统应用" }) {
-            tabDao.updateTab(oldSystemTools.copy(name = "系统应用"))
-            tabs = tabDao.getAllTabs().toMutableList()
-        }
-
-        // 确保三大默认 Tab (游戏与模拟器, 系统应用, 全部应用) 齐备
-        val currentNames = tabs.map { it.name }.toSet()
-        if (!currentNames.contains("游戏与模拟器")) {
-            tabDao.insertTab(TabEntity(name = "游戏与模拟器", sortOrder = 0, isDefault = true, isGameTab = true))
-        }
-        if (!currentNames.contains("系统应用")) {
-            tabDao.insertTab(TabEntity(name = "系统应用", sortOrder = 1, isDefault = false, isGameTab = false))
-        }
-        if (!currentNames.contains("全部应用")) {
-            val total = tabDao.getTabCount()
-            tabDao.insertTab(TabEntity(name = "全部应用", sortOrder = total, isDefault = false, isGameTab = false))
-        }
-
-        val mediaTab = tabs.find { it.name == "影音媒体" }
-        if (mediaTab != null) {
-            val mappings = appMappingDao.getAppsForTabFlow(mediaTab.id).firstOrNull() ?: emptyList()
-            if (mappings.isEmpty()) {
-                tabDao.deleteTabById(mediaTab.id)
+        // 2. 日常启动轻量校验：保留用户的所有自定义设置，仅托底确保有默认首页
+        if (tabs.none { it.isDefault }) {
+            val first = tabs.minByOrNull { it.sortOrder }
+            if (first != null) {
+                tabDao.updateTab(first.copy(isDefault = true))
             }
         }
-
-        // 重新拉取并校准排序：首个 Tab 默认设为首页，【全部应用】固定在末尾
-        val updatedTabs = tabDao.getAllTabs().toMutableList()
-        val allAppsTab = updatedTabs.find { it.name == "全部应用" }
-        if (allAppsTab != null) {
-            val others = updatedTabs.filter { it.id != allAppsTab.id }.sortedBy { it.sortOrder }
-            val reordered = mutableListOf<TabEntity>()
-            others.forEachIndexed { idx, t ->
-                reordered.add(t.copy(sortOrder = idx, isDefault = (idx == 0)))
-            }
-            reordered.add(allAppsTab.copy(sortOrder = others.size, isDefault = false))
-            tabDao.updateTabs(reordered)
-        }
-
-        autoPopulateDefaultTabMappings()
     }
 
     suspend fun autoPopulateDefaultTabMappings() {

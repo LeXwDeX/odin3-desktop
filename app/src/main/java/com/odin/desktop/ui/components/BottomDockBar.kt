@@ -62,20 +62,18 @@ fun BottomDockBar(
     }
 
     // 2. 风扇：
-    // - 充电风扇静音开启 (按 X): 蓝色 "关闭" (特殊状态：充电静音功能开启，对应风扇关闭)
-    // - 手动常规档位 (按 A):
+    // - 充电风扇静音模式下停转: 蓝色 "关闭" (特殊状态：充电静音策略生效，风扇安全停转)
+    // - 手动常规档位 / 运转状态:
     //   - 关闭: 灰色 "关闭" (灰色 关闭/OFF)
     //   - 智能: 绿色 "智能" (绿色 安全/恒温)
     //   - 最大: 红色 "最大" (红色 严重/极速满负荷)
-    val (fanLabel, fanColor) = if (autoFanControlEnabled) {
-        "关闭" to BlueSpecial
-    } else {
-        when (fanMode) {
-            HardwareController.FAN_OFF -> "关闭" to TextDim
-            HardwareController.FAN_SMART -> "智能" to GreenActive
-            HardwareController.FAN_SPORT -> "最大" to RedDanger
-            else -> "关闭" to TextDim
-        }
+    val (fanLabel, fanColor) = when (fanMode) {
+        HardwareController.FAN_OFF -> if (autoFanControlEnabled) "关闭" to BlueSpecial else "关闭" to TextDim
+        HardwareController.FAN_SMART -> "智能" to GreenActive
+        HardwareController.FAN_SPORT -> "最大" to RedDanger
+        HardwareController.FAN_QUIET -> "静音" to GreenActive
+        2, 3, 6 -> "系统档" to TextDim
+        else -> "未读取" to TextDim
     }
 
     // 3. 摇杆灯：开启 (绿色 - ON 是绿色) / 关闭 (灰色 - OFF 是灰色)

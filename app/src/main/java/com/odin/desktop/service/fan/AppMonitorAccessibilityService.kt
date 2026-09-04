@@ -19,7 +19,14 @@ class AppMonitorAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
+        currentForegroundPackage = null
         android.util.Log.d("AppMonitor", "AppMonitorAccessibilityService destroyed!")
+        runCatching {
+            sendBroadcast(Intent(ACTION_FOREGROUND_CHANGED).apply {
+                putExtra(EXTRA_PACKAGE_NAME, null as String?)
+                setPackage(packageName)
+            })
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -31,10 +38,19 @@ class AppMonitorAccessibilityService : AccessibilityService() {
     }
 
     private fun syncFocusedApplication() {
-        val foreground = runCatching { focusedApplicationPackage() }.getOrElse {
-            Log.w("AppMonitor", "Could not read focused application window", it)
+        val foregroundResult = runCatching { focusedApplicationPackage() }
+        if (foregroundResult.isFailure) {
+            Log.w("AppMonitor", "Could not read focused application window", foregroundResult.exceptionOrNull())
+            if (currentForegroundPackage != null) {
+                currentForegroundPackage = null
+                sendBroadcast(Intent(ACTION_FOREGROUND_CHANGED).apply {
+                    putExtra(EXTRA_PACKAGE_NAME, null as String?)
+                    setPackage(this@AppMonitorAccessibilityService.packageName)
+                })
+            }
             return
-        } ?: return // QS and other system windows may own focus; retain the confirmed game.
+        }
+        val foreground = foregroundResult.getOrNull() ?: return // QS and other system windows may own focus; retain the confirmed app.
 
         // MainActivity can clear the engine independently of this service's cache.
         if (foreground == currentForegroundPackage && foreground == VideoShaderEngine.currentTargetPackage(this)) return
@@ -66,8 +82,7 @@ class AppMonitorAccessibilityService : AccessibilityService() {
     }
 
     private fun isIgnoredWindowOwner(owner: String): Boolean =
-        owner == packageName || // Launcher resets the engine explicitly in MainActivity.onResume.
-            owner == "com.android.systemui" || owner == "android" ||
+        owner == "com.android.systemui" || owner == "android" ||
             owner == "com.odin.gameassistant" || owner == "com.odin.mapping" ||
             owner == "com.odin.settings" || owner == "com.google.android.inputmethod.latin" ||
             owner.contains("inputmethod")

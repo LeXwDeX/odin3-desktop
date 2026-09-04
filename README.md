@@ -13,6 +13,8 @@
 
 </div>
 
+当前开发交接见 [性能、风扇与 Home/返回键修复记录](docs/performance-fan-home-fixes.md)。其中包含新机器 clone 后的构建步骤、已验证结果及设备重连后的待验项目。
+
 ---
 
 ## 📸 掌机视觉画册 (Showcase)

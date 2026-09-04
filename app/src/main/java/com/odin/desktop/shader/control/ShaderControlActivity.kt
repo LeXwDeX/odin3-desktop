@@ -10,6 +10,7 @@ import android.util.AtomicFile
 import android.view.KeyEvent
 import android.view.Window
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -206,6 +207,7 @@ class ShaderControlActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        flushPendingSave()
         VideoShaderEngine.endControlSession(applicationContext)
         super.onStop()
     }
@@ -216,8 +218,24 @@ class ShaderControlActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        resetBypassState()
+        flushPendingSave()
         preview.onPause()
         super.onPause()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (!hasFocus) {
+            resetBypassState()
+        }
+    }
+
+    private fun resetBypassState() {
+        if (uiIsBypassActive.value) {
+            preview.showOriginal(false)
+            uiIsBypassActive.value = false
+        }
     }
 
     private fun targetFromIntent(intent: Intent): String? =
@@ -291,29 +309,62 @@ class ShaderControlActivity : ComponentActivity() {
         preview.setEffects(normalized)
     }
 
+    private var hasPendingSave = false
+
     private fun updateEffectsAndSave(transform: (GameNativeShaderSettings) -> GameNativeShaderSettings) {
         val newSettings = transform(currentEffects).copy(family = automaticFamily).normalized()
         currentEffects = newSettings
         uiEffects.value = newSettings
         preview.setEffects(newSettings)
+        hasPendingSave = true
 
-        // 防抖保存
         saveDebounceJob?.cancel()
         saveDebounceJob = lifecycleScope.launch(Dispatchers.IO) {
             delay(250)
-            val game = targetPackage
-            if (game != null) {
-                val updated = (currentConfig ?: AppShaderConfigEntity.defaultFor(game))
-                    .copy(isEnabled = isAppFilterEnabled)
-                    .withEffects(newSettings)
-                currentConfig = updated
-                ControlConfigWrites.save(applicationContext, updated).await()
-            } else {
-                ControlConfigWrites.saveScreenshotSettings(applicationContext, newSettings).await()
-            }
-            withContext(Dispatchers.Main) {
+            commitPendingSave()
+        }
+    }
+
+    private suspend fun commitPendingSave() {
+        hasPendingSave = false
+        val game = targetPackage
+        val settings = currentEffects
+        val isEnabled = isAppFilterEnabled
+        val result = if (game != null) {
+            val updated = (currentConfig ?: AppShaderConfigEntity.defaultFor(game))
+                .copy(isEnabled = isEnabled)
+                .withEffects(settings)
+            currentConfig = updated
+            ControlConfigWrites.save(applicationContext, updated).await()
+        } else {
+            ControlConfigWrites.saveScreenshotSettings(applicationContext, settings).await()
+        }
+        withContext(Dispatchers.Main) {
+            if (result.isSuccess) {
                 uiSaveStatus.value = "已自动保存"
+            } else {
+                uiSaveStatus.value = "保存失败: ${result.exceptionOrNull()?.message ?: "写入错误"}"
             }
+        }
+    }
+
+    private fun flushPendingSave() {
+        if (!hasPendingSave) return
+        hasPendingSave = false
+        saveDebounceJob?.cancel()
+        saveDebounceJob = null
+        val game = targetPackage
+        val settings = currentEffects
+        val isEnabled = isAppFilterEnabled
+        val app = applicationContext
+        if (game != null) {
+            val updated = (currentConfig ?: AppShaderConfigEntity.defaultFor(game))
+                .copy(isEnabled = isEnabled)
+                .withEffects(settings)
+            currentConfig = updated
+            ControlConfigWrites.save(app, updated)
+        } else {
+            ControlConfigWrites.saveScreenshotSettings(app, settings)
         }
     }
 
@@ -324,15 +375,22 @@ class ShaderControlActivity : ComponentActivity() {
         uiAppFilterEnabled.value = next
 
         saveDebounceJob?.cancel()
+        hasPendingSave = false
         saveDebounceJob = lifecycleScope.launch(Dispatchers.IO) {
             val game = targetPackage ?: return@launch
             val updated = (currentConfig ?: AppShaderConfigEntity.defaultFor(game))
                 .copy(isEnabled = next)
                 .withEffects(currentEffects)
             currentConfig = updated
-            ControlConfigWrites.save(applicationContext, updated).await()
+            val result = ControlConfigWrites.save(applicationContext, updated).await()
             withContext(Dispatchers.Main) {
-                uiSaveStatus.value = if (next) "已应用到游戏" else "已从游戏停用"
+                if (result.isSuccess) {
+                    uiSaveStatus.value = if (next) "已应用到游戏" else "已从游戏停用"
+                } else {
+                    isAppFilterEnabled = !next
+                    uiAppFilterEnabled.value = !next
+                    uiSaveStatus.value = "保存失败: ${result.exceptionOrNull()?.message ?: "写入错误"}"
+                }
             }
         }
     }
@@ -376,6 +434,24 @@ class ShaderControlActivity : ComponentActivity() {
         return 5 // 自定义
     }
 
+    private var presetToast: Toast? = null
+
+    private fun cyclePreset(delta: Int) {
+        val cur = getPresetIndex(uiEffects.value)
+        val next = if (cur in 0..4) {
+            (cur + delta + 5) % 5
+        } else {
+            if (delta > 0) 0 else 4
+        }
+        selectPreset(next)
+        if (!uiIsOsdVisible.value) {
+            val name = presetNames.getOrElse(next) { "预设 $next" }
+            presetToast?.cancel()
+            presetToast = Toast.makeText(this, "滤镜预设：$name", Toast.LENGTH_SHORT)
+            presetToast?.show()
+        }
+    }
+
     /**
      * 手柄按键分发：D-Pad 上下选条目、左右即时微调数值、L1/R1 切换预设、X 按住对比、Y 隐藏菜单、A 切换/确认、B 退出。
      */
@@ -387,8 +463,7 @@ class ShaderControlActivity : ComponentActivity() {
                 uiIsBypassActive.value = true
                 return true
             } else if (event.action == KeyEvent.ACTION_UP) {
-                preview.showOriginal(false)
-                uiIsBypassActive.value = false
+                resetBypassState()
                 return true
             }
         }
@@ -401,28 +476,24 @@ class ShaderControlActivity : ComponentActivity() {
             }
         }
 
-        // B 键：如果 OSD 隐藏则唤醒，否则退出
+        // B 键：如果 OSD 隐藏则唤醒，否则退出 (退出前提交待保存配置)
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_B || event.keyCode == KeyEvent.KEYCODE_BACK) {
             if (event.action == KeyEvent.ACTION_UP) {
                 if (!uiIsOsdVisible.value) {
                     uiIsOsdVisible.value = true
                 } else {
+                    flushPendingSave()
                     finish()
                 }
                 return true
             }
         }
 
-        // L1 / R1：快捷轮播切换预设
+        // L1 / R1：快捷轮播切换预设 (5档可应用预设循环)
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1 || event.keyCode == KeyEvent.KEYCODE_BUTTON_R1) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                val currentPreset = getPresetIndex(uiEffects.value)
-                val next = if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1) {
-                    (currentPreset - 1 + 6) % 6
-                } else {
-                    (currentPreset + 1) % 6
-                }
-                selectPreset(next)
+                val delta = if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1) -1 else 1
+                cyclePreset(delta)
                 return true
             }
         }
@@ -459,50 +530,62 @@ class ShaderControlActivity : ComponentActivity() {
 
     private fun adjustCurrentItem(delta: Int) {
         when (uiSelectedMenuIndex.intValue) {
-            0 -> { // 预设轮播 (0..4)
-                val cur = getPresetIndex(uiEffects.value)
-                val next = (cur + delta + 5) % 5
-                selectPreset(next)
+            0 -> cyclePreset(delta)
+            1 -> updateEffectsAndSave { it.copy(contrast = (it.contrast + delta * 2f).coerceIn(-100f, 100f)) }
+            2 -> updateEffectsAndSave { it.copy(brightness = (it.brightness + delta * 2f).coerceIn(-100f, 100f)) }
+            3 -> updateEffectsAndSave { it.copy(gamma = (it.gamma + delta * 0.05f).coerceIn(0.5f, 2.5f)) }
+            4 -> updateEffectsAndSave { it.copy(enableCRT = !it.enableCRT) }
+            5 -> {
+                // AMD FSR 超分与锐度联动
+                updateEffectsAndSave { current ->
+                    val isFsrActive = current.scaling == ShaderScaling.FSR || current.scaling == ShaderScaling.FSR_ASPECT
+                    if (!isFsrActive) {
+                        if (delta > 0) {
+                            current.copy(scaling = ShaderScaling.FSR, fsrSharpnessLevel = 3)
+                        } else {
+                            current
+                        }
+                    } else {
+                        val nextLevel = current.fsrSharpnessLevel + delta
+                        if (nextLevel < 1) {
+                            current.copy(scaling = ShaderScaling.NONE)
+                        } else {
+                            current.copy(scaling = ShaderScaling.FSR, fsrSharpnessLevel = nextLevel.coerceAtMost(5))
+                        }
+                    }
+                }
             }
-            1 -> { // 对比度 (-100% ~ 100%, 步长 2%)
-                updateEffectsAndSave { it.copy(contrast = (it.contrast + delta * 2f).coerceIn(-100f, 100f)) }
-            }
-            2 -> { // 亮度 (-100% ~ 100%, 步长 2%)
-                updateEffectsAndSave { it.copy(brightness = (it.brightness + delta * 2f).coerceIn(-100f, 100f)) }
-            }
-            3 -> { // Gamma (0.50 ~ 2.50, 步长 0.05)
-                updateEffectsAndSave { it.copy(gamma = (it.gamma + delta * 0.05f).coerceIn(0.5f, 2.5f)) }
-            }
-            4 -> { // CRT 扫描线 (开关)
-                updateEffectsAndSave { it.copy(enableCRT = !it.enableCRT) }
-            }
-            5 -> { // FSR 锐度 (1 ~ 5 档)
-                updateEffectsAndSave { it.copy(fsrSharpnessLevel = (it.fsrSharpnessLevel + delta).coerceIn(1, 5)) }
-            }
-            6 -> { // Vivid 鲜艳增强
-                updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
-            }
-            7 -> { // FXAA 平滑抗锯齿
-                updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
-            }
-            8 -> { // 信号源切换
+            6 -> updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
+            7 -> updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
+            8 -> {
                 val next = (uiSelectedSignalSource.intValue + delta + signalSources.size) % signalSources.size
                 uiSelectedSignalSource.intValue = next
                 loadSignalSource(next)
             }
-            9 -> { // 应用到游戏
-                toggleAppFilter()
-            }
+            9 -> toggleAppFilter()
         }
     }
 
     private fun confirmCurrentItem() {
         when (uiSelectedMenuIndex.intValue) {
             4 -> updateEffectsAndSave { it.copy(enableCRT = !it.enableCRT) }
+            5 -> {
+                // A 键切换 FSR 开关
+                updateEffectsAndSave { current ->
+                    val isFsrActive = current.scaling == ShaderScaling.FSR || current.scaling == ShaderScaling.FSR_ASPECT
+                    if (isFsrActive) {
+                        current.copy(scaling = ShaderScaling.NONE)
+                    } else {
+                        current.copy(
+                            scaling = ShaderScaling.FSR,
+                            fsrSharpnessLevel = if (current.fsrSharpnessLevel in 1..5) current.fsrSharpnessLevel else 3
+                        )
+                    }
+                }
+            }
             6 -> updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
             7 -> updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
             8 -> {
-                // 如果当前选中的是自定义截图，按 A 弹出文件选择器
                 if (uiSelectedSignalSource.intValue == 3) {
                     imagePicker.launch("image/*")
                 } else {
@@ -613,7 +696,9 @@ class ShaderControlActivity : ComponentActivity() {
                     saveStatus = saveStatus,
                     onItemClick = { index ->
                         uiSelectedMenuIndex.intValue = index
-                        confirmCurrentItem()
+                        if (index == 4 || index == 5 || index == 6 || index == 7 || index == 8 || index == 9) {
+                            confirmCurrentItem()
+                        }
                     },
                     onItemAdjust = { index, delta ->
                         uiSelectedMenuIndex.intValue = index
@@ -849,14 +934,15 @@ class ShaderControlActivity : ComponentActivity() {
                     )
                 }
 
-                // 5. FSR 锐度级别
+                // 5. AMD FSR 超分与锐度级别
                 item {
+                    val isFsrActive = effects.scaling == ShaderScaling.FSR || effects.scaling == ShaderScaling.FSR_ASPECT
                     OsdSliderRow(
-                        title = "FSR 锐度级别",
-                        value = effects.fsrSharpnessLevel,
-                        min = 1,
+                        title = "AMD FSR 超分锐度",
+                        value = if (isFsrActive) effects.fsrSharpnessLevel else 0,
+                        min = 0,
                         max = 5,
-                        unit = "档",
+                        unit = if (isFsrActive) "档" else "关闭",
                         isSelected = selectedIndex == 5,
                         onClick = { onItemClick(5) },
                         onLeft = { onItemAdjust(5, -1) },
@@ -922,6 +1008,7 @@ class ShaderControlActivity : ComponentActivity() {
     ) {
         val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
         val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
+        val cleanValueText = valueText.removePrefix("◄ ").removeSuffix(" ►")
 
         Row(
             modifier = Modifier
@@ -933,7 +1020,7 @@ class ShaderControlActivity : ComponentActivity() {
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) { onClick() }
-                .padding(horizontal = 12.dp, vertical = 9.dp),
+                .padding(horizontal = 12.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -948,13 +1035,33 @@ class ShaderControlActivity : ComponentActivity() {
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                 )
             }
-            Text(
-                text = valueText,
-                color = valueColor,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onLeft() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "◄", color = if (isSelected) CyanAccent else Color(0xFF5A708C), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                Text(
+                    text = cleanValueText,
+                    color = valueColor,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onRight() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "►", color = if (isSelected) CyanAccent else Color(0xFF5A708C), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 
@@ -972,8 +1079,9 @@ class ShaderControlActivity : ComponentActivity() {
     ) {
         val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
         val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
+        val isClosed = (value == 0 && unit == "关闭")
         val sign = if (value > 0 && unit == "%") "+" else ""
-        val ratio = ((value - min).toFloat() / (max - min)).coerceIn(0f, 1f)
+        val ratio = if (isClosed) 0f else ((value - min).toFloat() / (max - min)).coerceIn(0f, 1f)
         val barCount = 10
         val filled = (ratio * barCount).roundToInt()
 
@@ -987,7 +1095,7 @@ class ShaderControlActivity : ComponentActivity() {
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) { onClick() }
-                .padding(horizontal = 12.dp, vertical = 9.dp),
+                .padding(horizontal = 12.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1003,18 +1111,51 @@ class ShaderControlActivity : ComponentActivity() {
                 )
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                // ◄ 独立触控减小按钮
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onLeft() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "◄",
+                        color = if (isSelected) CyanAccent else Color(0xFF5A708C),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 // 点阵/段落刻度条
-                val barStr = "◄ " + "▮".repeat(filled) + "▯".repeat(barCount - filled) + " ►"
+                val barStr = "▮".repeat(filled) + "▯".repeat(barCount - filled)
                 Text(
                     text = barStr,
-                    color = if (isSelected) CyanAccent else Color(0xFF5A708C),
+                    color = if (isClosed) Color(0xFF3A4B60) else if (isSelected) CyanAccent else Color(0xFF5A708C),
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace
                 )
+
+                // ► 独立触控增加按钮
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onRight() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "►",
+                        color = if (isSelected) CyanAccent else Color(0xFF5A708C),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 Text(
-                    text = "$sign$value$unit",
-                    color = if (value != 0) CyanAccent else TextDim,
+                    text = if (isClosed) "关闭" else "$sign$value$unit",
+                    color = if (isClosed) TextDim else if (value != 0) CyanAccent else TextDim,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
@@ -1050,7 +1191,7 @@ class ShaderControlActivity : ComponentActivity() {
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null
                 ) { onClick() }
-                .padding(horizontal = 12.dp, vertical = 9.dp),
+                .padding(horizontal = 12.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1066,14 +1207,47 @@ class ShaderControlActivity : ComponentActivity() {
                 )
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                val barStr = "◄ " + "▮".repeat(filled) + "▯".repeat(barCount - filled) + " ►"
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                // ◄ 独立触控减小按钮
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onLeft() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "◄",
+                        color = if (isSelected) CyanAccent else Color(0xFF5A708C),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                val barStr = "▮".repeat(filled) + "▯".repeat(barCount - filled)
                 Text(
                     text = barStr,
                     color = if (isSelected) CyanAccent else Color(0xFF5A708C),
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace
                 )
+
+                // ► 独立触控增加按钮
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onRight() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "►",
+                        color = if (isSelected) CyanAccent else Color(0xFF5A708C),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 Text(
                     text = String.format(Locale.US, "%.2f", value),
                     color = CyanAccent,

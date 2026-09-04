@@ -9,7 +9,13 @@ public final class HardwareBridgeSelfTest {
     private static int checks;
 
     public static void main(String[] args) throws Exception {
+        if (args.length == 1 && "--timeout-child".equals(args[0])) {
+            Thread.sleep(5000);
+            return;
+        }
         normalOperations();
+        performanceFanCoupling();
+        observerOverwriteAndFanRollback();
         performanceReadOnly();
         rejectUnknownOperations();
         partialChargeRollback();
@@ -18,7 +24,84 @@ public final class HardwareBridgeSelfTest {
         propertyPartialFailureRollback();
         rejectedSnapshotDoesNotWrite();
         protocolPrimitives();
+        commandDeadline();
         System.out.println("Hardware bridge self-test passed (" + checks + " checks).");
+    }
+
+    private static void commandDeadline() throws Exception {
+        String java = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+        equal(true, OdinHardwareBridge.run(java, "-version").contains("version"));
+        long start = System.nanoTime();
+        try {
+            OdinHardwareBridge.run(java, "-cp", System.getProperty("java.class.path"),
+                HardwareBridgeSelfTest.class.getName(), "--timeout-child");
+            throw new AssertionError("Hung command was not terminated");
+        } catch (IOException expected) {
+            long millis = (System.nanoTime() - start) / 1_000_000;
+            equal(true, millis >= 1800 && millis < 4500);
+        }
+    }
+
+    private static void performanceFanCoupling() {
+        // OEM performance observers can reset PWM even while fan_mode still says MAX.
+        MemoryStore store = new MemoryStore() {
+            String output = "5";
+            @Override public void property(String value) throws Exception {
+                super.property(value);
+                output = "0";
+            }
+            @Override public void put(String name, String value) throws Exception {
+                String previous = values.get(name);
+                super.put(name, value);
+                if (OdinHardwareBridge.FAN.equals(name) && !Objects.equals(previous, value)) output = value;
+            }
+            public boolean fanMatches(String value) { return value.equals(output); }
+        };
+        store.values.put(OdinHardwareBridge.FAN, "5");
+        OdinHardwareBridge bridge = bridge(store);
+        for (String perf : Arrays.asList("1", "2", "0", "2", "1", "0")) {
+            equal("OK\tPERFORMANCE\t" + perf, bridge.execute("PERFORMANCE\t" + perf));
+            equal("5", store.values.get(OdinHardwareBridge.FAN));
+            equal(true, store.fanMatches("5"));
+        }
+        equal("OK\tPERFORMANCE_FAN\t0\t4", bridge.execute("PERFORMANCE_FAN\t0\t4"));
+        equal("OK\tFAN\t4", bridge.execute("FAN_GET"));
+        equal("OK\tPERFORMANCE\t1", bridge.execute("PERFORMANCE\t1"));
+        equal("4", store.values.get(OdinHardwareBridge.FAN));
+        equal("OK\tPERFORMANCE\t0", bridge.execute("PERFORMANCE\t0"));
+        equal("0", store.values.get(OdinHardwareBridge.FAN));
+    }
+
+    private static void observerOverwriteAndFanRollback() {
+        MemoryStore observer = new MemoryStore() {
+            @Override public void settlePerformance() {
+                values.put(OdinHardwareBridge.FAN, "0".equals(mode) ? "0" : "1");
+            }
+        };
+        observer.values.put(OdinHardwareBridge.FAN, "5");
+        equal("OK\tPERFORMANCE_FAN\t0\t5", bridge(observer).execute("PERFORMANCE_FAN\t0\t5"));
+        equal("5", observer.values.get(OdinHardwareBridge.FAN));
+
+        MemoryStore rejected = new MemoryStore() {
+            @Override public void put(String name, String value) throws Exception {
+                super.put(name, value);
+                if (OdinHardwareBridge.PERFORMANCE.equals(name)) values.put(OdinHardwareBridge.FAN, "0");
+            }
+            @Override public void awaitFan(String value) throws Exception {
+                if ("5".equals(value)) throw new IOException("driver did not apply request");
+            }
+        };
+        rejected.values.put(OdinHardwareBridge.FAN, "4");
+        equal("ERR\tWRITE_REJECTED", bridge(rejected).execute("PERFORMANCE_FAN\t2\t5"));
+        equal("0", rejected.mode);
+        equal("0", rejected.values.get(OdinHardwareBridge.PERFORMANCE));
+        equal("4", rejected.values.get(OdinHardwareBridge.FAN));
+
+        MemoryStore mismatch = new MemoryStore() {
+            @Override public boolean fanMatches(String value) { return false; }
+        };
+        equal("ERR\tREAD_UNAVAILABLE", bridge(mismatch).execute("FAN_GET"));
+        equal(0, mismatch.writes);
     }
 
     private static void normalOperations() {
@@ -49,6 +132,7 @@ public final class HardwareBridgeSelfTest {
         OdinHardwareBridge bridge = bridge(store);
         String[] invalid = {
             "SET\tperformance_mode\t1", "PERFORMANCE\t3", "PERFORMANCE\t-1",
+            "PERFORMANCE_FAN\t1\t0", "PERFORMANCE_FAN\t2\t0", "PERFORMANCE_FAN\t0\t6", "FAN_GET\tfan_mode",
             "SET\tfan_mode\t6", "SET\tfan_mode\t1", "SET\tfan_mode\t5;id",
             "SET\tairplane_mode_on\t1", "SET\t../token\t1", "SETPROP\tother\t1",
             "FORCE_STOP\tcom.example", "CMD\tid", "CHARGE\t2", "LIGHTS\t1,0",
@@ -185,5 +269,6 @@ public final class HardwareBridgeSelfTest {
         }
         public String property() { return mode; }
         public void property(String value) throws Exception { mode = value; writes++; }
+        public boolean fanMatches(String value) { return Objects.equals(value, values.get(OdinHardwareBridge.FAN)); }
     }
 }

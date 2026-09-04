@@ -50,34 +50,50 @@ object HardwareController {
     const val PREFS_NAME = "odin_desktop_prefs"
     const val KEY_AUTO_FAN_CONTROL = "auto_fan_control_enabled"
     const val ACTION_AUTO_FAN_CONFIG_CHANGED = "com.odin.desktop.action.AUTO_FAN_CONFIG_CHANGED"
+    const val ACTION_FAN_STATE_CHANGED = "com.odin.desktop.action.FAN_STATE_CHANGED"
+    private val fanControl = FanControlCoordinator()
 
     /**
      * 读取 Odin 3 硬件 SoC (CPU 与 GPU) 实时最高温度 (°C)
      */
     fun getMaxCpuGpuTemp(): Float {
-        var maxTemp = 0f
+        var maxCpuTemp = Float.NaN
+        var maxGpuTemp = Float.NaN
         try {
             val dir = java.io.File("/sys/class/thermal")
-            dir.listFiles()?.forEach { file ->
+            val files = dir.listFiles() ?: return Float.NaN
+            for (file in files) {
                 if (file.name.startsWith("thermal_zone")) {
                     val typeFile = java.io.File(file, "type")
-                    if (typeFile.exists()) {
-                        val type = typeFile.readText().trim()
-                        if (type.contains("cpu", ignoreCase = true) || type.contains("gpu", ignoreCase = true)) {
-                            val tempFile = java.io.File(file, "temp")
-                            if (tempFile.exists()) {
-                                val raw = tempFile.readText().trim().toLongOrNull() ?: 0L
-                                val temp = if (raw > 1000) raw / 1000f else raw.toFloat()
-                                if (temp in 10f..120f && temp > maxTemp) {
-                                    maxTemp = temp
+                    if (!typeFile.exists()) continue
+                    val type = typeFile.readText().trim()
+                    val isCpu = type.contains("cpu", ignoreCase = true)
+                    val isGpu = type.contains("gpu", ignoreCase = true)
+                    if (isCpu || isGpu) {
+                        val tempFile = java.io.File(file, "temp")
+                        if (tempFile.exists()) {
+                            val raw = tempFile.readText().trim().toLongOrNull() ?: continue
+                            val temp = if (raw > 1000) raw / 1000f else raw.toFloat()
+                            if (temp in 10f..120f) {
+                                if (isCpu) {
+                                    maxCpuTemp = if (maxCpuTemp.isNaN()) temp else maxOf(maxCpuTemp, temp)
+                                }
+                                if (isGpu) {
+                                    maxGpuTemp = if (maxGpuTemp.isNaN()) temp else maxOf(maxGpuTemp, temp)
                                 }
                             }
                         }
                     }
                 }
             }
-        } catch (_: Exception) {}
-        return if (maxTemp > 0) maxTemp else Float.NaN
+        } catch (_: Exception) {
+            return Float.NaN
+        }
+        // Require both CPU and GPU to have at least one valid reading to prevent partial success
+        if (maxCpuTemp.isNaN() || maxGpuTemp.isNaN()) {
+            return Float.NaN
+        }
+        return maxOf(maxCpuTemp, maxGpuTemp)
     }
 
     fun isAutoFanControlEnabled(context: Context): Boolean {
@@ -87,11 +103,7 @@ object HardwareController {
 
     @Synchronized
     fun setAutoFanControlEnabled(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(KEY_AUTO_FAN_CONTROL, enabled)
-            .apply()
-        context.sendBroadcast(Intent(ACTION_AUTO_FAN_CONFIG_CHANGED).setPackage(context.packageName))
+        fanControl.setAutoEnabled(fanBackend(context), enabled)
     }
 
     private fun systemValue(context: Context, key: String): String? =
@@ -116,47 +128,99 @@ object HardwareController {
 
     data class PerfFanResult(val perfMode: Int, val fanMode: Int)
 
+    @Synchronized
     fun cyclePerformanceMode(context: Context): PerfFanResult {
         val next = (getPerformanceMode(context) + 1) % 3
-        setPerformanceMode(context, next)
-        if (next != PERF_NORMAL) setFanMode(context, FAN_SMART)
-        return PerfFanResult(getPerformanceMode(context), getFanMode(context))
+        return setPerformanceMode(context, next)
     }
 
-    fun setPerformanceMode(context: Context, mode: Int): Boolean {
-        require(mode in 0..2)
-        val reply = HardwareBridgeClient.request(context, "PERFORMANCE\t$mode")
-        if (reply != listOf("PERFORMANCE", mode.toString()) || getPerformanceMode(context) != mode) {
-            throw HardwareControlException("系统未切换到所选性能模式，请刷新状态。")
+    @Synchronized
+    fun setPerformanceMode(context: Context, mode: Int): PerfFanResult {
+        val state = fanControl.setPerformance(fanBackend(context), mode)
+        if (state.autoEnabled) {
+            context.sendBroadcast(Intent(ACTION_AUTO_FAN_CONFIG_CHANGED).setPackage(context.packageName))
         }
-        return true
+        return PerfFanResult(state.performanceMode, state.fanMode)
+    }
+
+    @Synchronized
+    fun setPerformanceAndFan(context: Context, mode: Int, fan: Int): PerfFanResult {
+        val state = fanControl.setPerformance(fanBackend(context), mode, fan)
+        if (state.autoEnabled) {
+            context.sendBroadcast(Intent(ACTION_AUTO_FAN_CONFIG_CHANGED).setPackage(context.packageName))
+        }
+        return PerfFanResult(state.performanceMode, state.fanMode)
     }
 
     // --- 风扇模式 ---
-    fun getFanMode(context: Context): Int = systemValue(context, KEY_FAN_MODE)?.toIntOrNull()
-        ?: throw HardwareControlException("无法读取风扇模式。")
+    fun getFanMode(context: Context): Int {
+        val reply = HardwareBridgeClient.request(context, "FAN_GET")
+        val value = reply.getOrNull(1)?.toIntOrNull()
+        if (reply.size != 2 || reply[0] != "FAN" || value == null || value !in 0..6) {
+            throw HardwareControlException("无法确认风扇实际档位，请刷新状态。")
+        }
+        return value
+    }
 
+    @Synchronized
     fun cycleFanMode(context: Context): Int {
         val next = when (getFanMode(context)) {
             FAN_OFF -> FAN_SMART
             FAN_SMART -> FAN_SPORT
             else -> FAN_OFF
         }
-        setFanMode(context, next)
-        return getFanMode(context)
+        return setManualFanMode(context, next)
     }
 
+    @Synchronized
     fun setFanMode(context: Context, mode: Int): Boolean {
-        require(mode == FAN_OFF || mode == FAN_SMART || mode == FAN_SPORT)
-        setSystem(context, KEY_FAN_MODE, mode.toString())
+        setManualFanMode(context, mode)
         return true
     }
 
-    /** Serialize the last policy check with disabling automation before a manual fan write. */
     @Synchronized
-    fun setFanModeIfAutoEnabled(context: Context, mode: Int): Boolean {
-        if (!isAutoFanControlEnabled(context)) return false
-        return setFanMode(context, mode)
+    fun setManualFanMode(context: Context, mode: Int): Int =
+        fanControl.setManualFan(fanBackend(context), mode)
+
+    @Synchronized
+    fun getFanPolicySnapshot(context: Context): FanControlCoordinator.Snapshot =
+        fanControl.snapshot(fanBackend(context))
+
+    @Synchronized
+    fun applyFanPolicy(
+        context: Context,
+        expected: FanControlCoordinator.Snapshot,
+        mode: Int,
+        requestIsCurrent: () -> Boolean
+    ): Boolean {
+        val applied = fanControl.applyPolicy(fanBackend(context), expected, mode, requestIsCurrent)
+        if (applied && expected.fanMode != mode &&
+            (expected.autoEnabled || expected.fanMode == FAN_OFF)) {
+            // Settings notifications precede OEM settling. Publish completion only after the
+            // bridge has confirmed the driver state, including changes made by the watchdog.
+            context.sendBroadcast(Intent(ACTION_FAN_STATE_CHANGED).setPackage(context.packageName))
+        }
+        return applied
+    }
+
+    private fun fanBackend(context: Context) = object : FanControlCoordinator.Backend {
+        override fun readPerformance(): Int = getPerformanceMode(context)
+        override fun readFan(): Int = getFanMode(context)
+        override fun readConfiguredFan(): Int = systemValue(context, KEY_FAN_MODE)?.toIntOrNull()
+            ?.takeIf { it in 0..6 } ?: throw HardwareControlException("无法读取已选择的风扇档位。")
+        override fun readAutoEnabled(): Boolean = isAutoFanControlEnabled(context)
+        override fun writeAutoEnabled(enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                .putBoolean(KEY_AUTO_FAN_CONTROL, enabled).apply()
+            context.sendBroadcast(Intent(ACTION_AUTO_FAN_CONFIG_CHANGED).setPackage(context.packageName))
+        }
+        override fun writeFan(mode: Int) = setSystem(context, KEY_FAN_MODE, mode.toString())
+        override fun writePerformanceAndFan(performance: Int, fan: Int) {
+            val reply = HardwareBridgeClient.request(context, "PERFORMANCE_FAN\t$performance\t$fan")
+            if (reply != listOf("PERFORMANCE_FAN", performance.toString(), fan.toString())) {
+                throw HardwareControlException("性能和风扇未全部切换成功，请刷新状态。")
+            }
+        }
     }
 
     // --- 摇杆灯开关 ---

@@ -1,9 +1,16 @@
 package com.odin.desktop.ui.viewmodel
 
 import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.odin.desktop.dashboard.DashboardAction
@@ -146,8 +153,23 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _chargeLimit80 = MutableStateFlow(false)
     val chargeLimit80: StateFlow<Boolean> = _chargeLimit80.asStateFlow()
     private val hardwareLock = Mutex()
-    private var perfJob: Job? = null
-    private var fanJob: Job? = null
+    private val hardwareRefreshRequests = Channel<Unit>(Channel.CONFLATED)
+    private val hardwareObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) { hardwareRefreshRequests.trySend(Unit) }
+    }
+    private val fanStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == HardwareController.ACTION_FAN_STATE_CHANGED) {
+                hardwareRefreshRequests.trySend(Unit)
+            }
+        }
+    }
+    private var coolingJob: Job? = null
+    @Volatile private var coolingIntentPending = false
+    private val coolingIntentRevision = java.util.concurrent.atomic.AtomicLong()
+    // Each press updates the selection immediately. Coalesce pending commands by kind,
+    // finish in-flight writes, then reconcile only if no newer user intent has arrived.
+    private val pendingCoolingActions = linkedMapOf<String, () -> Unit>()
     private var lightJob: Job? = null
     private var chargePowerJob: Job? = null
     private var chargeSeparationJob: Job? = null
@@ -225,6 +247,27 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val pickedAppIndex: StateFlow<Int?> = _pickedAppIndex.asStateFlow()
 
     init {
+        ContextCompat.registerReceiver(context, fanStateReceiver,
+            IntentFilter(HardwareController.ACTION_FAN_STATE_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED)
+        context.contentResolver.registerContentObserver(
+            Settings.System.getUriFor(HardwareController.KEY_FAN_MODE), false, hardwareObserver)
+        context.contentResolver.registerContentObserver(
+            Settings.System.getUriFor(HardwareController.KEY_PERFORMANCE_MODE), false, hardwareObserver)
+        viewModelScope.launch(Dispatchers.IO) {
+            for (ignored in hardwareRefreshRequests) {
+                delay(150)
+                while (hardwareRefreshRequests.tryReceive().isSuccess) { /* Coalesce OEM notifications. */ }
+                // Keep the completion event until the optimistic selection has been committed.
+                while (coolingIntentPending) delay(50)
+                // Settings observers fire before the OEM's asynchronous PWM write completes.
+                // Retry a short, bounded window so an intermediate mismatch is not left on screen.
+                for (attempt in 0..2) {
+                    hardwareLock.withLock { refreshHardwareStates(refreshPerformance = true) }
+                    if (_fanMode.value >= 0) break
+                    if (attempt < 2) delay(300)
+                }
+            }
+        }
         viewModelScope.launch(Dispatchers.IO) {
             appRepository.sanitizeDefaultTabs()
         }
@@ -234,24 +277,40 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun loadHardwareStates() {
-        viewModelScope.launch(Dispatchers.IO) {
-            hardwareLock.withLock { refreshHardwareStates(refreshPerformance = true) }
-        }
+        hardwareRefreshRequests.trySend(Unit)
     }
 
-    private fun refreshHardwareStates(refreshPerformance: Boolean = false) {
-        // A failed read keeps the last observed value; requested values never become device state.
-        if (refreshPerformance || _performanceMode.value < 0) {
-            runCatching { HardwareController.getPerformanceMode(context) }.onSuccess { _performanceMode.value = it }.onFailure { _performanceMode.value = -1 }
+    override fun onCleared() {
+        context.unregisterReceiver(fanStateReceiver)
+        context.contentResolver.unregisterContentObserver(hardwareObserver)
+        hardwareRefreshRequests.close()
+        super.onCleared()
+    }
+
+    private suspend fun refreshHardwareStates(refreshPerformance: Boolean = false) {
+        val revision = coolingIntentRevision.get()
+        if (!coolingIntentPending) {
+            val performance = if (refreshPerformance || _performanceMode.value < 0) {
+                runCatching { HardwareController.getPerformanceMode(context) }.getOrDefault(-1)
+            } else _performanceMode.value
+            val fan = runCatching { HardwareController.getFanMode(context) }.getOrDefault(-1)
+            val auto = HardwareController.isAutoFanControlEnabled(context)
+            // Publish on the input thread: checking the revision and changing the visible
+            // selection must not race a button press between the check and the assignment.
+            withContext(Dispatchers.Main) {
+                if (!coolingIntentPending && revision == coolingIntentRevision.get()) {
+                    _performanceMode.value = performance
+                    _fanMode.value = fan
+                    _autoFanControlEnabled.value = auto
+                }
+            }
         }
-        runCatching { HardwareController.getFanMode(context) }.onSuccess { _fanMode.value = it }
         runCatching { HardwareController.isJoystickLightEnabled(context) }.onSuccess { _joystickLightEnabled.value = it }
         runCatching { HardwareController.getJoystickColor(context) }.onSuccess { _joystickColor.value = it.substringBefore(',') }
         runCatching { HardwareController.isChargingSeparationEnabled(context) }.onSuccess { _chargingSeparation.value = it }
         runCatching { HardwareController.isChargePowerLimit5V(context) }.onSuccess { _chargePowerLimit.value = it }
         runCatching { HardwareController.isChargeLimit80Enabled(context) }.onSuccess { _chargeLimit80.value = it }
         runCatching { HardwareController.isAirplaneModeOn(context) }.onSuccess { _airplaneMode.value = it }
-        _autoFanControlEnabled.value = HardwareController.isAutoFanControlEnabled(context)
         _orientationMode.value = HardwareController.getOrientationMode(context)
         _isDefaultHome.value = HardwareController.isDefaultHome(context)
         _bootAutoStartEnabled.value = HardwareController.isBootAutoStartEnabled(context)
@@ -921,102 +980,81 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _bootAutoStartEnabled.value = HardwareController.isBootAutoStartEnabled(context)
     }
 
+    private fun enqueueCoolingAction(kind: String, action: () -> Unit) {
+        coolingIntentRevision.incrementAndGet()
+        coolingIntentPending = true
+        pendingCoolingActions.remove(kind)
+        pendingCoolingActions[kind] = action
+        if (coolingJob?.isActive == true) return
+        coolingJob = viewModelScope.launch {
+            try {
+                delay(150)
+                while (pendingCoolingActions.isNotEmpty()) {
+                    val actions = pendingCoolingActions.values.toList()
+                    pendingCoolingActions.clear()
+                    withContext(Dispatchers.IO) {
+                        hardwareLock.withLock {
+                            for (pending in actions) {
+                                try {
+                                    pending()
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (failure: Exception) {
+                                    android.util.Log.w("OdinHardware", "Performance/fan action failed", failure)
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, failure.message ?: "性能或风扇设置未生效，请重试", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (pendingCoolingActions.isEmpty()) {
+                        coolingIntentPending = false
+                        withContext(Dispatchers.IO) {
+                            hardwareLock.withLock { refreshHardwareStates(refreshPerformance = true) }
+                        }
+                    }
+                    if (pendingCoolingActions.isNotEmpty()) delay(150)
+                }
+            } finally {
+                coolingIntentPending = false
+            }
+        }
+    }
+
     fun cyclePerformanceMode() {
         val current = _performanceMode.value
         val next = if (current in 0..2) (current + 1) % 3 else HardwareController.PERF_NORMAL
         _performanceMode.value = next
-
-        perfJob?.cancel()
-        perfJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(200)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setPerformanceMode(context, next)
-                    if (next != HardwareController.PERF_NORMAL && _fanMode.value == HardwareController.FAN_OFF) {
-                        _fanMode.value = HardwareController.FAN_SMART
-                        _autoFanControlEnabled.value = false
-                        HardwareController.setFanMode(context, HardwareController.FAN_SMART)
-                        HardwareController.setAutoFanControlEnabled(context, false)
-                    }
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Performance mode cycle failed", failure)
-                    runCatching { HardwareController.getPerformanceMode(context) }
-                        .onSuccess { _performanceMode.value = it }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: "性能模式切换失败，请重试", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
+        val auto = _autoFanControlEnabled.value
+        val currentFan = _fanMode.value
+        val fanTarget = if (!auto && currentFan == HardwareController.FAN_SPORT) HardwareController.FAN_SPORT
+            else if (auto || next != HardwareController.PERF_NORMAL) HardwareController.FAN_SMART
+            else HardwareController.FAN_OFF
+        _fanMode.value = fanTarget
+        enqueueCoolingAction("performance") { HardwareController.setPerformanceAndFan(context, next, fanTarget) }
     }
 
     fun cycleFanMode() {
-        val wasAuto = _autoFanControlEnabled.value
-        _autoFanControlEnabled.value = false
-        val targetFan = if (wasAuto) {
-            HardwareController.FAN_OFF
-        } else {
-            when (_fanMode.value) {
-                HardwareController.FAN_OFF -> HardwareController.FAN_SMART
-                HardwareController.FAN_SMART -> HardwareController.FAN_SPORT
-                else -> HardwareController.FAN_OFF
-            }
+        val targetFan = when (_fanMode.value) {
+            HardwareController.FAN_OFF -> HardwareController.FAN_SMART
+            HardwareController.FAN_SMART -> HardwareController.FAN_SPORT
+            HardwareController.FAN_SPORT -> HardwareController.FAN_OFF
+            else -> HardwareController.FAN_SMART
         }
         _fanMode.value = targetFan
-
-        fanJob?.cancel()
-        fanJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(200)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setAutoFanControlEnabled(context, false)
-                    HardwareController.setFanMode(context, targetFan)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Fan mode cycle failed", failure)
-                    _autoFanControlEnabled.value = HardwareController.isAutoFanControlEnabled(context)
-                    runCatching { HardwareController.getFanMode(context) }
-                        .onSuccess { _fanMode.value = it }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: "风扇档位切换失败，请重试", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
+        _autoFanControlEnabled.value = false
+        // Manual fan selection includes disabling automation, superseding an earlier toggle.
+        pendingCoolingActions.remove("automation")
+        enqueueCoolingAction("fan") {
+            HardwareController.setManualFanMode(context, targetFan)
         }
     }
 
     fun toggleAutoFanControl() {
-        val next = !_autoFanControlEnabled.value
+        val next = !(_autoFanControlEnabled.value)
         _autoFanControlEnabled.value = next
-        if (next) {
-            _fanMode.value = HardwareController.FAN_OFF
-        }
-
-        fanJob?.cancel()
-        fanJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(200)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setAutoFanControlEnabled(context, next)
-                    if (next) {
-                        HardwareController.setFanMode(context, HardwareController.FAN_OFF)
-                    }
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Auto fan control toggle failed", failure)
-                    _autoFanControlEnabled.value = HardwareController.isAutoFanControlEnabled(context)
-                    runCatching { HardwareController.getFanMode(context) }
-                        .onSuccess { _fanMode.value = it }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: "充电风扇静音切换失败，请重试", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
+        enqueueCoolingAction("automation") { HardwareController.setAutoFanControlEnabled(context, next) }
     }
 
     fun toggleJoystickLight() {
@@ -1188,8 +1226,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun moveAppToTab(app: InstalledApp, targetTabId: Long) {
+        val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
+        if (currentTab != null && currentTab.name != "全部应用") {
+            _currentTabApps.value = _currentTabApps.value.filter { it.packageName != app.packageName }
+            _currentTabAppPackages.value = _currentTabAppPackages.value - app.packageName
+            if (_selectedAppIndex.value >= _currentTabApps.value.size) {
+                _selectedAppIndex.value = (_currentTabApps.value.size - 1).coerceAtLeast(0)
+            }
+        }
         viewModelScope.launch {
-            val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
             if (currentTab != null && currentTab.name != "全部应用") {
                 appRepository.removeAppFromTab(currentTab.id, app.packageName)
             }
@@ -1250,10 +1295,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun saveCurrentTabAppOrder() {
+        val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value) ?: return
+        val tabId = currentTab.id
+        val pkgs = _currentTabApps.value.map { it.packageName }
         viewModelScope.launch(Dispatchers.IO) {
-            val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value) ?: return@launch
-            val pkgs = _currentTabApps.value.map { it.packageName }
-            appRepository.updateAppOrder(currentTab.id, pkgs)
+            appRepository.updateAppOrder(tabId, pkgs)
         }
     }
 
@@ -1262,6 +1308,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (currentTab.name == "全部应用") {
             Toast.makeText(context, "【全部应用】为系统全集分类，无法直接移除图标", Toast.LENGTH_SHORT).show()
             return
+        }
+        _currentTabApps.value = _currentTabApps.value.filter { it.packageName != app.packageName }
+        _currentTabAppPackages.value = _currentTabAppPackages.value - app.packageName
+        if (_selectedAppIndex.value >= _currentTabApps.value.size) {
+            _selectedAppIndex.value = (_currentTabApps.value.size - 1).coerceAtLeast(0)
         }
         viewModelScope.launch {
             appRepository.removeAppFromTab(currentTab.id, app.packageName)
@@ -1273,6 +1324,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // --- 应用操作模态框 (Y 键) ---
     fun openAppActionDialog() {
         if (_isDashboardSelected.value || _isConfigOpen.value || _isAppBatchManageDialogOpen.value || _isAppActionDialogOpen.value) return
+        if (_isReorderingApps.value) {
+            exitReorderMode()
+        }
         val app = _currentTabApps.value.getOrNull(_selectedAppIndex.value) ?: return
         _appUnderAction.value = app
         _appActionFocusIndex.value = 0

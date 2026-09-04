@@ -26,6 +26,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 /** Charging-mode policy only; disabling it leaves manual fan settings untouched. */
@@ -33,15 +34,15 @@ class FanWatchdogService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val policyRequests = Channel<PolicyRequest>(Channel.CONFLATED)
     private val requestVersion = AtomicLong()
+    private val resetBackoffRequested = AtomicBoolean()
     private lateinit var appRepository: AppRepository
     private var receiverRegistered = false
     @Volatile private var isCharging = false
-    private var mutedByPolicy = false
     private var failureCount = 0
     private var retryAfterMillis = 0L
     private var nextAccessibilityAttemptMillis = 0L
 
-    private data class PolicyRequest(val version: Long, val resetBackoff: Boolean)
+    private data class PolicyRequest(val version: Long)
     private class FanModeWriteException(val target: Int, cause: Exception) : Exception("Fan mode write failed", cause)
 
     private val receiver = object : BroadcastReceiver() {
@@ -102,46 +103,47 @@ class FanWatchdogService : Service() {
     }
 
     private fun requestEvaluation(resetBackoff: Boolean = false) {
-        policyRequests.trySend(PolicyRequest(requestVersion.incrementAndGet(), resetBackoff))
+        // A battery event may replace a config event in the conflated channel; keep its reset.
+        if (resetBackoff) resetBackoffRequested.set(true)
+        policyRequests.trySend(PolicyRequest(requestVersion.incrementAndGet()))
     }
 
     private suspend fun evaluateFanPolicy(request: PolicyRequest) {
         try {
-            if (!HardwareController.isAutoFanControlEnabled(this)) {
-                mutedByPolicy = false
-                failureCount = 0
-                retryAfterMillis = 0L
-                return
-            }
-            if (request.resetBackoff) {
+            if (resetBackoffRequested.getAndSet(false)) {
                 failureCount = 0
                 retryAfterMillis = 0L
             }
             if (SystemClock.elapsedRealtime() < retryAfterMillis) return
+            val snapshot = HardwareController.getFanPolicySnapshot(this)
+            if (!snapshot.autoEnabled) {
+                if (snapshot.mutedByPolicy) {
+                    applyPolicyMode(HardwareController.FAN_SMART, snapshot, request.version)
+                }
+                failureCount = 0
+                retryAfterMillis = 0L
+                return
+            }
             val maxTemp = HardwareController.getMaxCpuGpuTemp()
             check(maxTemp.isFinite() && maxTemp > 0f) { "CPU/GPU temperature is unavailable" }
-            val foreground = AppMonitorAccessibilityService.currentForegroundPackage
-            val currentFan = HardwareController.getFanMode(this)
-            val target = when {
-                maxTemp > 60f -> safeCoolingMode(currentFan)
-                !isCharging -> if (mutedByPolicy) safeCoolingMode(currentFan) else null
-                foreground == null -> if (mutedByPolicy) safeCoolingMode(currentFan) else null
-                foreground != packageName && appRepository.isGamePackage(foreground) -> safeCoolingMode(currentFan)
-                HardwareController.getPerformanceMode(this) != HardwareController.PERF_NORMAL ->
-                    if (mutedByPolicy) safeCoolingMode(currentFan) else null
-                else -> HardwareController.FAN_OFF
-            }
-            if (target != null) applyPolicyMode(target, currentFan, request.version)
+            val isAccessibilityActive = AppMonitorAccessibilityService.isRunning
+            val foreground = if (isAccessibilityActive) AppMonitorAccessibilityService.currentForegroundPackage else null
+            val isGame = foreground != null && foreground != packageName && appRepository.isGamePackage(foreground)
+            val isUnknownForeground = !isAccessibilityActive || foreground == null
+            val target = FanControlCoordinator.policyTarget(snapshot, maxTemp, isCharging, isGame, !isUnknownForeground)
+            if (target != null) applyPolicyMode(target, snapshot, request.version)
             failureCount = 0
             retryAfterMillis = 0L
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
             // A missing sensor or failed game query must never leave our own silent mode trusted.
-            if (mutedByPolicy && (error !is FanModeWriteException || error.target == HardwareController.FAN_OFF)) {
+            if (error !is FanModeWriteException || error.target == HardwareController.FAN_OFF) {
                 try {
-                    val currentFan = HardwareController.getFanMode(this)
-                    applyPolicyMode(safeCoolingMode(currentFan), currentFan, request.version)
+                    val recovery = HardwareController.getFanPolicySnapshot(this)
+                    if (recovery.mutedByPolicy) {
+                        applyPolicyMode(FanControlCoordinator.safeCoolingMode(recovery.fanMode), recovery, request.version)
+                    }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (recoveryError: Exception) {
@@ -155,27 +157,16 @@ class FanWatchdogService : Service() {
         }
     }
 
-    private fun safeCoolingMode(current: Int): Int =
-        if (current == HardwareController.FAN_SPORT) current else HardwareController.FAN_SMART
-
-    private suspend fun applyPolicyMode(target: Int, current: Int, version: Long) {
+    private suspend fun applyPolicyMode(target: Int, snapshot: FanControlCoordinator.Snapshot, version: Long) {
         currentCoroutineContext().ensureActive()
-        // Manual selection disables this preference before writing the user's chosen mode.
-        if (version != requestVersion.get() || !HardwareController.isAutoFanControlEnabled(this)) return
-        if (current != target) {
-            // A rejected response may follow a partial write; an OFF attempt still needs recovery.
-            if (target == HardwareController.FAN_OFF) mutedByPolicy = true
-            try {
-                if (!HardwareController.setFanModeIfAutoEnabled(this, target)) {
-                    mutedByPolicy = false
-                    return
-                }
-            } catch (error: Exception) {
-                throw FanModeWriteException(target, error)
+        if (version != requestVersion.get()) return
+        val coroutine = currentCoroutineContext()
+        try {
+            HardwareController.applyFanPolicy(this, snapshot, target) {
+                coroutine.isActive && version == requestVersion.get()
             }
-            mutedByPolicy = target == HardwareController.FAN_OFF
-        } else if (target != HardwareController.FAN_OFF) {
-            mutedByPolicy = false
+        } catch (error: Exception) {
+            throw FanModeWriteException(target, error)
         }
     }
 

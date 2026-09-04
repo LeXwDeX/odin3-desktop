@@ -8,6 +8,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import com.odin.desktop.dashboard.DashboardActions
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.core.view.WindowCompat
@@ -37,6 +38,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // System/gesture Back shares the gamepad navigation path. At the launcher root
+        // it is a no-op; handing it to Android can move/relaunch the Home task.
+        onBackPressedDispatcher.addCallback(this) {
+            viewModel.onBack()
+        }
+
         // 注册应用安装与卸载全局广播监听
         val filter = android.content.IntentFilter().apply {
             addAction(android.content.Intent.ACTION_PACKAGE_ADDED)
@@ -56,9 +63,6 @@ class MainActivity : ComponentActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
-
-        // 自动激活前台应用监听无障碍服务（本应用已授权 WRITE_SECURE_SETTINGS，确保从任意位置打开/切换游戏均能无缝激活 Shader）
-        ensureAccessibilityServiceEnabled()
 
         val dashboardActions = DashboardActions(this)
         lifecycleScope.launch {
@@ -114,10 +118,8 @@ class MainActivity : ComponentActivity() {
                 startService(fanIntent)
             }
         } catch (_: Exception) {}
-    }
-
-    override fun onResume() {
-        super.onResume()
+        // A HOME intent can pause/resume this singleTask Activity while it stays visible.
+        // Tie expensive refreshes and dashboard collection to actual visibility changes.
         viewModel.setLauncherVisible(true)
         ensureAccessibilityServiceEnabled()
         // 回到桌面时刷新硬件状态与应用列表，并确保隐藏 VideoShader 遮罩 (Shader 仅在应用内生效)
@@ -126,9 +128,9 @@ class MainActivity : ComponentActivity() {
         com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(this, packageName)
     }
 
-    override fun onPause() {
+    override fun onStop() {
         viewModel.setLauncherVisible(false)
-        super.onPause()
+        super.onStop()
     }
 
     override fun onDestroy() {
@@ -143,7 +145,9 @@ class MainActivity : ComponentActivity() {
      * 拦截 D-Pad、摇杆、肩键 (L1/R1) 与 ABXY，实现完全不需要触屏的掌机盲操。
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (GamepadKeyHandler.handleKeyEvent(event, viewModel)) {
+        if (GamepadKeyHandler.handleKeyEvent(event, viewModel) ||
+            event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_BUTTON_B
+        ) {
             return true
         }
         return super.dispatchKeyEvent(event)
