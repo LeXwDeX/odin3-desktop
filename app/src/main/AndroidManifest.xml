@@ -6,6 +6,14 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <!-- Dashboard: local device statistics and Wi-Fi identity. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.DUMP" tools:ignore="ProtectedPermissions" />
+
     <!-- AFK Overlay & Anti-Burn-In permissions -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -34,6 +42,23 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.OdinDesktop">
 
+        <activity
+            android:name=".shader.control.ShaderControlActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.OdinDesktop.ShaderControl">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".shader.preview.ShaderPreviewActivity"
+            android:exported="@bool/shader_preview_exported"
+            android:screenOrientation="sensorLandscape" />
+
         <!-- Default Home Launcher Activity (UI Skeleton) -->
         <activity
             android:name=".ui.MainActivity"
@@ -52,6 +77,13 @@
         </activity>
 
         <!-- Quick Settings Tile: 息屏挂机 -->
+        <activity
+            android:name=".service.afk.AfkActionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".service.afk.AfkTileService"
             android:exported="true"
@@ -61,18 +93,22 @@
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
+            <meta-data android:name="android.service.quicksettings.ACTIVE_TILE" android:value="true" />
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
         </service>
 
-        <!-- Quick Settings Tile: VideoShader 滤镜快捷开关 -->
+        <!-- Quick Settings Tile: independent shader controls -->
         <service
             android:name=".shader.overlay.ShaderTileService"
             android:exported="true"
-            android:icon="@drawable/ic_tile_afk"
-            android:label="VideoShader 滤镜"
+            android:icon="@drawable/ic_tile_shader"
+            android:label="滤镜开关"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
+            <meta-data android:name="android.service.quicksettings.ACTIVE_TILE" android:value="true" />
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
         </service>
 
         <!-- Fullscreen Pure Black AFK Overlay Service -->

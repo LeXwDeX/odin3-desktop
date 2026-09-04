@@ -6,11 +6,21 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.odin.desktop.dashboard.DashboardAction
+import com.odin.desktop.dashboard.DashboardRepository
+import com.odin.desktop.dashboard.DashboardState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.model.InstalledApp
 import com.odin.desktop.data.repository.AppRepository
 import com.odin.desktop.service.fan.HardwareController
 import com.odin.desktop.ui.navigation.FocusZone
+import com.odin.desktop.ui.components.AppActionType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,22 +37,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         (application as com.odin.desktop.OdinDesktopApplication).database.tabDao(),
         application.database.appMappingDao()
     )
-    private val shaderRepository = com.odin.desktop.shader.repository.ShaderConfigRepository(
-        (application as com.odin.desktop.OdinDesktopApplication).database.appShaderConfigDao()
-    )
-
-    // --- 专属 VideoShader 设置模态框 ---
-    private val _isShaderConfigDialogOpen = MutableStateFlow(false)
-    val isShaderConfigDialogOpen: StateFlow<Boolean> = _isShaderConfigDialogOpen.asStateFlow()
-
-    private val _currentAppShaderConfig = MutableStateFlow<com.odin.desktop.shader.model.AppShaderConfigEntity?>(null)
-    val currentAppShaderConfig: StateFlow<com.odin.desktop.shader.model.AppShaderConfigEntity?> = _currentAppShaderConfig.asStateFlow()
-
-    private val _shaderConfigFocusIndex = MutableStateFlow(0)
-    val shaderConfigFocusIndex: StateFlow<Int> = _shaderConfigFocusIndex.asStateFlow()
 
     // --- 焦点与区域状态 ---
-    private val _focusZone = MutableStateFlow(FocusZone.APPS)
+    private val _focusZone = MutableStateFlow(FocusZone.DASHBOARD)
     val focusZone: StateFlow<FocusZone> = _focusZone.asStateFlow()
 
     // --- Tab 状态 ---
@@ -54,6 +51,55 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val _isConfigFocusedInTabs = MutableStateFlow(false)
     val isConfigFocusedInTabs: StateFlow<Boolean> = _isConfigFocusedInTabs.asStateFlow()
+
+    // Dashboard is a fixed page, independent of editable database tabs.
+    private val _isDashboardSelected = MutableStateFlow(true)
+    val isDashboardSelected = _isDashboardSelected.asStateFlow()
+    private val _selectedDashboardControl = MutableStateFlow(0)
+    val selectedDashboardControl = _selectedDashboardControl.asStateFlow()
+    private val _dashboardState = MutableStateFlow(DashboardState())
+    val dashboardState = _dashboardState.asStateFlow()
+    private val dashboardActionChannel = Channel<DashboardAction>(Channel.BUFFERED)
+    val dashboardActions = dashboardActionChannel.receiveAsFlow()
+    private val dashboardRepository by lazy { DashboardRepository(context) }
+    private var dashboardJob: Job? = null
+    private var launcherVisible = false
+
+    fun setLauncherVisible(visible: Boolean) {
+        launcherVisible = visible
+        updateDashboardCollection()
+    }
+
+    private fun updateDashboardCollection() {
+        if (!launcherVisible || !_isDashboardSelected.value) {
+            dashboardJob?.cancel()
+            dashboardJob = null
+        } else if (dashboardJob?.isActive != true) {
+            dashboardJob = viewModelScope.launch {
+                dashboardRepository.observe().collect { _dashboardState.value = it }
+            }
+        }
+    }
+
+    private fun contentFocus() = if (_isDashboardSelected.value) FocusZone.DASHBOARD else FocusZone.APPS
+
+    fun selectDashboard() {
+        if (navigationBlocked()) return
+        _isDashboardSelected.value = true
+        _isConfigFocusedInTabs.value = false
+        _focusZone.value = FocusZone.DASHBOARD
+        updateDashboardCollection()
+    }
+
+    fun onDashboardAction(action: DashboardAction) {
+        if (!_isDashboardSelected.value || navigationBlocked()) return
+        _selectedDashboardControl.value = action.ordinal
+        _focusZone.value = FocusZone.DASHBOARD
+        dashboardActionChannel.trySend(action)
+    }
+
+    private fun navigationBlocked() = _isConfigOpen.value || _isAppActionDialogOpen.value ||
+        _isAppBatchManageDialogOpen.value || _isReorderingApps.value
 
     // --- 应用列表状态 ---
     private val _allInstalledApps = MutableStateFlow<List<InstalledApp>>(emptyList())
@@ -75,10 +121,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _selectedDockIndex = MutableStateFlow(0)
     val selectedDockIndex: StateFlow<Int> = _selectedDockIndex.asStateFlow()
 
-    private val _performanceMode = MutableStateFlow(HardwareController.PERF_NORMAL)
+    private val _performanceMode = MutableStateFlow(-1)
     val performanceMode: StateFlow<Int> = _performanceMode.asStateFlow()
 
-    private val _fanMode = MutableStateFlow(HardwareController.FAN_SMART)
+    private val _fanMode = MutableStateFlow(-1)
     val fanMode: StateFlow<Int> = _fanMode.asStateFlow()
 
     private val _joystickLightEnabled = MutableStateFlow(false)
@@ -90,6 +136,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _chargeLimit80 = MutableStateFlow(false)
     val chargeLimit80: StateFlow<Boolean> = _chargeLimit80.asStateFlow()
 
+    private val _chargePowerLimit = MutableStateFlow(false)
+    val chargePowerLimit: StateFlow<Boolean> = _chargePowerLimit.asStateFlow()
+    private val hardwareLock = Mutex()
+
     private val _airplaneMode = MutableStateFlow(false)
     val airplaneMode: StateFlow<Boolean> = _airplaneMode.asStateFlow()
 
@@ -99,7 +149,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _autoFanControlEnabled = MutableStateFlow(true)
     val autoFanControlEnabled: StateFlow<Boolean> = _autoFanControlEnabled.asStateFlow()
 
-    private val _currentSocTemp = MutableStateFlow(40f)
+    private val _currentSocTemp = MutableStateFlow(Float.NaN)
     val currentSocTemp: StateFlow<Float> = _currentSocTemp.asStateFlow()
 
     // --- Config 弹窗手柄导航状态 ---
@@ -163,24 +213,38 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun loadHardwareStates() {
         viewModelScope.launch(Dispatchers.IO) {
-            val perf = HardwareController.getPerformanceMode(context)
-            val fan = HardwareController.getFanMode(context)
-            val led = HardwareController.isJoystickLightEnabled(context)
-            val color = HardwareController.getJoystickColor(context).split(",").firstOrNull() ?: "#ff00e5ff"
-            val charge = HardwareController.isChargeLimit80Enabled(context)
-            val air = HardwareController.isAirplaneModeOn(context)
-            val autoFan = HardwareController.isAutoFanControlEnabled(context)
-            val temp = HardwareController.getMaxCpuGpuTemp()
+            hardwareLock.withLock { refreshHardwareStates() }
+        }
+    }
 
-            withContext(Dispatchers.Main) {
-                _performanceMode.value = perf
-                _fanMode.value = fan
-                _joystickLightEnabled.value = led
-                _joystickColor.value = color
-                _chargeLimit80.value = charge
-                _airplaneMode.value = air
-                _autoFanControlEnabled.value = autoFan
-                _currentSocTemp.value = temp
+    private fun refreshHardwareStates() {
+        // A failed read keeps the last observed value; requested values never become device state.
+        runCatching { HardwareController.getPerformanceMode(context) }.onSuccess { _performanceMode.value = it }.onFailure { _performanceMode.value = -1 }
+        runCatching { HardwareController.getFanMode(context) }.onSuccess { _fanMode.value = it }
+        runCatching { HardwareController.isJoystickLightEnabled(context) }.onSuccess { _joystickLightEnabled.value = it }
+        runCatching { HardwareController.getJoystickColor(context) }.onSuccess { _joystickColor.value = it.substringBefore(',') }
+        runCatching { HardwareController.isChargeLimit80Enabled(context) }.onSuccess { _chargeLimit80.value = it }
+        runCatching { HardwareController.isChargePowerLimitEnabled(context) }.onSuccess { _chargePowerLimit.value = it }
+        runCatching { HardwareController.isAirplaneModeOn(context) }.onSuccess { _airplaneMode.value = it }
+        _autoFanControlEnabled.value = HardwareController.isAutoFanControlEnabled(context)
+        _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
+    }
+
+    private fun changeHardware(action: () -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            hardwareLock.withLock {
+                try {
+                    action()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Hardware action failed", failure)
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, failure.message ?: "硬件设置未生效，请重试", Toast.LENGTH_LONG).show()
+                    }
+                } finally {
+                    refreshHardwareStates()
+                }
             }
         }
     }
@@ -280,14 +344,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             return
         }
         if (_isConfigOpen.value || _isAppActionDialogOpen.value || _isAppBatchManageDialogOpen.value || _isReorderingApps.value) return
-        // L1/R1 只在 Tab 之间循环，不选中 CONFIG
-        val count = _tabs.value.size
-        if (count == 0) return
-        val current = _selectedTabIndex.value
-        _selectedTabIndex.value = if (current > 0) current - 1 else count - 1
-        _isConfigFocusedInTabs.value = false
-        _selectedAppIndex.value = 0
-        filterAppsForCurrentTab()
+        val current = if (_isDashboardSelected.value) 0 else _selectedTabIndex.value + 1
+        val previous = if (current > 0) current - 1 else _tabs.value.size
+        if (previous == 0) selectDashboard() else selectTab(previous - 1)
     }
 
     fun onNextTab() {
@@ -301,19 +360,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             return
         }
         if (_isConfigOpen.value || _isAppActionDialogOpen.value || _isAppBatchManageDialogOpen.value || _isReorderingApps.value) return
-        // L1/R1 只在 Tab 之间循环，不选中 CONFIG
-        val count = _tabs.value.size
-        if (count == 0) return
-        val current = _selectedTabIndex.value
-        _selectedTabIndex.value = if (current < count - 1) current + 1 else 0
-        _isConfigFocusedInTabs.value = false
-        _selectedAppIndex.value = 0
-        filterAppsForCurrentTab()
+        val current = if (_isDashboardSelected.value) 0 else _selectedTabIndex.value + 1
+        val next = (current + 1) % (_tabs.value.size + 1)
+        if (next == 0) selectDashboard() else selectTab(next - 1)
     }
 
     fun selectTab(index: Int) {
         if (_isConfigOpen.value || _isAppActionDialogOpen.value || _isAppBatchManageDialogOpen.value || _isReorderingApps.value) return
         if (index in _tabs.value.indices) {
+            _isDashboardSelected.value = false
+            updateDashboardCollection()
             _selectedTabIndex.value = index
             _isConfigFocusedInTabs.value = false
             _selectedAppIndex.value = 0
@@ -327,13 +383,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         when (_focusZone.value) {
             FocusZone.TABS -> {
                 if (_isConfigFocusedInTabs.value) {
-                    _isConfigFocusedInTabs.value = false
-                    _selectedTabIndex.value = (_tabs.value.size - 1).coerceAtLeast(0)
-                } else if (_selectedTabIndex.value > 0) {
-                    _selectedTabIndex.value -= 1
+                    if (_tabs.value.isEmpty()) selectDashboard() else selectTab(_tabs.value.lastIndex)
+                } else if (!_isDashboardSelected.value) {
+                    if (_selectedTabIndex.value > 0) selectTab(_selectedTabIndex.value - 1) else selectDashboard()
                 }
-                _selectedAppIndex.value = 0
-                filterAppsForCurrentTab()
+                _focusZone.value = FocusZone.TABS
+            }
+            FocusZone.DASHBOARD -> {
+                val index = _selectedDashboardControl.value
+                _selectedDashboardControl.value = (index - 1).coerceAtLeast(0)
             }
             FocusZone.APPS -> {
                 if (_isReorderingApps.value) {
@@ -377,7 +435,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             FocusZone.APP_ACTION_MODAL -> {}
             FocusZone.APP_BATCH_MANAGE_MODAL -> {}
-            FocusZone.SHADER_CONFIG_MODAL -> {}
         }
     }
 
@@ -385,14 +442,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         when (_focusZone.value) {
             FocusZone.TABS -> {
                 if (!_isConfigFocusedInTabs.value) {
-                    if (_selectedTabIndex.value < _tabs.value.size - 1) {
-                        _selectedTabIndex.value += 1
-                    } else {
-                        _isConfigFocusedInTabs.value = true
-                    }
+                    if (_isDashboardSelected.value && _tabs.value.isNotEmpty()) selectTab(0)
+                    else if (!_isDashboardSelected.value && _selectedTabIndex.value < _tabs.value.lastIndex) selectTab(_selectedTabIndex.value + 1)
+                    else _isConfigFocusedInTabs.value = true
                 }
-                _selectedAppIndex.value = 0
-                filterAppsForCurrentTab()
+                _focusZone.value = FocusZone.TABS
+            }
+            FocusZone.DASHBOARD -> {
+                val index = _selectedDashboardControl.value
+                _selectedDashboardControl.value = (index + 1).coerceAtMost(DashboardAction.entries.lastIndex)
             }
             FocusZone.APPS -> {
                 if (_isReorderingApps.value) {
@@ -436,15 +494,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             FocusZone.APP_ACTION_MODAL -> {}
             FocusZone.APP_BATCH_MANAGE_MODAL -> {}
-            FocusZone.SHADER_CONFIG_MODAL -> {}
         }
     }
 
     fun onNavigateUp() {
         when (_focusZone.value) {
-            FocusZone.DOCK -> _focusZone.value = FocusZone.APPS
+            FocusZone.DOCK -> _focusZone.value = contentFocus()
+            FocusZone.DASHBOARD -> _focusZone.value = FocusZone.TABS
             FocusZone.APPS -> {
-                // 排序状态或正常状态下，上键均不离开图标区
+                if (!_isReorderingApps.value) _focusZone.value = FocusZone.TABS
             }
             FocusZone.TABS -> {}
             FocusZone.CONFIG_MODAL -> {
@@ -483,17 +541,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     _batchManageFocusIndex.value -= 1
                 }
             }
-            FocusZone.SHADER_CONFIG_MODAL -> {
-                if (_shaderConfigFocusIndex.value > 0) {
-                    _shaderConfigFocusIndex.value -= 1
-                }
-            }
         }
     }
 
     fun onNavigateDown() {
         when (_focusZone.value) {
-            FocusZone.TABS -> {} // Tab 栏只能用 L1/R1 切换，下键不从 TABS 跳转
+            FocusZone.TABS -> _focusZone.value = contentFocus()
+            FocusZone.DASHBOARD -> _focusZone.value = FocusZone.DOCK
             FocusZone.APPS -> {
                 // 在排序状态下，光标只能在图标区域中移动，禁止移动到 Dock
                 if (!_isReorderingApps.value) {
@@ -532,7 +586,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         _appActionTabPickerFocusIndex.value += 1
                     }
                 } else {
-                    if (_appActionFocusIndex.value < 3) {
+                    if (_appActionFocusIndex.value < AppActionType.entries.lastIndex) {
                         _appActionFocusIndex.value += 1
                     }
                 }
@@ -541,11 +595,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val count = getFilteredBatchApps().size
                 if (_batchManageFocusIndex.value < count - 1) {
                     _batchManageFocusIndex.value += 1
-                }
-            }
-            FocusZone.SHADER_CONFIG_MODAL -> {
-                if (_shaderConfigFocusIndex.value < 1) {
-                    _shaderConfigFocusIndex.value += 1
                 }
             }
         }
@@ -567,11 +616,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // --- 实体 A 键 (确定 / 启动 / 切档) ---
     fun onConfirm() {
         when (_focusZone.value) {
+            FocusZone.DASHBOARD -> onDashboardAction(DashboardAction.entries[_selectedDashboardControl.value])
             FocusZone.TABS -> {
                 if (_isConfigFocusedInTabs.value) {
                     openConfigDialog()
                 } else {
-                    _focusZone.value = FocusZone.APPS
+                    _focusZone.value = contentFocus()
                 }
             }
             FocusZone.APPS -> {
@@ -605,42 +655,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             closeAppActionDialog()
                         }
                     } else {
-                        when (_appActionFocusIndex.value) {
-                            0 -> { // 移动到其他 Tab
-                                val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
-                                val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.name != "全部应用" }
-                                if (targetTabs.isNotEmpty()) {
-                                    _appActionInTabPicker.value = true
-                                    _appActionTabPickerFocusIndex.value = 0
-                                } else {
-                                    Toast.makeText(context, "暂无其他可移动的自定义分类", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                            1 -> { // 进入应用属性详情 (系统设置)
-                                openAppDetails(app)
-                                closeAppActionDialog()
-                            }
-                            2 -> { // 专属 VideoShader 设置
-                                closeAppActionDialog()
-                                openShaderConfigDialog(app)
-                            }
-                            3 -> { // 从当前分类移除
-                                val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
-                                if (currentTab != null && currentTab.name != "全部应用") {
-                                    removeAppFromCurrentTab(app)
-                                    closeAppActionDialog()
-                                } else {
-                                    Toast.makeText(context, "【全部应用】为系统全集分类，无法直接移除图标", Toast.LENGTH_SHORT).show()
-                                }
-                            }
+                        AppActionType.entries.getOrNull(_appActionFocusIndex.value)?.let {
+                            executeAppAction(it)
                         }
                     }
-                }
-            }
-            FocusZone.SHADER_CONFIG_MODAL -> {
-                when (_shaderConfigFocusIndex.value) {
-                    0 -> toggleShaderEnable()
-                    1 -> onPreviewShaderClicked()
                 }
             }
             FocusZone.APP_BATCH_MANAGE_MODAL -> {
@@ -684,10 +702,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             return true
         }
-        if (_isShaderConfigDialogOpen.value) {
-            closeShaderConfigDialog()
-            return true
-        }
         if (_isAppActionDialogOpen.value) {
             if (_appActionInTabPicker.value) {
                 _appActionInTabPicker.value = false
@@ -706,15 +720,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 return true
             }
             _isConfigOpen.value = false
-            _focusZone.value = FocusZone.APPS // 关闭 CONFIG 后回到应用区
+            _focusZone.value = contentFocus()
             return true
         }
-        if (_focusZone.value == FocusZone.DOCK) {
-            _focusZone.value = FocusZone.APPS
+        if (_focusZone.value == FocusZone.DOCK || _focusZone.value == FocusZone.TABS) {
+            _isConfigFocusedInTabs.value = false
+            _focusZone.value = contentFocus()
             return true
         }
         if (_focusZone.value == FocusZone.APPS && _selectedAppIndex.value > 0) {
             _selectedAppIndex.value = 0
+            return true
+        }
+        if (_isDashboardSelected.value) {
+            _selectedDashboardControl.value = 0
             return true
         }
         return false
@@ -736,7 +755,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
         if (launchIntent != null) {
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            // 联动 VideoShader 引擎：进入目标应用时按配置自动生效 (Shader 仅在应用内生效)
             com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(context, app.packageName)
             context.startActivity(launchIntent)
         } else {
@@ -748,31 +766,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
      * 触发底部 5 大硬件状态切换 (对应 A 键或屏幕触碰点击)
      */
     private fun triggerDockAction(index: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
+        changeHardware {
             when (index) {
-                0 -> { // CPU 性能模式：正常 -> 性能 -> 高性能 (联动风扇)
-                    val result = HardwareController.cyclePerformanceMode(context)
-                    withContext(Dispatchers.Main) {
-                        _performanceMode.value = result.perfMode
-                        _fanMode.value = result.fanMode
-                    }
+                0 -> HardwareController.cyclePerformanceMode(context)
+                1 -> {
+                    // A manual choice takes ownership before any queued charging policy runs.
+                    HardwareController.setAutoFanControlEnabled(context, false)
+                    HardwareController.cycleFanMode(context)
                 }
-                1 -> { // 风扇模式：关闭 -> 静音 -> 智能 -> 极速 (性能不动)
-                    val next = HardwareController.cycleFanMode(context)
-                    withContext(Dispatchers.Main) { _fanMode.value = next }
-                }
-                2 -> { // 摇杆灯开关：开 <-> 关
-                    val next = HardwareController.toggleJoystickLight(context)
-                    withContext(Dispatchers.Main) { _joystickLightEnabled.value = next }
-                }
-                3 -> { // 80% 充电限制：开 <-> 关
-                    val next = HardwareController.toggleChargeLimit80(context)
-                    withContext(Dispatchers.Main) { _chargeLimit80.value = next }
-                }
-                4 -> { // 飞行模式：开 <-> 关
-                    val next = HardwareController.toggleAirplaneMode(context)
-                    withContext(Dispatchers.Main) { _airplaneMode.value = next }
-                }
+                2 -> HardwareController.toggleJoystickLight(context)
+                3 -> HardwareController.toggleChargeLimit80(context)
+                4 -> HardwareController.toggleAirplaneMode(context)
             }
         }
     }
@@ -846,7 +850,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun closeConfigDialog() {
         _isConfigOpen.value = false
         _configInSubMenu.value = false
-        _focusZone.value = FocusZone.APPS // 关闭 CONFIG 后回到应用区
+        _focusZone.value = contentFocus()
     }
 
     fun setConfigSection(index: Int) {
@@ -860,23 +864,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun toggleAutoFanControl() {
-        val next = !_autoFanControlEnabled.value
-        _autoFanControlEnabled.value = next
-        HardwareController.setAutoFanControlEnabled(context, next)
+        changeHardware {
+            HardwareController.setAutoFanControlEnabled(context, !HardwareController.isAutoFanControlEnabled(context))
+        }
     }
 
     fun refreshSocTemp() {
         viewModelScope.launch(Dispatchers.IO) {
-            val temp = HardwareController.getMaxCpuGpuTemp()
-            withContext(Dispatchers.Main) { _currentSocTemp.value = temp }
+            _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
         }
     }
 
     fun setJoystickColor(hex: String) {
-        viewModelScope.launch(Dispatchers.IO) {
-            HardwareController.setJoystickColor(context, hex)
-            withContext(Dispatchers.Main) { _joystickColor.value = hex }
-        }
+        changeHardware { HardwareController.setJoystickColor(context, hex) }
     }
 
     fun addTab(name: String, isGame: Boolean = false) {
@@ -1011,6 +1011,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 应用操作模态框 (Y 键) ---
     fun openAppActionDialog() {
+        if (_isDashboardSelected.value || _isConfigOpen.value || _isAppBatchManageDialogOpen.value || _isAppActionDialogOpen.value) return
         val app = _currentTabApps.value.getOrNull(_selectedAppIndex.value) ?: return
         _appUnderAction.value = app
         _appActionFocusIndex.value = 0
@@ -1027,17 +1028,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setAppActionFocusIndex(index: Int) {
-        _appActionFocusIndex.value = index
+        _appActionFocusIndex.value = index.coerceIn(0, AppActionType.entries.lastIndex)
     }
 
     fun setAppActionTabPickerFocusIndex(index: Int) {
         _appActionTabPickerFocusIndex.value = index
     }
 
-    fun executeAppAction(type: com.odin.desktop.ui.components.AppActionType) {
+    fun executeAppAction(type: AppActionType) {
         val app = _appUnderAction.value ?: return
         when (type) {
-            com.odin.desktop.ui.components.AppActionType.MOVE_TO_TAB -> {
+            AppActionType.MOVE_TO_TAB -> {
                 val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
                 val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.name != "全部应用" }
                 if (targetTabs.isNotEmpty()) {
@@ -1047,15 +1048,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     Toast.makeText(context, "暂无其他可移动的自定义分类", Toast.LENGTH_SHORT).show()
                 }
             }
-            com.odin.desktop.ui.components.AppActionType.APP_DETAILS -> {
+            AppActionType.APP_DETAILS -> {
                 openAppDetails(app)
                 closeAppActionDialog()
             }
-            com.odin.desktop.ui.components.AppActionType.SHADER_CONFIG -> {
-                closeAppActionDialog()
-                openShaderConfigDialog(app)
-            }
-            com.odin.desktop.ui.components.AppActionType.REMOVE_ICON -> {
+            AppActionType.REMOVE_ICON -> {
                 removeAppFromCurrentTab(app)
             }
         }
@@ -1076,6 +1073,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 批量增删分类应用模态框 (X 键) ---
     fun openBatchManageDialog() {
+        if (_isDashboardSelected.value || _isConfigOpen.value || _isAppBatchManageDialogOpen.value || _isAppActionDialogOpen.value || _isReorderingApps.value) return
         val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
         if (currentTab != null && currentTab.name == "全部应用") {
             Toast.makeText(context, "【全部应用】由系统自动管理所有已安装应用", Toast.LENGTH_SHORT).show()
@@ -1116,48 +1114,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     _selectedAppIndex.value = 0
                 }
             }
-        }
-    }
-
-    // --- 专属 VideoShader 滤镜设置逻辑 (对齐 GameNative 极简架构) ---
-    fun openShaderConfigDialog(app: InstalledApp) {
-        viewModelScope.launch {
-            val config = shaderRepository.getConfig(app.packageName)
-                ?: com.odin.desktop.shader.model.AppShaderConfigEntity.defaultFor(app.packageName)
-            _currentAppShaderConfig.value = config
-            _shaderConfigFocusIndex.value = 0
-            _isShaderConfigDialogOpen.value = true
-            _focusZone.value = FocusZone.SHADER_CONFIG_MODAL
-        }
-    }
-
-    fun closeShaderConfigDialog() {
-        _isShaderConfigDialogOpen.value = false
-        _focusZone.value = FocusZone.APPS
-    }
-
-    fun toggleShaderEnable() {
-        val current = _currentAppShaderConfig.value ?: return
-        val updated = current.copy(isEnabled = !current.isEnabled)
-        _currentAppShaderConfig.value = updated
-        viewModelScope.launch {
-            shaderRepository.saveConfig(updated)
-            withContext(Dispatchers.Main) {
-                val stateText = if (updated.isEnabled) "已开启 GameNative CRT 扫描线 (仅在应用内生效)" else "已关闭 Shader 滤镜"
-                Toast.makeText(context, stateText, Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    fun onPreviewShaderClicked() {
-        Toast.makeText(context, "【功能预留】等待导入游戏画面截图后，将开启实时参数调优", Toast.LENGTH_SHORT).show()
-    }
-
-    fun selectShaderConfigIndex(index: Int) {
-        _shaderConfigFocusIndex.value = index
-        when (index) {
-            0 -> toggleShaderEnable()
-            1 -> onPreviewShaderClicked()
         }
     }
 }

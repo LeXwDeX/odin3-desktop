@@ -4,4 +4,10 @@
         <item name="android:navigationBarColor">@color/black</item>
         <item name="android:windowBackground">@color/black</item>
     </style>
+    <style name="Theme.OdinDesktop.ShaderControl" parent="android:Theme.Material.NoActionBar">
+        <item name="android:colorAccent">#00D3EB</item>
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
 </resources>

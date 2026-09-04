@@ -89,7 +89,7 @@ fun ConfigDialog(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ) { /* 消费点击防穿透 */ }
+            ) { onDismiss() }
     ) {
         Column(
             modifier = Modifier
@@ -357,7 +357,7 @@ private fun AutoFanSection(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = if (autoFanControlEnabled) "自动调度已开启 (按 A 键或点击切换)" else "自动调度已停用 (保持默认智能散热)",
+                        text = if (autoFanControlEnabled) "自动调度已开启 (按 A 键或点击切换)" else "自动调度已停用 (保留手动风扇档位)",
                         color = TextDim,
                         fontSize = 12.sp
                     )
@@ -388,8 +388,8 @@ private fun AutoFanSection(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("• 芯片实时最高温度 (SoC)：", color = TextWhite, fontSize = 13.sp)
                 Text(
-                    text = "${"%.1f".format(socTemp)} °C",
-                    color = if (socTemp <= 60f) GreenActive else OrangeWarning,
+                    text = if (socTemp.isFinite()) "${"%.1f".format(socTemp)} °C" else "— °C",
+                    color = if (!socTemp.isFinite()) TextDim else if (socTemp <= 60f) GreenActive else OrangeWarning,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )

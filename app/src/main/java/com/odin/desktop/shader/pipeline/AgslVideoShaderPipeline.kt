@@ -8,8 +8,8 @@ import android.os.Build
 import com.odin.desktop.shader.model.AppShaderConfigEntity
 
 /**
- * 100% 遵循 GameNative (com.winlator.renderer.effects.CRTEffect) 的扫描线着色器实现。
- * 完全对齐 GameNative 算式与常量，不添加多余参数。
+ * Compatibility overlay for the multiplicative mask in GameNative's Vulkan CRT effect.
+ * Coordinates use physical output pixels. Effects that sample game pixels use another backend.
  */
 class AgslVideoShaderPipeline : IVideoShaderPipeline {
 
@@ -21,30 +21,21 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
     private var currentConfig: AppShaderConfigEntity? = null
 
     companion object {
-        // 完全遵循 GameNative Vulkan 原生渲染管线核心着色器 (app/src/main/cpp/winlator/window.frag 第 252-256 行):
-        // vec3 applyCRTOverlay(vec2 uv, vec3 color) {
-        //     float scanline = 0.86 + 0.14 * sin(uv.y * max(pc.resH, 1.0) * 3.14159265);
-        //     float grille = 0.94 + 0.06 * sin(uv.x * max(pc.resW, 1.0) * 3.14159265);
-        //     return clamp(color * scanline * grille, 0.0, 1.0);
-        // }
+        // The engine explicitly sets this window alpha; the shader compensates the same value.
+        const val WINDOW_ALPHA = 0.8f
+
         private const val AGSL_SHADER_CODE = """
             uniform float2 uResolution;
+            uniform float uWindowAlpha;
 
             vec4 main(vec2 fragCoord) {
                 const float PI = 3.14159265;
-                vec2 uv = fragCoord / uResolution;
-
-                // 严格基于物理屏幕输出分辨率 (uResolution = 1920x1080 屏幕输出分辨率)
-                // 纵向按屏幕物理分辨率精准 3.0 像素周期 (1080 / 3 = 360 根物理扫描线，整除 1080 零摩尔纹)
-                float scanline = 0.82 + 0.18 * sin(uv.y * (uResolution.y / 3.0) * 2.0 * PI);
-
-                // 横向按屏幕物理分辨率精准 3.0 像素周期 (1920 / 3 = 640 列特丽珑微孔栅)
-                float grille = 0.94 + 0.06 * sin(uv.x * (uResolution.x / 3.0) * 2.0 * PI);
-
-                // 还原 GameNative 真实色彩乘法混合：color * (scanline * grille)
-                // 补偿 Android 系统对 TYPE_APPLICATION_OVERLAY 悬浮窗强制应用的 0.8 混合系数限制
+                vec2 resolution = max(uResolution, vec2(1.0));
+                vec2 uv = fragCoord / resolution;
+                float scanline = 0.86 + 0.14 * sin(uv.y * resolution.y * PI);
+                float grille = 0.94 + 0.06 * sin(uv.x * resolution.x * PI);
                 float factor = scanline * grille;
-                float alpha = clamp((1.0 - factor) / 0.8, 0.0, 1.0);
+                float alpha = clamp((1.0 - factor) / uWindowAlpha, 0.0, 1.0);
                 return vec4(0.0, 0.0, 0.0, alpha);
             }
         """
@@ -54,9 +45,12 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             try {
                 runtimeShader = RuntimeShader(AGSL_SHADER_CODE)
+                runtimeShader?.setFloatUniform("uWindowAlpha", WINDOW_ALPHA)
                 paint.shader = runtimeShader
             } catch (e: Exception) {
                 runtimeShader = null
+                paint.shader = null
+                android.util.Log.e("AgslVideoShaderPipeline", "Could not create CRT mask", e)
             }
         }
     }
@@ -67,7 +61,9 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
 
     override fun onDraw(canvas: Canvas, width: Float, height: Float, timeSeconds: Float) {
         val config = currentConfig ?: return
-        if (!config.isEnabled) return
+        val effects = config.effects
+        if (!config.isEnabled || effects.requiresFrameInput || !effects.enableCRT) return
+        if (width <= 0f || height <= 0f) return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && runtimeShader != null) {
             val shader = runtimeShader ?: return
@@ -79,5 +75,6 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
     override fun release() {
         runtimeShader = null
         paint.shader = null
+        currentConfig = null
     }
 }

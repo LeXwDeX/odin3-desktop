@@ -5,20 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.provider.Settings
-import android.util.Log
-import java.io.PrintWriter
-import java.net.InetSocketAddress
-import java.net.Socket
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.odin.desktop.hardware.HardwareBridgeClient
+import com.odin.desktop.hardware.HardwareControlException
 
 /**
  * Odin 3 硬件状态统一管理器。
- * 通过本地特权守护进程 (127.0.0.1:18888) 与系统 Settings 进行零延迟受控双向交互。
+ * 写入由认证的 ADB Shell 服务执行并读回；调用方必须在 IO 线程执行硬件操作。
  */
 object HardwareController {
-    private const val TAG = "HardwareController"
-    private const val DAEMON_PORT = 18888
 
     // 1. 性能模式 (0: 正常, 1: 性能, 2: 高性能)
     const val KEY_PERFORMANCE_MODE = "performance_mode"
@@ -26,7 +20,7 @@ object HardwareController {
     const val PERF_PERFORMANCE = 1
     const val PERF_HIGH_PERFORMANCE = 2
 
-    // 2. 风扇模式 (0: 关, 1: 静音, 2: 智能, 3: 疾风)
+    // 2. Odin 3 风扇模式 (0: 关, 1: 静音, 4: 智能, 5: 最高固定档)
     const val KEY_FAN_MODE = "fan_mode"
     const val FAN_OFF = 0
     const val FAN_QUIET = 1
@@ -40,6 +34,7 @@ object HardwareController {
 
     // 4. 充电限制 80% (0 / 1)
     const val KEY_CHARGE_LIMIT_80 = "percent_80_charge_limit"
+    const val KEY_CHARGE_POWER_LIMIT = "charging_limit_power_limit"
 
     // 5. 屏幕方向模式 (仅保留固定横屏与传感器横屏)
     const val ORIENTATION_LANDSCAPE = 0
@@ -76,7 +71,7 @@ object HardwareController {
                 }
             }
         } catch (_: Exception) {}
-        return if (maxTemp > 0) maxTemp else 40f
+        return if (maxTemp > 0) maxTemp else Float.NaN
     }
 
     fun isAutoFanControlEnabled(context: Context): Boolean {
@@ -84,6 +79,7 @@ object HardwareController {
             .getBoolean(KEY_AUTO_FAN_CONTROL, true)
     }
 
+    @Synchronized
     fun setAutoFanControlEnabled(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
@@ -92,180 +88,69 @@ object HardwareController {
         context.sendBroadcast(Intent(ACTION_AUTO_FAN_CONFIG_CHANGED).setPackage(context.packageName))
     }
 
-    /**
-     * 发送特权指令至本地 Odin 特权守护进程 (以 Shell 权限写入底层)。
-     */
-    private fun sendDaemonCommand(command: String): Boolean {
-        for (attempt in 0..2) {
-            try {
-                Socket().use { socket ->
-                    socket.connect(InetSocketAddress("127.0.0.1", DAEMON_PORT), 400)
-                    val writer = PrintWriter(socket.getOutputStream(), true)
-                    writer.println(command)
-                    return true
-                }
-            } catch (e: Exception) {
-                if (attempt < 2) {
-                    try {
-                        Thread.sleep(80)
-                    } catch (_: InterruptedException) {}
-                } else {
-                    Log.w(TAG, "Daemon connection offline for '$command': ${e.message}")
-                }
-            }
-        }
-        return false
-    }
+    private fun systemValue(context: Context, key: String): String? =
+        Settings.System.getString(context.contentResolver, key)
 
-    fun forceStopApp(packageName: String): Boolean {
-        return sendDaemonCommand("FORCE_STOP $packageName")
-    }
-
-    private fun putSystemInt(context: Context, key: String, value: Int): Boolean {
-        if (sendDaemonCommand("SET_SYSTEM $key $value")) return true
-
-        try {
-            val method = Settings.System::class.java.getMethod(
-                "putIntForUser",
-                android.content.ContentResolver::class.java,
-                String::class.java,
-                Int::class.javaPrimitiveType,
-                Int::class.javaPrimitiveType
-            )
-            val result = method.invoke(null, context.contentResolver, key, value, -2) as? Boolean
-            if (result == true) return true
-        } catch (_: Exception) {}
-
-        return try {
-            Settings.System.putInt(context.contentResolver, key, value)
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to put system setting $key = $value", e)
-            false
-        }
-    }
-
-    private fun getSystemInt(context: Context, key: String, default: Int): Int {
-        try {
-            val method = Settings.System::class.java.getMethod(
-                "getIntForUser",
-                android.content.ContentResolver::class.java,
-                String::class.java,
-                Int::class.javaPrimitiveType,
-                Int::class.javaPrimitiveType
-            )
-            return method.invoke(null, context.contentResolver, key, default, -2) as Int
-        } catch (_: Exception) {}
-        return try {
-            Settings.System.getInt(context.contentResolver, key, default)
-        } catch (_: Exception) {
-            default
+    private fun setSystem(context: Context, key: String, value: String) {
+        val reply = HardwareBridgeClient.request(context, "SET\t$key\t$value")
+        if (reply != listOf(key, value) || systemValue(context, key) != value) {
+            throw HardwareControlException("硬件设置读回不一致，请刷新状态后重试。")
         }
     }
 
     // --- CPU 性能模式 ---
     fun getPerformanceMode(context: Context): Int {
-        return getSystemInt(context, KEY_PERFORMANCE_MODE, PERF_NORMAL)
-    }
-
-    private const val SYSFS_FAN_STATE = "/sys/class/gpio5_pwm2/state"
-    private const val SYSFS_FAN_DUTY = "/sys/class/gpio5_pwm2/duty"
-
-    private fun writeSysfs(path: String, value: String): Boolean {
-        return try {
-            val file = java.io.File(path)
-            if (file.exists() && file.canWrite()) {
-                file.writeText(value)
-                true
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to write $value to $path", e)
-            false
+        val reply = HardwareBridgeClient.request(context, "PERFORMANCE_GET")
+        val value = reply.getOrNull(1)?.toIntOrNull()
+        if (reply.size != 2 || reply[0] != "PERFORMANCE" || value == null || value !in 0..2) {
+            throw HardwareControlException("系统性能模式不可用，请刷新状态。")
         }
+        return value
     }
 
     data class PerfFanResult(val perfMode: Int, val fanMode: Int)
 
     fun cyclePerformanceMode(context: Context): PerfFanResult {
-        val current = getPerformanceMode(context)
-        // 循环：正常 -> 性能 -> 高性能 -> 正常
-        val next = when (current) {
-            PERF_NORMAL -> PERF_PERFORMANCE
-            PERF_PERFORMANCE -> PERF_HIGH_PERFORMANCE
-            else -> PERF_NORMAL
-        }
+        val next = (getPerformanceMode(context) + 1) % 3
         setPerformanceMode(context, next)
-
-        // 联动逻辑：当调整性能的时候，风扇也跟着调整，但调整风扇的时候，性能不动
-        // 性能：正常 -> 风扇：关闭 (FAN_OFF = 0)
-        // 性能：中性能 -> 风扇：智能 (FAN_SMART = 4)
-        // 性能：高性能 -> 风扇：智能 (FAN_SMART = 4)
-        val linkedFanMode = when (next) {
-            PERF_NORMAL -> FAN_OFF
-            PERF_PERFORMANCE -> FAN_SMART
-            PERF_HIGH_PERFORMANCE -> FAN_SMART
-            else -> FAN_SMART
-        }
-        setFanMode(context, linkedFanMode)
-
-        return PerfFanResult(next, linkedFanMode)
+        if (next != PERF_NORMAL) setFanMode(context, FAN_SMART)
+        return PerfFanResult(getPerformanceMode(context), getFanMode(context))
     }
 
     fun setPerformanceMode(context: Context, mode: Int): Boolean {
-        return putSystemInt(context, KEY_PERFORMANCE_MODE, mode)
+        require(mode in 0..2)
+        val reply = HardwareBridgeClient.request(context, "PERFORMANCE\t$mode")
+        if (reply != listOf("PERFORMANCE", mode.toString()) || getPerformanceMode(context) != mode) {
+            throw HardwareControlException("系统未切换到所选性能模式，请刷新状态。")
+        }
+        return true
     }
 
     // --- 风扇模式 ---
-    fun getFanMode(context: Context): Int {
-        val mode = getSystemInt(context, KEY_FAN_MODE, FAN_SMART)
-        return when (mode) {
-            FAN_OFF -> FAN_OFF
-            FAN_QUIET -> FAN_QUIET
-            FAN_SPORT -> FAN_SPORT
-            else -> FAN_SMART
-        }
-    }
+    fun getFanMode(context: Context): Int = systemValue(context, KEY_FAN_MODE)?.toIntOrNull()
+        ?: throw HardwareControlException("无法读取风扇模式。")
 
     fun cycleFanMode(context: Context): Int {
-        val current = getFanMode(context)
-        // 循环：关闭 (0) -> 静音 (1) -> 智能 (4) -> 极速 (5) -> 关闭 (0)
-        val next = when (current) {
-            FAN_OFF -> FAN_QUIET
-            FAN_QUIET -> FAN_SMART
+        val next = when (getFanMode(context)) {
+            FAN_OFF -> FAN_SMART
             FAN_SMART -> FAN_SPORT
             else -> FAN_OFF
         }
         setFanMode(context, next)
-        return next
+        return getFanMode(context)
     }
 
     fun setFanMode(context: Context, mode: Int): Boolean {
-        val success = putSystemInt(context, KEY_FAN_MODE, mode)
+        require(mode == FAN_OFF || mode == FAN_SMART || mode == FAN_SPORT)
+        setSystem(context, KEY_FAN_MODE, mode.toString())
+        return true
+    }
 
-        // 尝试兜底物理写入 Odin 3 硬件 PWM 节点 (若系统放行)
-        try {
-            when (mode) {
-                FAN_OFF -> {
-                    writeSysfs(SYSFS_FAN_DUTY, "0")
-                    writeSysfs(SYSFS_FAN_STATE, "0")
-                }
-                FAN_QUIET -> {
-                    writeSysfs(SYSFS_FAN_STATE, "1")
-                    writeSysfs(SYSFS_FAN_DUTY, "5000")
-                }
-                FAN_SMART -> {
-                    writeSysfs(SYSFS_FAN_STATE, "1")
-                    writeSysfs(SYSFS_FAN_DUTY, "10000")
-                }
-                FAN_SPORT -> {
-                    writeSysfs(SYSFS_FAN_STATE, "1")
-                    writeSysfs(SYSFS_FAN_DUTY, "25000")
-                }
-            }
-        } catch (_: Exception) {}
-
-        return success
+    /** Serialize the last policy check with disabling automation before a manual fan write. */
+    @Synchronized
+    fun setFanModeIfAutoEnabled(context: Context, mode: Int): Boolean {
+        if (!isAutoFanControlEnabled(context)) return false
+        return setFanMode(context, mode)
     }
 
     // --- 摇杆灯开关 ---
@@ -279,65 +164,39 @@ object HardwareController {
     }
 
     fun toggleJoystickLight(context: Context): Boolean {
-        val current = isJoystickLightEnabled(context)
-        val next = !current
-        val target = if (next) "1,1" else "0,0"
-        
-        sendDaemonCommand("SET_SYSTEM $KEY_JOYSTICK_LIGHT_ENABLED $target")
-        sendDaemonCommand("SET_SYSTEM $KEY_JOYSTICK_HANDLE_LIGHT_ENABLED $target")
-        
-        if (Settings.System.canWrite(context)) {
-            try {
-                Settings.System.putString(context.contentResolver, KEY_JOYSTICK_LIGHT_ENABLED, target)
-                Settings.System.putString(context.contentResolver, KEY_JOYSTICK_HANDLE_LIGHT_ENABLED, target)
-            } catch (_: Exception) {}
+        val next = !isJoystickLightEnabled(context)
+        val value = if (next) "1,1" else "0,0"
+        val reply = HardwareBridgeClient.request(context, "LIGHTS\t$value")
+        if (reply != listOf("LIGHTS", value) ||
+            systemValue(context, KEY_JOYSTICK_LIGHT_ENABLED) != value ||
+            systemValue(context, KEY_JOYSTICK_HANDLE_LIGHT_ENABLED) != value) {
+            throw HardwareControlException("摇杆灯状态读回不一致，请刷新状态。")
         }
         return next
     }
 
-    // --- 摇杆灯颜色设置 ---
-    fun getJoystickColor(context: Context): String {
-        return try {
-            Settings.System.getString(context.contentResolver, KEY_JOYSTICK_COLOR) ?: "#ff00e5ff,#ff00e5ff"
-        } catch (_: Exception) {
-            "#ff00e5ff,#ff00e5ff"
-        }
-    }
+    fun getJoystickColor(context: Context): String =
+        systemValue(context, KEY_JOYSTICK_COLOR) ?: "#ff00e5ff,#ff00e5ff"
 
     fun setJoystickColor(context: Context, hexColor: String): Boolean {
-        val formatted = if (hexColor.contains(",")) hexColor else "$hexColor,$hexColor"
-        sendDaemonCommand("SET_SYSTEM $KEY_JOYSTICK_COLOR $formatted")
-        if (Settings.System.canWrite(context)) {
-            try {
-                Settings.System.putString(context.contentResolver, KEY_JOYSTICK_COLOR, formatted)
-            } catch (_: Exception) {}
-        }
+        val value = if (',' in hexColor) hexColor else "$hexColor,$hexColor"
+        require(value.matches(Regex("#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?,#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?")))
+        setSystem(context, KEY_JOYSTICK_COLOR, value)
         return true
     }
 
-    // --- 80% 充电限制 ---
-    fun isChargeLimit80Enabled(context: Context): Boolean {
-        return try {
-            Settings.System.getInt(context.contentResolver, KEY_CHARGE_LIMIT_80, 0) == 1
-        } catch (_: Exception) {
-            false
-        }
-    }
+    fun isChargeLimit80Enabled(context: Context): Boolean = systemValue(context, KEY_CHARGE_LIMIT_80) == "1"
+    fun isChargePowerLimitEnabled(context: Context): Boolean = systemValue(context, KEY_CHARGE_POWER_LIMIT) == "1"
 
     fun toggleChargeLimit80(context: Context): Boolean {
-        val current = isChargeLimit80Enabled(context)
-        val next = if (current) 0 else 1
-        
-        sendDaemonCommand("SET_SYSTEM $KEY_CHARGE_LIMIT_80 $next")
-        sendDaemonCommand("SET_GLOBAL $KEY_CHARGE_LIMIT_80 $next")
-        
-        try {
-            Settings.System.putInt(context.contentResolver, KEY_CHARGE_LIMIT_80, next)
-        } catch (_: Exception) {}
-        try {
-            Settings.Global.putInt(context.contentResolver, KEY_CHARGE_LIMIT_80, next)
-        } catch (_: Exception) {}
-        return next == 1
+        val next = !(isChargeLimit80Enabled(context) && isChargePowerLimitEnabled(context))
+        val value = if (next) "1" else "0"
+        val reply = HardwareBridgeClient.request(context, "CHARGE\t$value")
+        if (reply != listOf("CHARGE", value) ||
+            isChargeLimit80Enabled(context) != next || isChargePowerLimitEnabled(context) != next) {
+            throw HardwareControlException("充电限制未全部切换，请刷新两项状态。")
+        }
+        return next
     }
 
     // --- 飞行模式 ---
@@ -350,18 +209,14 @@ object HardwareController {
     }
 
     fun toggleAirplaneMode(context: Context): Boolean {
-        val current = isAirplaneModeOn(context)
-        val next = !current
-        val nextVal = if (next) 1 else 0
-
-        sendDaemonCommand("AIRPLANE $nextVal")
-        
+        val next = !isAirplaneModeOn(context)
         try {
-            Settings.Global.putInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, nextVal)
-            val intent = Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED).putExtra("state", next)
-            context.sendBroadcast(intent)
-        } catch (_: Exception) {}
-
+            check(Settings.Global.putInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, if (next) 1 else 0))
+            context.sendBroadcast(Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED).putExtra("state", next))
+        } catch (error: Exception) {
+            throw HardwareControlException("飞行模式切换失败，请刷新状态。", error)
+        }
+        if (isAirplaneModeOn(context) != next) throw HardwareControlException("飞行模式读回不一致。")
         return next
     }
 

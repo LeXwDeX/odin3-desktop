@@ -2,7 +2,10 @@ package com.odin.desktop.service.fan
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityWindowInfo
+import com.odin.desktop.shader.engine.VideoShaderEngine
 
 class AppMonitorAccessibilityService : AccessibilityService() {
 
@@ -10,6 +13,7 @@ class AppMonitorAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         isRunning = true
         android.util.Log.d("AppMonitor", "AppMonitorAccessibilityService connected!")
+        syncFocusedApplication()
     }
 
     override fun onDestroy() {
@@ -19,43 +23,54 @@ class AppMonitorAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val packageName = event.packageName?.toString() ?: return
-
-            // 严禁响应自身包名！自身弹出 ShaderOverlayView 悬浮窗会触发本包名事件，
-            // 若当作切换回桌面会导致刚弹出的 Shader 遮罩被瞬间关闭！
-            // 回到启动台时由 MainActivity.onResume() 主动通知关闭，此处必须忽略自身。
-            if (packageName == this.packageName) {
-                return
-            }
-
-            // 过滤系统辅助浮层、通知栏、输入法与掌机侧边栏助手，
-            // 严禁因呼出游戏助手、调节音量或呼出输入法而误判离开游戏并关闭 Shader
-            if (packageName == "com.android.systemui" ||
-                packageName == "com.odin.gameassistant" ||
-                packageName == "com.odin.mapping" ||
-                packageName == "com.odin.settings" ||
-                packageName == "com.google.android.inputmethod.latin" ||
-                packageName.contains("inputmethod") ||
-                packageName == "android"
-            ) {
-                return
-            }
-
-            android.util.Log.d("AppMonitor", "Foreground package changed to: $packageName")
-            currentForegroundPackage = packageName
-
-            // 联动嵌入式 VideoShader 渲染引擎 (针对目标应用自动启停)
-            com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(this, packageName)
-
-            // 广播前台包名变更给风扇守护
-            val intent = Intent(ACTION_FOREGROUND_CHANGED).apply {
-                putExtra(EXTRA_PACKAGE_NAME, packageName)
-                setPackage(this@AppMonitorAccessibilityService.packageName)
-            }
-            sendBroadcast(intent)
+        if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            event?.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+        ) {
+            syncFocusedApplication()
         }
     }
+
+    private fun syncFocusedApplication() {
+        val foreground = runCatching { focusedApplicationPackage() }.getOrElse {
+            Log.w("AppMonitor", "Could not read focused application window", it)
+            return
+        } ?: return // QS and other system windows may own focus; retain the confirmed game.
+
+        // MainActivity can clear the engine independently of this service's cache.
+        if (foreground == currentForegroundPackage && foreground == VideoShaderEngine.currentTargetPackage(this)) return
+        Log.d("AppMonitor", "Foreground package changed to: $foreground (focused application window)")
+        currentForegroundPackage = foreground
+        VideoShaderEngine.onForegroundPackageChanged(this, foreground)
+
+        sendBroadcast(Intent(ACTION_FOREGROUND_CHANGED).apply {
+            putExtra(EXTRA_PACKAGE_NAME, foreground)
+            setPackage(this@AppMonitorAccessibilityService.packageName)
+        })
+    }
+
+    @Suppress("DEPRECATION")
+    private fun focusedApplicationPackage(): String? {
+        val interactiveWindows = windows
+        try {
+            for (window in interactiveWindows) {
+                if (window.type != AccessibilityWindowInfo.TYPE_APPLICATION || !window.isFocused) continue
+                val root = window.root ?: continue
+                // Read only package identity; do not traverse nodes or read interface text.
+                val owner = try { root.packageName?.toString() } finally { root.recycle() }
+                if (owner != null && !isIgnoredWindowOwner(owner)) return owner
+            }
+        } finally {
+            interactiveWindows.forEach { it.recycle() }
+        }
+        return null
+    }
+
+    private fun isIgnoredWindowOwner(owner: String): Boolean =
+        owner == packageName || // Launcher resets the engine explicitly in MainActivity.onResume.
+            owner == "com.android.systemui" || owner == "android" ||
+            owner == "com.odin.gameassistant" || owner == "com.odin.mapping" ||
+            owner == "com.odin.settings" || owner == "com.google.android.inputmethod.latin" ||
+            owner.contains("inputmethod")
 
     override fun onInterrupt() {}
 

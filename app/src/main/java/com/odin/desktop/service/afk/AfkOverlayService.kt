@@ -12,13 +12,14 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
-import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.odin.desktop.OdinDesktopApplication
 import com.odin.desktop.R
@@ -41,6 +42,7 @@ class AfkOverlayService : Service() {
 
     private val shiftRunnable = object : Runnable {
         override fun run() {
+            if (!isAfkRunning || overlayView == null) return
             updateStatusText()
             handler.postDelayed(this, 30_000L) // 每 30 秒漂移一次
         }
@@ -49,21 +51,34 @@ class AfkOverlayService : Service() {
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        acquireWakeLock()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP_AFK) {
-            stopSelf()
+            stopAfk()
             return START_NOT_STICKY
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification())
-        showOverlay()
-        return START_STICKY
+        if (!Settings.canDrawOverlays(this)) {
+            Toast.makeText(this, "悬浮窗权限不可用，无法开启息屏挂机", Toast.LENGTH_LONG).show()
+            stopAfk()
+            return START_NOT_STICKY
+        }
+
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+            acquireWakeLock()
+            showOverlay()
+        } catch (error: RuntimeException) {
+            android.util.Log.e("AfkOverlayService", "Could not start black overlay", error)
+            Toast.makeText(this, "息屏挂机启动失败，已恢复画面", Toast.LENGTH_LONG).show()
+            stopAfk()
+        }
+        return START_NOT_STICKY
     }
 
     private fun acquireWakeLock() {
+        if (wakeLock?.isHeld == true) return
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         wakeLock = powerManager.newWakeLock(
             PowerManager.PARTIAL_WAKE_LOCK,
@@ -76,10 +91,6 @@ class AfkOverlayService : Service() {
 
     private fun showOverlay() {
         if (overlayView != null) return
-        if (!Settings.canDrawOverlays(this)) {
-            stopSelf()
-            return
-        }
 
         val layoutParams = WindowManager.LayoutParams().apply {
             width = WindowManager.LayoutParams.MATCH_PARENT
@@ -90,20 +101,21 @@ class AfkOverlayService : Service() {
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_SYSTEM_ALERT
             }
-            // 纯黑覆盖，全屏，保持唤醒，最低背光
+            // Keep the display awake under a black mask without taking keyboard/gamepad focus.
             flags = WindowManager.LayoutParams.FLAG_FULLSCREEN or
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
             format = PixelFormat.TRANSLUCENT
             gravity = Gravity.CENTER
-            screenBrightness = 0.01f // 最低亮度
+            screenBrightness = 0.01f
+            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setFitInsetsTypes(0)
         }
 
         val root = FrameLayout(this).apply {
-            setBackgroundColor(Color.BLACK) // OLED 物理断电纯黑
-            isFocusable = true
-            isFocusableInTouchMode = true
+            setBackgroundColor(Color.BLACK)
         }
 
         val textView = TextView(this).apply {
@@ -122,12 +134,12 @@ class AfkOverlayService : Service() {
         }
         root.addView(textView, textParams)
 
-        // 双击解锁机制
+        // Consume touch input on the mask; a double tap returns to the underlying game.
         root.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_DOWN) {
-                val now = System.currentTimeMillis()
-                if (now - lastClickTime < 500) {
-                    stopSelf()
+            if (event.actionMasked == MotionEvent.ACTION_UP) {
+                val now = SystemClock.uptimeMillis()
+                if (lastClickTime != 0L && now - lastClickTime < 500) {
+                    stopAfk()
                     return@setOnTouchListener true
                 }
                 lastClickTime = now
@@ -138,7 +150,7 @@ class AfkOverlayService : Service() {
         overlayView = root
         windowManager.addView(root, layoutParams)
         isAfkRunning = true
-
+        AfkTileService.requestRefresh(this)
         handler.post(shiftRunnable)
     }
 
@@ -156,12 +168,41 @@ class AfkOverlayService : Service() {
         handler.removeCallbacks(shiftRunnable)
         overlayView?.let {
             try {
-                windowManager.removeView(it)
-            } catch (_: Exception) {}
+                windowManager.removeViewImmediate(it)
+            } catch (error: RuntimeException) {
+                android.util.Log.w("AfkOverlayService", "Could not remove black overlay", error)
+            }
             overlayView = null
         }
         statusTextView = null
+        lastClickTime = 0L
         isAfkRunning = false
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            wakeLock?.let { if (it.isHeld) it.release() }
+        } catch (error: RuntimeException) {
+            android.util.Log.w("AfkOverlayService", "Could not release wake lock", error)
+        } finally {
+            wakeLock = null
+        }
+    }
+
+    private fun cleanUp() {
+        removeOverlay()
+        releaseWakeLock()
+        try {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } catch (error: RuntimeException) {
+            android.util.Log.w("AfkOverlayService", "Could not remove foreground notification", error)
+        }
+        AfkTileService.requestRefresh(this)
+    }
+
+    private fun stopAfk() {
+        cleanUp()
+        stopSelf()
     }
 
     private fun buildNotification(): Notification {
@@ -186,11 +227,8 @@ class AfkOverlayService : Service() {
     }
 
     override fun onDestroy() {
+        cleanUp()
         super.onDestroy()
-        removeOverlay()
-        wakeLock?.let {
-            if (it.isHeld) it.release()
-        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -198,7 +236,7 @@ class AfkOverlayService : Service() {
     companion object {
         const val ACTION_STOP_AFK = "com.odin.desktop.action.STOP_AFK"
         private const val NOTIFICATION_ID = 2001
-        var isAfkRunning: Boolean = false
+        @Volatile var isAfkRunning: Boolean = false
             private set
     }
 }

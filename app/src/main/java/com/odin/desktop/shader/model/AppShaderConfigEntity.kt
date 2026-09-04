@@ -1,6 +1,8 @@
 package com.odin.desktop.shader.model
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
+import androidx.room.Ignore
 import androidx.room.PrimaryKey
 
 /**
@@ -17,8 +19,17 @@ data class AppShaderConfigEntity(
     val scanlineIntensity: Float = 0.45f,   // 扫描线暗度 (0.0 ~ 1.0)
     val phosphorIntensity: Float = 0.20f,   // RGB 荧光格强度 (0.0 ~ 1.0)
     val vignetteIntensity: Float = 0.30f,   // 边缘暗角弧度 (0.0 ~ 1.0)
-    val animationSpeed: Float = 1.0f        // 动态扫描线蠕动速度 (0.5 ~ 3.0)
+    val animationSpeed: Float = 1.0f,       // 动态扫描线蠕动速度 (0.5 ~ 3.0)
+    @ColumnInfo(defaultValue = "''")
+    val effectsJson: String = ""
 ) {
+    @get:Ignore
+    val effects: GameNativeShaderSettings
+        get() = GameNativeShaderSettings.fromJson(effectsJson)
+
+    fun withEffects(settings: GameNativeShaderSettings): AppShaderConfigEntity =
+        copy(effectsJson = settings.toJson())
+
     companion object {
         const val PRESET_CRT_SCANLINE_STATIC = "crt_scanline_static"
         const val PRESET_CRT_SCANLINE_DYNAMIC = "crt_scanline_dynamic"

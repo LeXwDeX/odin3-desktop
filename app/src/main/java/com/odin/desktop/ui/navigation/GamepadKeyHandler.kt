@@ -10,15 +10,21 @@ object GamepadKeyHandler {
     private const val LONG_PRESS_THRESHOLD_MS = 300L
 
     fun handleKeyEvent(event: KeyEvent, viewModel: LauncherViewModel): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_X &&
+            viewModel.focusZone.value == FocusZone.DOCK && viewModel.selectedDockIndex.value == 1) {
+            xKeyDownTime = 0L
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) viewModel.toggleAutoFanControl()
+            return true
+        }
         if (event.action == KeyEvent.ACTION_DOWN) {
             when (event.keyCode) {
                 // 肩键 Tab 轮播
                 KeyEvent.KEYCODE_BUTTON_L1 -> {
-                    viewModel.onPrevTab()
+                    if (event.repeatCount == 0) viewModel.onPrevTab()
                     return true
                 }
                 KeyEvent.KEYCODE_BUTTON_R1 -> {
-                    viewModel.onNextTab()
+                    if (event.repeatCount == 0) viewModel.onNextTab()
                     return true
                 }
 
@@ -44,14 +50,14 @@ object GamepadKeyHandler {
                 KeyEvent.KEYCODE_BUTTON_A,
                 KeyEvent.KEYCODE_DPAD_CENTER,
                 KeyEvent.KEYCODE_ENTER -> {
-                    viewModel.onConfirm()
+                    if (event.repeatCount == 0) viewModel.onConfirm()
                     return true
                 }
 
                 // 实体 B 键 / 返回
                 KeyEvent.KEYCODE_BUTTON_B,
                 KeyEvent.KEYCODE_BACK -> {
-                    return viewModel.onBack()
+                    return if (event.repeatCount == 0) viewModel.onBack() else true
                 }
 
                 // 实体 X 键 (管理增删分类应用菜单)
@@ -85,6 +91,9 @@ object GamepadKeyHandler {
             }
         } else if (event.action == KeyEvent.ACTION_UP) {
             when (event.keyCode) {
+                KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
+                KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BACK,
+                KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1 -> return true
                 KeyEvent.KEYCODE_BUTTON_X,
                 KeyEvent.KEYCODE_MENU -> {
                     if (xKeyDownTime > 0) {

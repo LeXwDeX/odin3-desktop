@@ -4,6 +4,10 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -34,6 +38,8 @@ import com.odin.desktop.ui.theme.TextWhite
 fun TopTabBar(
     tabs: List<TabEntity>,
     selectedTabIndex: Int,
+    isDashboardSelected: Boolean,
+    onDashboardSelected: () -> Unit,
     isConfigFocused: Boolean,
     focusZone: FocusZone,
     onTabSelected: (Int) -> Unit,
@@ -47,45 +53,26 @@ fun TopTabBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
+        ShoulderButtonBadge(label = "L1")
+        val listState = rememberLazyListState()
+        val activeIndex = if (isDashboardSelected) 0 else selectedTabIndex + 1
+        LaunchedEffect(activeIndex) { listState.animateScrollToItem(activeIndex) }
+        LazyRow(
+            state = listState,
+            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // L1 肩键提示
-            ShoulderButtonBadge(label = "L1")
-
-            tabs.forEachIndexed { index, tab ->
-                val isSelected = selectedTabIndex == index && !isConfigFocused
-                val isTabFocused = isSelected && focusZone == FocusZone.TABS
-
-                val bgColor by animateColorAsState(
-                    targetValue = if (isTabFocused) CyanAccent.copy(alpha = 0.2f) else Color.Transparent,
-                    label = "tab_bg"
-                )
-                val textColor by animateColorAsState(
-                    targetValue = if (isSelected) CyanAccent else TextDim,
-                    label = "tab_text"
-                )
-
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(bgColor)
-                        .clickable { onTabSelected(index) }
-                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                ) {
-                    Text(
-                        text = tab.name.uppercase(),
-                        color = textColor,
-                        fontSize = 15.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
+            item(key = "dashboard") {
+                HomeTab("Dashboard", isDashboardSelected && !isConfigFocused, focusZone, onDashboardSelected)
             }
-
-            // R1 肩键提示
-            ShoulderButtonBadge(label = "R1")
+            itemsIndexed(tabs, key = { _, tab -> tab.id }) { index, tab ->
+                HomeTab(tab.name.uppercase(), !isDashboardSelected && selectedTabIndex == index && !isConfigFocused,
+                    focusZone) { onTabSelected(index) }
+            }
         }
+        ShoulderButtonBadge(label = "R1")
+        Spacer(Modifier.padding(horizontal = 6.dp))
 
         // 右侧固定 [CONFIG] 设置按钮
         val isConfigSelected = isConfigFocused && focusZone == FocusZone.TABS
@@ -108,6 +95,20 @@ fun TopTabBar(
                 fontWeight = FontWeight.Bold
             )
         }
+    }
+}
+
+@Composable
+private fun HomeTab(label: String, selected: Boolean, focusZone: FocusZone, onClick: () -> Unit) {
+    val focused = selected && focusZone == FocusZone.TABS
+    Box(
+        Modifier.clip(RoundedCornerShape(6.dp))
+            .background(if (focused) CyanAccent.copy(alpha = 0.2f) else Color.Transparent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+    ) {
+        Text(label, color = if (selected) CyanAccent else TextDim, fontSize = 15.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, maxLines = 1)
     }
 }
 

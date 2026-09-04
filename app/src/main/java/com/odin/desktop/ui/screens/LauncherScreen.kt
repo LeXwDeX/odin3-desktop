@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.odin.desktop.ui.components.AppActionDialog
 import com.odin.desktop.ui.components.AppBatchManageDialog
 import com.odin.desktop.ui.components.AppHorizontalRow
-import com.odin.desktop.ui.components.AppShaderConfigDialog
+import com.odin.desktop.ui.components.DashboardContent
 import com.odin.desktop.ui.components.BottomDockBar
 import com.odin.desktop.ui.components.ConfigDialog
 import com.odin.desktop.ui.components.TopTabBar
@@ -41,6 +41,9 @@ fun LauncherScreen(
     viewModel: LauncherViewModel,
     onOrientationChange: (Int) -> Unit
 ) {
+    val isDashboardSelected by viewModel.isDashboardSelected.collectAsState()
+    val dashboardState by viewModel.dashboardState.collectAsState()
+    val selectedDashboardControl by viewModel.selectedDashboardControl.collectAsState()
     val tabs by viewModel.tabs.collectAsState()
     val selectedTabIndex by viewModel.selectedTabIndex.collectAsState()
     val isConfigFocused by viewModel.isConfigFocusedInTabs.collectAsState()
@@ -55,6 +58,7 @@ fun LauncherScreen(
     val joystickLightEnabled by viewModel.joystickLightEnabled.collectAsState()
     val joystickColor by viewModel.joystickColor.collectAsState()
     val chargeLimit80 by viewModel.chargeLimit80.collectAsState()
+    val chargePowerLimit by viewModel.chargePowerLimit.collectAsState()
     val airplaneMode by viewModel.airplaneMode.collectAsState()
     val orientationMode by viewModel.orientationMode.collectAsState()
     val autoFanControlEnabled by viewModel.autoFanControlEnabled.collectAsState()
@@ -81,10 +85,6 @@ fun LauncherScreen(
     val isReorderingApps by viewModel.isReorderingApps.collectAsState()
     val pickedAppIndex by viewModel.pickedAppIndex.collectAsState()
 
-    val isShaderConfigDialogOpen by viewModel.isShaderConfigDialogOpen.collectAsState()
-    val currentAppShaderConfig by viewModel.currentAppShaderConfig.collectAsState()
-    val shaderConfigFocusIndex by viewModel.shaderConfigFocusIndex.collectAsState()
-
     androidx.compose.runtime.LaunchedEffect(orientationMode) {
         onOrientationChange(orientationMode)
     }
@@ -103,6 +103,15 @@ fun LauncherScreen(
             .fillMaxSize()
             .background(PureBlack)
     ) {
+        if (isDashboardSelected) {
+            DashboardContent(
+                state = dashboardState,
+                selectedControl = selectedDashboardControl,
+                hasFocus = focusZone == FocusZone.DASHBOARD,
+                onAction = viewModel::onDashboardAction,
+                modifier = Modifier.fillMaxSize().padding(top = 56.dp, bottom = 62.dp)
+            )
+        } else {
         // 1. 中部应用大卡片滑带 (严格屏幕级垂直绝对居中，居于屏幕中轴线上)
         Box(
             modifier = Modifier
@@ -185,6 +194,8 @@ fun LauncherScreen(
             }
         }
 
+        }
+
         // 3. 顶部 Tab 栏 (顶部对齐)
         Box(
             modifier = Modifier
@@ -193,6 +204,8 @@ fun LauncherScreen(
         ) {
             TopTabBar(
                 tabs = tabs,
+                isDashboardSelected = isDashboardSelected,
+                onDashboardSelected = viewModel::selectDashboard,
                 selectedTabIndex = selectedTabIndex,
                 isConfigFocused = isConfigFocused,
                 focusZone = focusZone,
@@ -216,6 +229,9 @@ fun LauncherScreen(
                 fanMode = fanMode,
                 joystickLightEnabled = joystickLightEnabled,
                 chargeLimit80 = chargeLimit80,
+                chargePowerLimit = chargePowerLimit,
+                autoFanControlEnabled = autoFanControlEnabled,
+                onToggleChargingFanMode = viewModel::toggleAutoFanControl,
                 airplaneMode = airplaneMode,
                 selectedDockIndex = selectedDockIndex,
                 focusZone = focusZone,
@@ -278,17 +294,5 @@ fun LauncherScreen(
         onSearchChange = { query -> viewModel.setBatchManageSearchQuery(query) },
         onDismiss = { viewModel.closeBatchManageDialog() },
         onToggleApp = { app -> viewModel.toggleAppInCurrentTab(app) }
-    )
-
-    // 8. 专属 VideoShader 滤镜配置模态框 (1. 选择 Shader 类型  2. 预览 Shader)
-    AppShaderConfigDialog(
-        isOpen = isShaderConfigDialogOpen,
-        app = appUnderAction,
-        config = currentAppShaderConfig,
-        focusIndex = shaderConfigFocusIndex,
-        onDismiss = { viewModel.closeShaderConfigDialog() },
-        onToggleEnable = { viewModel.toggleShaderEnable() },
-        onPreviewShader = { viewModel.onPreviewShaderClicked() },
-        onSelectItem = { index -> viewModel.selectShaderConfigIndex(index) }
     )
 }

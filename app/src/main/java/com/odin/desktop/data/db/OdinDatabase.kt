@@ -4,21 +4,19 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.odin.desktop.data.dao.AppMappingDao
 import com.odin.desktop.data.dao.TabDao
 import com.odin.desktop.data.entity.AppMappingEntity
 import com.odin.desktop.data.entity.TabEntity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 import com.odin.desktop.shader.dao.AppShaderConfigDao
 import com.odin.desktop.shader.model.AppShaderConfigEntity
 
 @Database(
     entities = [TabEntity::class, AppMappingEntity::class, AppShaderConfigEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class OdinDatabase : RoomDatabase() {
@@ -31,6 +29,31 @@ abstract class OdinDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: OdinDatabase? = null
 
+        // Version 2 introduced only app_shader_configs; tabs and mappings stay intact.
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `app_shader_configs` (
+                        `packageName` TEXT NOT NULL,
+                        `isEnabled` INTEGER NOT NULL,
+                        `presetId` TEXT NOT NULL,
+                        `isDynamic` INTEGER NOT NULL,
+                        `scanlineIntensity` REAL NOT NULL,
+                        `phosphorIntensity` REAL NOT NULL,
+                        `vignetteIntensity` REAL NOT NULL,
+                        `animationSpeed` REAL NOT NULL,
+                        PRIMARY KEY(`packageName`)
+                    )""".trimIndent()
+                )
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `app_shader_configs` ADD COLUMN `effectsJson` TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun getDatabase(context: Context): OdinDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -38,7 +61,7 @@ abstract class OdinDatabase : RoomDatabase() {
                     OdinDatabase::class.java,
                     "odin_desktop.db"
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .addCallback(DatabaseCallback())
                     .build()
                 INSTANCE = instance

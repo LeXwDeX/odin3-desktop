@@ -2,6 +2,11 @@ package com.odin.desktop.ui
 
 import android.os.Bundle
 import android.view.KeyEvent
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
+import com.odin.desktop.dashboard.DashboardActions
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -54,6 +59,13 @@ class MainActivity : ComponentActivity() {
         // 自动激活前台应用监听无障碍服务（本应用已授权 WRITE_SECURE_SETTINGS，确保从任意位置打开/切换游戏均能无缝激活 Shader）
         ensureAccessibilityServiceEnabled()
 
+        val dashboardActions = DashboardActions(this)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.dashboardActions.collect { dashboardActions.execute(it) }
+            }
+        }
+
         setContent {
             OdinDesktopTheme {
                 LauncherScreen(
@@ -98,11 +110,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        viewModel.setLauncherVisible(true)
         ensureAccessibilityServiceEnabled()
         // 回到桌面时刷新硬件状态与应用列表，并确保隐藏 VideoShader 遮罩 (Shader 仅在应用内生效)
         viewModel.loadHardwareStates()
         viewModel.scanInstalledApps()
         com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(this, packageName)
+    }
+
+    override fun onPause() {
+        viewModel.setLauncherVisible(false)
+        super.onPause()
     }
 
     override fun onDestroy() {

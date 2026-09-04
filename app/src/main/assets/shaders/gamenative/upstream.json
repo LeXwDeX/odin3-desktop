@@ -1,0 +1,56 @@
+{
+  "revision": "a1459a722e15a3d5df99633a6f7099bd329c1bea",
+  "upstream": "https://github.com/utkarshdalal/GameNative",
+  "files": [
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/CRTEffect.java",
+      "source_sha256": "eb6df61fd246b2017facb6475846167d7de7be8b4fe0e4ac30f842dfbd3ac47a",
+      "adapted_asset": "opengl/CRTEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/ColorEffect.java",
+      "source_sha256": "e12a43128a0c3843552876c43235999125ead2ab165e60b9ba6100d6af1fbae1",
+      "adapted_asset": "opengl/ColorEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/FSR1EasuEffect.java",
+      "source_sha256": "c4a9680a68b53c99bd0c833dfe7958a5c7b98f34f95be8376be1801feb9c6412",
+      "adapted_asset": "opengl/FSR1EasuEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/FSR1RcasEffect.java",
+      "source_sha256": "dabc0eadc2b5d9f7626e43a413da331eca2cb5fa1057ba8f52802ce7423b4d9c",
+      "adapted_asset": "opengl/FSR1RcasEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/FXAAEffect.java",
+      "source_sha256": "bf8396e761b1a315ca133e477c8cd501a862d66c4cd5d4028926ee2993f97fa1",
+      "adapted_asset": "opengl/FXAAEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/NTSCCombinedEffect.java",
+      "source_sha256": "c89c83a6e59436d022610b9459871a32f2c48b7e278d15eb6fa5d92d30cbeb0c",
+      "adapted_asset": "opengl/NTSCCombinedEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/ScalingModeEffect.java",
+      "source_sha256": "66c11a5b4331c162cdb19bbb5f5ef8a3ef6ff584626572a28e389329fc0e88d1",
+      "adapted_asset": "opengl/ScalingModeEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/ToonEffect.java",
+      "source_sha256": "770af3831d8063d21956ea9032fd375d24a179c5ac567cea139d8a58c406300f",
+      "adapted_asset": "opengl/ToonEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/VividEffect.java",
+      "source_sha256": "e24497885a359a936552e44348746b156515680c3e11f9c905bf8e48f49b24ee",
+      "adapted_asset": "opengl/VividEffect.frag"
+    },
+    {
+      "source": "GameNative/app/src/main/cpp/winlator/window.frag",
+      "source_sha256": "fbeb53d8dcc986a47fec04332056aa0619eea9ed3a7d9fcda1271586a9ecdcab",
+      "adapted_asset": "vulkan/window.frag"
+    }
+  ]
+}
