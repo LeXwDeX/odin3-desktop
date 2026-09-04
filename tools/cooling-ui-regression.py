@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Method-level actual-source regression for optimistic cooling UI and its queue.
 
-Extracts six unchanged method bodies plus their real state field declarations from
-LauncherViewModel.kt. Only Android dependencies/hardware are fake. Scheduling uses
+Extracts the current method bodies plus their real state field declarations from
+LauncherHardwareControls.kt. Only Android dependencies/hardware are fake. Scheduling uses
 real kotlinx.coroutines and a single-thread Main dispatcher; latches force stale
 writes/readbacks. Does not test Android lifecycle, Binder, sensors, or physical PWM.
 """
@@ -16,7 +16,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = Path.home() / ".gradle/caches/modules-2/files-2.1"
-SOURCE = ROOT / "app/src/main/java/com/odin/desktop/ui/viewmodel/LauncherViewModel.kt"
+SOURCE = ROOT / "app/src/main/java/com/odin/desktop/ui/viewmodel/LauncherHardwareControls.kt"
 parser = argparse.ArgumentParser(description=__doc__)
 variants = parser.add_mutually_exclusive_group()
 variants.add_argument("--legacy-policy-variant", action="store_true",
@@ -28,7 +28,7 @@ METHODS = ("enqueueCoolingAction", "cyclePerformanceMode", "cycleFanMode",
            "toggleAutoFanControl", "refreshHardwareStates")
 # changeHardware shares the hardware mutex/readback and is extracted as the sixth
 # production entry point, even though the cooling-specific tests do not invoke it.
-METHODS += ("changeHardware",)
+METHODS += ("changeHardware", "toggleJoystickLight", "setJoystickColor")
 
 
 def jar(group, name, version):
@@ -65,7 +65,7 @@ fields = ("_performanceMode", "_fanMode", "_autoFanControlEnabled", "hardwareLoc
           "coolingJob", "coolingIntentPending", "coolingIntentRevision", "pendingCoolingActions",
           "_joystickLightEnabled", "_joystickColor", "_chargingSeparation", "_chargePowerLimit",
           "_chargeLimit80", "_airplaneMode", "_orientationMode", "_isDefaultHome",
-          "_bootAutoStartEnabled", "_currentSocTemp")
+          "_bootAutoStartEnabled", "_currentSocTemp", "lightJob", "colorJob")
 declarations = []
 for name in fields:
     match = re.search(rf"^    (?:@Volatile )?private (?:val|var) {name}\b[^\n]*", source, re.M)
@@ -97,7 +97,13 @@ coroutines = jar("org.jetbrains.kotlinx", "kotlinx-coroutines-core-jvm", "1.8.1"
 compiler += [annotations, coroutines]
 java = Path(os.environ.get("JAVA_HOME", "/opt/homebrew/opt/openjdk@17")) / "bin/java"
 
+resource_names = sorted(set(re.findall(r"R\.string\.(\w+)", production)))
+resource_stub = "object R { object string { " + "; ".join(
+    f"const val {name} = {index}" for index, name in enumerate(resource_names)) + " } }"
+
 sources = {
+    "resources": "package regression\n" + resource_stub +
+        '\nfun Any.getString(id: Int): String = "Test resource $id"\n',
     "viewmodel": '''package regression
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -126,6 +132,10 @@ class CoolingViewModelHarness {
     }
     fun observerRefresh() = viewModelScope.launch(Dispatchers.IO) {
         hardwareLock.withLock { refreshHardwareStates(refreshPerformance = true) }
+    }
+    suspend fun awaitLights() {
+        withTimeout(5_000) { lightJob?.join(); colorJob?.join() }
+        check(scopeFailures.isEmpty())
     }
     fun close() { viewModelScope.cancel() }
 }
@@ -197,6 +207,8 @@ object HardwareController {
     @Volatile var performance = 0
     @Volatile var fan = 0
     @Volatile var auto = false
+    @Volatile var lights = false
+    @Volatile var color = "#ff00e5ff"
     val calls = CopyOnWriteArrayList<String>()
     val performanceTargets = CopyOnWriteArrayList<Pair<Int, Int?>>()
     private val gates = ConcurrentHashMap<String, Gate>()
@@ -205,6 +217,7 @@ object HardwareController {
         gates.values.forEach { it.release() }; gates.clear(); failures.clear(); calls.clear()
         performanceTargets.clear()
         this.performance = performance; this.fan = fan; this.auto = auto
+        lights = false; color = "#ff00e5ff"
         android.widget.Toast.shown = 0
     }
     fun blockNext(operation: String) = Gate().also { gates[operation] = it }
@@ -242,8 +255,10 @@ object HardwareController {
         before("automation", enabled.toString()); auto = enabled
         if (enabled) fan = FAN_SMART
     }
-    fun isJoystickLightEnabled(context: Any) = false
-    fun getJoystickColor(context: Any) = "#ff00e5ff"
+    fun isJoystickLightEnabled(context: Any) = lights
+    fun getJoystickColor(context: Any) = color
+    fun setJoystickLightEnabled(context: Any, enabled: Boolean) { before("lights", enabled.toString()); lights = enabled }
+    fun setJoystickColor(context: Any, hex: String) { before("color", hex); color = hex }
     fun isChargingSeparationEnabled(context: Any) = false
     fun isChargePowerLimit5V(context: Any) = true
     fun isChargeLimit80Enabled(context: Any) = false
@@ -427,6 +442,22 @@ fun main() = runBlocking {
             } finally { inFlight.release() }
             println("PASS mixed 3,000-press storm keeps at most three pending command kinds")
         }
+        for (colorFirst in listOf(true, false)) {
+            fixture { vm ->
+                withContext(Dispatchers.Main) {
+                    if (colorFirst) {
+                        vm.setJoystickColor("#ffff5252"); vm.toggleJoystickLight()
+                    } else {
+                        vm.toggleJoystickLight(); vm.setJoystickColor("#ffff5252")
+                    }
+                    vm.awaitLights()
+                    check(HardwareController.lights && HardwareController.color == "#ffff5252") {
+                        "Color and light toggle must both commit regardless of input order"
+                    }
+                }
+            }
+        }
+        println("PASS light color and toggle retain both intentions in either order")
         println("PASS all actual-source cooling UI regressions")
     } finally { MainThread.close() }
 }

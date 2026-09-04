@@ -1,5 +1,6 @@
 package com.odin.desktop.service.fan
 
+import com.odin.desktop.R
 import android.app.Activity
 import android.app.role.RoleManager
 import android.content.Context
@@ -112,7 +113,7 @@ object HardwareController {
     private fun setSystem(context: Context, key: String, value: String) {
         val reply = HardwareBridgeClient.request(context, "SET\t$key\t$value")
         if (reply != listOf(key, value) || systemValue(context, key) != value) {
-            throw HardwareControlException("硬件设置读回不一致，请刷新状态后重试。")
+            throw HardwareControlException(context.getString(R.string.text_hardware_readback_differs_from_the_requested_setting))
         }
     }
 
@@ -121,7 +122,7 @@ object HardwareController {
         val reply = HardwareBridgeClient.request(context, "PERFORMANCE_GET")
         val value = reply.getOrNull(1)?.toIntOrNull()
         if (reply.size != 2 || reply[0] != "PERFORMANCE" || value == null || value !in 0..2) {
-            throw HardwareControlException("系统性能模式不可用，请刷新状态。")
+            throw HardwareControlException(context.getString(R.string.text_system_performance_mode_is_unavailable_refresh_the))
         }
         return value
     }
@@ -157,7 +158,7 @@ object HardwareController {
         val reply = HardwareBridgeClient.request(context, "FAN_GET")
         val value = reply.getOrNull(1)?.toIntOrNull()
         if (reply.size != 2 || reply[0] != "FAN" || value == null || value !in 0..6) {
-            throw HardwareControlException("无法确认风扇实际档位，请刷新状态。")
+            throw HardwareControlException(context.getString(R.string.text_cannot_confirm_the_actual_fan_mode_refresh))
         }
         return value
     }
@@ -207,7 +208,7 @@ object HardwareController {
         override fun readPerformance(): Int = getPerformanceMode(context)
         override fun readFan(): Int = getFanMode(context)
         override fun readConfiguredFan(): Int = systemValue(context, KEY_FAN_MODE)?.toIntOrNull()
-            ?.takeIf { it in 0..6 } ?: throw HardwareControlException("无法读取已选择的风扇档位。")
+            ?.takeIf { it in 0..6 } ?: throw HardwareControlException(context.getString(R.string.text_cannot_read_the_selected_fan_mode))
         override fun readAutoEnabled(): Boolean = isAutoFanControlEnabled(context)
         override fun writeAutoEnabled(enabled: Boolean) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
@@ -218,7 +219,7 @@ object HardwareController {
         override fun writePerformanceAndFan(performance: Int, fan: Int) {
             val reply = HardwareBridgeClient.request(context, "PERFORMANCE_FAN\t$performance\t$fan")
             if (reply != listOf("PERFORMANCE_FAN", performance.toString(), fan.toString())) {
-                throw HardwareControlException("性能和风扇未全部切换成功，请刷新状态。")
+                throw HardwareControlException(context.getString(R.string.text_performance_and_fan_settings_were_not_both))
             }
         }
     }
@@ -239,7 +240,7 @@ object HardwareController {
         if (reply != listOf("LIGHTS", value) ||
             systemValue(context, KEY_JOYSTICK_LIGHT_ENABLED) != value ||
             systemValue(context, KEY_JOYSTICK_HANDLE_LIGHT_ENABLED) != value) {
-            throw HardwareControlException("摇杆灯状态读回不一致，请刷新状态。")
+            throw HardwareControlException(context.getString(R.string.text_stick_lighting_readback_differs_refresh_the_status))
         }
         return enabled
     }
@@ -291,7 +292,7 @@ object HardwareController {
         val reply = HardwareBridgeClient.request(context, "CHARGE\t$value")
         if (reply != listOf("CHARGE", value) ||
             isChargeLimit80Enabled(context) != next || isChargePowerLimitEnabled(context) != next) {
-            throw HardwareControlException("充电限制未全部切换，请刷新两项状态。")
+            throw HardwareControlException(context.getString(R.string.text_charging_limits_were_not_both_applied_refresh))
         }
         return next
     }
@@ -312,9 +313,9 @@ object HardwareController {
                 context.sendBroadcast(Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED).putExtra("state", enabled))
             } catch (_: Exception) {}
         } catch (error: Exception) {
-            throw HardwareControlException("飞行模式切换失败，请刷新状态。", error)
+            throw HardwareControlException(context.getString(R.string.text_airplane_mode_could_not_be_changed_refresh), error)
         }
-        if (isAirplaneModeOn(context) != enabled) throw HardwareControlException("飞行模式读回不一致。")
+        if (isAirplaneModeOn(context) != enabled) throw HardwareControlException(context.getString(R.string.text_airplane_mode_readback_differs))
         return enabled
     }
 

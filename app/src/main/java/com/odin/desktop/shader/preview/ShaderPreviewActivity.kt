@@ -1,5 +1,6 @@
 package com.odin.desktop.shader.preview
 
+import com.odin.desktop.R
 import android.app.AlertDialog
 import android.graphics.BitmapFactory
 import android.graphics.ColorSpace
@@ -37,16 +38,16 @@ class ShaderPreviewActivity : ComponentActivity() {
             runCatching {
                 withContext(Dispatchers.IO) {
                     val bitmap = contentResolver.openInputStream(uri).use { input ->
-                        requireNotNull(input) { "无法读取图片" }
-                        BitmapFactory.decodeStream(input, null, sourceDecodeOptions()) ?: error("请选择有效的游戏截图")
+                        requireNotNull(input) { getString(R.string.text_cannot_read_the_image) }
+                        BitmapFactory.decodeStream(input, null, sourceDecodeOptions()) ?: error(getString(R.string.text_choose_a_valid_game_screenshot))
                     }
-                    require(bitmap.width.toLong() * bitmap.height <= 32_000_000L) { "图片过大" }
+                    require(bitmap.width.toLong() * bitmap.height <= 32_000_000L) { getString(R.string.text_image_too_large) }
                     sourceFile.parentFile?.mkdirs()
                     sourceFile.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                     bitmap.recycle()
                 }
                 loadSource()
-            }.onFailure { status.text = it.message ?: "截图导入失败" }
+            }.onFailure { status.text = it.message ?: getString(R.string.text_screenshot_import_failed) }
         }
     }
 
@@ -72,10 +73,10 @@ class ShaderPreviewActivity : ComponentActivity() {
             setOnClickListener { action() }
             buttons.addView(this)
         }
-        button("返回") { finish() }
-        button("导入无滤镜截图") { picker.launch("image/*") }
-        originalButton = button("显示原图 · X") { toggleOriginal() }
-        button("原生接入状态") { showRuntimeInfo() }
+        button(getString(R.string.text_back)) { finish() }
+        button(getString(R.string.text_import_unfiltered_screenshot)) { picker.launch("image/*") }
+        originalButton = button(getString(R.string.text_show_original_x)) { toggleOriginal() }
+        button(getString(R.string.text_live_integration_status)) { showRuntimeInfo() }
         controls.addView(buttons)
         controls.addView(status)
         root.addView(controls, FrameLayout.LayoutParams(-1, -2, Gravity.TOP))
@@ -100,10 +101,10 @@ class ShaderPreviewActivity : ComponentActivity() {
         val bitmap = withContext(Dispatchers.IO) {
             BitmapFactory.decodeFile(sourceFile.absolutePath, sourceDecodeOptions())
         }
-        if (bitmap == null) status.text = "导入关闭所有滤镜后的游戏截图；预览按屏幕分辨率运行。"
+        if (bitmap == null) status.text = getString(R.string.text_import_a_game_screenshot_with_all_filters)
         else {
             preview.setImage(bitmap)
-            status.text = "${bitmap.width} × ${bitmap.height} 原图 · ${effects.family} · 屏幕分辨率渲染 · X 对比原图"
+            status.text = getString(R.string.text_value_value_source_value_screen_resolution_preview, bitmap.width, bitmap.height, effects.family)
         }
     }
 
@@ -116,16 +117,19 @@ class ShaderPreviewActivity : ComponentActivity() {
     private fun toggleOriginal() {
         showOriginal = !showOriginal
         preview.showOriginal(showOriginal)
-        originalButton.text = if (showOriginal) "显示滤镜 · X" else "显示原图 · X"
+        originalButton.text = if (showOriginal) getString(R.string.text_show_filter_x) else getString(R.string.text_show_original_x)
     }
 
     private fun showRuntimeInfo() {
         AlertDialog.Builder(this)
-            .setTitle("原生渲染接入")
-            .setMessage("这里在 GPU 上处理你导入的截图，可对比全部滤镜组合。\n\n实时游戏接入尚未完成。需要在目标应用的 Vulkan / OpenGL 渲染流程中加载效果；仅开启桌面选项无法给任意第三方应用注入 Shader。\n\n现有轻量扫描线覆盖层只支持 Vulkan CRT。其他效果在原生接入前仅供截图预览，设置会按应用保存。")
-            .setPositiveButton("知道了", null).show()
+            .setTitle(getString(R.string.text_live_rendering_integration))
+            .setMessage(getString(R.string.text_this_preview_processes_your_imported_screenshot_on))
+            .setPositiveButton(getString(R.string.text_got_it), null).show()
     }
 
+    // core 1.13.1 restricts its base class; this is the public Activity callback.
+    // Preserve normal dispatch for keys not consumed by the launcher.
+    @Suppress("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_X && event.action == KeyEvent.ACTION_DOWN) {
             if (event.repeatCount == 0) toggleOriginal()

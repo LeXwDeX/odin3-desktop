@@ -71,7 +71,7 @@ class FanWatchdogService : Service() {
     override fun onCreate() {
         super.onCreate()
         val app = application as OdinDesktopApplication
-        appRepository = AppRepository(this, app.database.tabDao(), app.database.appMappingDao())
+        appRepository = app.appRepository
         try {
             startForeground(NOTIFICATION_ID, buildNotification())
             val filter = IntentFilter().apply {
@@ -190,6 +190,11 @@ class FanWatchdogService : Service() {
         } catch (error: Exception) {
             Log.w(TAG, "Accessibility restart unavailable; waiting before retry", error)
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        getSystemService(android.app.NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
     }
 
     private fun buildNotification(): Notification =

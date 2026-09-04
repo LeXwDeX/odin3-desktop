@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
         }
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.requestRoleEvent.collect {
+                viewModel.hardware.requestRoleEvent.collect {
                     HardwareController.requestDefaultHomeRole(this@MainActivity)
                 }
             }
@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
         viewModel.setLauncherVisible(true)
         ensureAccessibilityServiceEnabled()
         // 回到桌面时刷新硬件状态与应用列表，并确保隐藏 VideoShader 遮罩 (Shader 仅在应用内生效)
-        viewModel.loadHardwareStates()
+        viewModel.hardware.loadHardwareStates()
         viewModel.scanInstalledApps()
         com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(this, packageName)
     }
@@ -144,6 +144,9 @@ class MainActivity : ComponentActivity() {
      * 实体手柄全局按键拦截。
      * 拦截 D-Pad、摇杆、肩键 (L1/R1) 与 ABXY，实现完全不需要触屏的掌机盲操。
      */
+    // core 1.13.1 restricts its base class; this is the public Activity callback.
+    // Preserve normal dispatch for keys not consumed by the launcher.
+    @Suppress("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (GamepadKeyHandler.handleKeyEvent(event, viewModel) ||
             event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_BUTTON_B

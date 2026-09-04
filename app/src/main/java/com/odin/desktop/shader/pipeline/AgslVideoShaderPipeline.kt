@@ -5,20 +5,18 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RuntimeShader
 import android.os.Build
-import com.odin.desktop.shader.model.AppShaderConfigEntity
 
 /**
  * Compatibility overlay for the multiplicative mask in GameNative's Vulkan CRT effect.
  * Coordinates use physical output pixels. Effects that sample game pixels use another backend.
  */
-class AgslVideoShaderPipeline : IVideoShaderPipeline {
+class AgslVideoShaderPipeline : OverlayShaderPipeline {
 
     override val id: String = "gamenative_crt"
-    override val displayName: String = "GameNative CRT 扫描线"
 
     private var runtimeShader: RuntimeShader? = null
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private var currentConfig: AppShaderConfigEntity? = null
+    private var currentConfig: OverlayShaderConfig? = null
 
     companion object {
         // The engine explicitly sets this window alpha; the shader compensates the same value.
@@ -41,7 +39,7 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
         """
     }
 
-    override fun init(context: Context) {
+    override fun init(context: Context): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             try {
                 runtimeShader = RuntimeShader(AGSL_SHADER_CODE)
@@ -53,16 +51,17 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
                 android.util.Log.e("AgslVideoShaderPipeline", "Could not create CRT mask", e)
             }
         }
+        return runtimeShader != null
     }
 
-    override fun updateConfig(config: AppShaderConfigEntity) {
+    override fun updateConfig(config: OverlayShaderConfig) {
         currentConfig = config
     }
 
     override fun onDraw(canvas: Canvas, width: Float, height: Float, timeSeconds: Float) {
         val config = currentConfig ?: return
         val effects = config.effects
-        if (!config.isEnabled || effects.requiresFrameInput || !effects.enableCRT) return
+        if (!config.enabled || effects.requiresFrameInput || !effects.enableCRT) return
         if (width <= 0f || height <= 0f) return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && runtimeShader != null) {

@@ -1,5 +1,9 @@
 package com.odin.desktop.shader.control
 
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.R
+import com.odin.desktop.shader.model.ShaderPresets
+import com.odin.desktop.shader.repository.ShaderConfigWrites
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -22,8 +26,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,7 +49,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,26 +72,13 @@ import com.odin.desktop.shader.preview.ShaderPreviewView
 import com.odin.desktop.shader.preview.TvTestPatternGenerator
 import com.odin.desktop.shader.repository.ShaderConfigRepository
 import com.odin.desktop.shader.runtime.ShaderRuntime
-import com.odin.desktop.ui.theme.CyanAccent
-import com.odin.desktop.ui.theme.GreenActive
 import com.odin.desktop.ui.theme.OdinDesktopTheme
-import com.odin.desktop.ui.theme.OrangeWarning
-import com.odin.desktop.ui.theme.PureBlack
-import com.odin.desktop.ui.theme.TextDim
-import com.odin.desktop.ui.theme.TextWhite
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.util.Locale
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -105,9 +93,8 @@ class ShaderControlActivity : ComponentActivity() {
 
     private lateinit var preview: ShaderPreviewView
     private var targetPackage: String? = null
-    private var appLabel: String = "独立校准模式"
+    private var appLabel: String = ""
     private var isGameTarget = false
-    private var automaticFamily = ShaderFamily.VULKAN
 
     // 当前配置与滤镜参数
     private var currentConfig: AppShaderConfigEntity? = null
@@ -117,31 +104,31 @@ class ShaderControlActivity : ComponentActivity() {
     // 状态流向 Compose 的状态变量
     private val uiEffects = mutableStateOf(currentEffects)
     private val uiAppFilterEnabled = mutableStateOf(false)
-    private val uiTargetName = mutableStateOf("独立校准模式")
+    private val uiTargetName = mutableStateOf("")
     private val uiIsGame = mutableStateOf(false)
     private val uiSelectedMenuIndex = mutableIntStateOf(0)
     private val uiIsOsdVisible = mutableStateOf(true)
     private val uiIsBypassActive = mutableStateOf(false)
     private val uiSelectedSignalSource = mutableIntStateOf(0) // 0: SMPTE, 1: 网格, 2: 像素, 3: 自定义截图
-    private val uiSaveStatus = mutableStateOf("已就绪")
+    private val uiSaveStatus = mutableStateOf("")
 
     private var saveDebounceJob: Job? = null
     private val sourceFile get() = File(filesDir, "shader_preview/source.png")
 
-    private val presetNames = listOf("CRT 特丽珑", "复古街机", "鲜艳游戏", "高清 FXAA", "纯净原画", "自定义")
-    private val signalSources = listOf("SMPTE 彩条标定", "几何对齐网格", "复古像素场景", "游戏实机截图")
+    private val presetNames get() = ShaderPresets.builtIn.map { getString(it.label) } + getString(R.string.text_custom)
+    private val signalSources get() = listOf(getString(R.string.text_smpte_calibration_bars), getString(R.string.text_alignment_grid), getString(R.string.text_retro_pixel_scene), getString(R.string.text_game_screenshot))
 
     private val imagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             lifecycleScope.launch {
-                uiSaveStatus.value = "正在载入截图…"
+                uiSaveStatus.value = getString(R.string.text_loading_screenshot)
                 runCatching {
                     withContext(Dispatchers.IO) {
                         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                         contentResolver.openInputStream(uri).use { BitmapFactory.decodeStream(it, null, bounds) }
-                        checkImageSize(bounds)
+                        checkImageSize(bounds, this@ShaderControlActivity)
                         val bitmap = contentResolver.openInputStream(uri).use {
-                            BitmapFactory.decodeStream(it, null, decodeOptions()) ?: error("请选择有效截图")
+                            BitmapFactory.decodeStream(it, null, decodeOptions()) ?: error(getString(R.string.text_choose_a_valid_screenshot))
                         }
                         sourceFile.parentFile?.mkdirs()
                         val file = AtomicFile(sourceFile)
@@ -158,9 +145,9 @@ class ShaderControlActivity : ComponentActivity() {
                 }.onSuccess { bmp ->
                     uiSelectedSignalSource.intValue = 3
                     preview.setImage(bmp)
-                    uiSaveStatus.value = "截图载入完成"
+                    uiSaveStatus.value = getString(R.string.text_screenshot_loaded)
                 }.onFailure { err ->
-                    uiSaveStatus.value = "读取截图失败：${err.message?.take(60)}"
+                    uiSaveStatus.value = getString(R.string.text_could_not_read_screenshot_value, err.message?.take(60))
                 }
             }
         }
@@ -168,6 +155,7 @@ class ShaderControlActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        uiSaveStatus.value = getString(R.string.text_ready)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setFinishOnTouchOutside(false)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -245,16 +233,15 @@ class ShaderControlActivity : ComponentActivity() {
     private fun loadTarget(snapshot: String?) {
         val runtime = ShaderRuntime.resolve(applicationContext, snapshot)
         targetPackage = snapshot.takeIf { runtime.hasTarget }
-        automaticFamily = runtime.family
 
         if (targetPackage == null) {
-            appLabel = "独立校准模式"
+            appLabel = getString(R.string.text_standalone_calibration)
             isGameTarget = false
-            uiTargetName.value = "独立校准模式"
+            uiTargetName.value = getString(R.string.text_standalone_calibration)
             uiIsGame.value = false
             uiAppFilterEnabled.value = false
             lifecycleScope.launch {
-                val loaded = ControlConfigWrites.loadScreenshotSettings(applicationContext)
+                val loaded = ShaderConfigWrites.loadScreenshotSettings(applicationContext)
                 applySettings(loaded)
             }
         } else {
@@ -303,7 +290,7 @@ class ShaderControlActivity : ComponentActivity() {
     }
 
     private fun applySettings(settings: GameNativeShaderSettings) {
-        val normalized = settings.copy(family = automaticFamily).normalized()
+        val normalized = settings.normalized()
         currentEffects = normalized
         uiEffects.value = normalized
         preview.setEffects(normalized)
@@ -312,7 +299,7 @@ class ShaderControlActivity : ComponentActivity() {
     private var hasPendingSave = false
 
     private fun updateEffectsAndSave(transform: (GameNativeShaderSettings) -> GameNativeShaderSettings) {
-        val newSettings = transform(currentEffects).copy(family = automaticFamily).normalized()
+        val newSettings = transform(currentEffects).normalized()
         currentEffects = newSettings
         uiEffects.value = newSettings
         preview.setEffects(newSettings)
@@ -335,15 +322,15 @@ class ShaderControlActivity : ComponentActivity() {
                 .copy(isEnabled = isEnabled)
                 .withEffects(settings)
             currentConfig = updated
-            ControlConfigWrites.save(applicationContext, updated).await()
+            ShaderConfigWrites.save(applicationContext, updated).await()
         } else {
-            ControlConfigWrites.saveScreenshotSettings(applicationContext, settings).await()
+            ShaderConfigWrites.saveScreenshotSettings(applicationContext, settings).await()
         }
         withContext(Dispatchers.Main) {
             if (result.isSuccess) {
-                uiSaveStatus.value = "已自动保存"
+                uiSaveStatus.value = getString(R.string.text_saved_automatically)
             } else {
-                uiSaveStatus.value = "保存失败: ${result.exceptionOrNull()?.message ?: "写入错误"}"
+                uiSaveStatus.value = getString(R.string.text_save_failed_value, result.exceptionOrNull()?.message ?: getString(R.string.text_write_error))
             }
         }
     }
@@ -362,9 +349,9 @@ class ShaderControlActivity : ComponentActivity() {
                 .copy(isEnabled = isEnabled)
                 .withEffects(settings)
             currentConfig = updated
-            ControlConfigWrites.save(app, updated)
+            ShaderConfigWrites.save(app, updated)
         } else {
-            ControlConfigWrites.saveScreenshotSettings(app, settings)
+            ShaderConfigWrites.saveScreenshotSettings(app, settings)
         }
     }
 
@@ -382,57 +369,26 @@ class ShaderControlActivity : ComponentActivity() {
                 .copy(isEnabled = next)
                 .withEffects(currentEffects)
             currentConfig = updated
-            val result = ControlConfigWrites.save(applicationContext, updated).await()
+            val result = ShaderConfigWrites.save(applicationContext, updated).await()
             withContext(Dispatchers.Main) {
                 if (result.isSuccess) {
-                    uiSaveStatus.value = if (next) "已应用到游戏" else "已从游戏停用"
+                    uiSaveStatus.value = if (next) getString(R.string.text_enabled_for_this_game) else getString(R.string.text_disabled_for_this_game)
                 } else {
                     isAppFilterEnabled = !next
                     uiAppFilterEnabled.value = !next
-                    uiSaveStatus.value = "保存失败: ${result.exceptionOrNull()?.message ?: "写入错误"}"
+                    uiSaveStatus.value = getString(R.string.text_save_failed_value, result.exceptionOrNull()?.message ?: getString(R.string.text_write_error))
                 }
             }
         }
     }
 
     private fun selectPreset(index: Int) {
-        val base = GameNativeShaderSettings(family = automaticFamily, enableCRT = false, enableNTSC = false)
-        val selected = when (index) {
-            0 -> base.copy(enableCRT = true, scaling = ShaderScaling.NONE, brightness = 0f, contrast = 10f, gamma = 1.0f)
-            1 -> base.copy(enableCRT = true, enableVivid = true, brightness = 5f, contrast = 15f, gamma = 0.95f)
-            2 -> base.copy(enableVivid = true, enableCRT = false, brightness = 0f, contrast = 10f, gamma = 1.0f)
-            3 -> base.copy(enableFXAA = true, enableCRT = false, brightness = 0f, contrast = 0f, gamma = 1.0f)
-            4 -> base.copy(enableCRT = false, enableFXAA = false, enableVivid = false, enableToon = false, enableNTSC = false, brightness = 0f, contrast = 0f, gamma = 1.0f)
-            else -> currentEffects
-        }
-        updateEffectsAndSave { selected }
+        val preset = ShaderPresets.builtIn.getOrNull(index) ?: return
+        updateEffectsAndSave { preset.settings(currentEffects.family) }
     }
 
-    private fun getPresetIndex(effects: GameNativeShaderSettings): Int {
-        val base = GameNativeShaderSettings(family = effects.family, enableCRT = false, enableNTSC = false)
-        for (i in 0..4) {
-            val p = when (i) {
-                0 -> base.copy(enableCRT = true, scaling = ShaderScaling.NONE, brightness = 0f, contrast = 10f, gamma = 1.0f)
-                1 -> base.copy(enableCRT = true, enableVivid = true, brightness = 5f, contrast = 15f, gamma = 0.95f)
-                2 -> base.copy(enableVivid = true, enableCRT = false, brightness = 0f, contrast = 10f, gamma = 1.0f)
-                3 -> base.copy(enableFXAA = true, enableCRT = false, brightness = 0f, contrast = 0f, gamma = 1.0f)
-                4 -> base.copy(enableCRT = false, enableFXAA = false, enableVivid = false, enableToon = false, enableNTSC = false, brightness = 0f, contrast = 0f, gamma = 1.0f)
-                else -> null
-            }
-            if (p != null &&
-                p.enableCRT == effects.enableCRT &&
-                p.enableVivid == effects.enableVivid &&
-                p.enableFXAA == effects.enableFXAA &&
-                p.enableToon == effects.enableToon &&
-                abs(p.brightness - effects.brightness) < 0.05f &&
-                abs(p.contrast - effects.contrast) < 0.05f &&
-                abs(p.gamma - effects.gamma) < 0.05f
-            ) {
-                return i
-            }
-        }
-        return 5 // 自定义
-    }
+    private fun getPresetIndex(effects: GameNativeShaderSettings): Int =
+        ShaderPresets.indexOf(effects).takeIf { it >= 0 } ?: ShaderPresets.builtIn.size
 
     private var presetToast: Toast? = null
 
@@ -445,9 +401,9 @@ class ShaderControlActivity : ComponentActivity() {
         }
         selectPreset(next)
         if (!uiIsOsdVisible.value) {
-            val name = presetNames.getOrElse(next) { "预设 $next" }
+            val name = presetNames.getOrElse(next) { getString(R.string.text_preset_value, next) }
             presetToast?.cancel()
-            presetToast = Toast.makeText(this, "滤镜预设：$name", Toast.LENGTH_SHORT)
+            presetToast = Toast.makeText(this, getString(R.string.text_filter_preset_value, name), Toast.LENGTH_SHORT)
             presetToast?.show()
         }
     }
@@ -455,6 +411,9 @@ class ShaderControlActivity : ComponentActivity() {
     /**
      * 手柄按键分发：D-Pad 上下选条目、左右即时微调数值、L1/R1 切换预设、X 按住对比、Y 隐藏菜单、A 切换/确认、B 退出。
      */
+    // core 1.13.1 restricts its base class; this is the public Activity callback.
+    // Preserve normal dispatch for keys not consumed by the launcher.
+    @Suppress("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // X 键：按住对比原画，松开恢复
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_X) {
@@ -601,6 +560,7 @@ class ShaderControlActivity : ComponentActivity() {
 
     @Composable
     private fun TvGameCalibrationScreen() {
+        val palette = LocalOdinPalette.current
         val effects by uiEffects
         val selectedIndex by uiSelectedMenuIndex
         val isOsdVisible by uiIsOsdVisible
@@ -615,7 +575,7 @@ class ShaderControlActivity : ComponentActivity() {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(PureBlack)
+                .background(palette.background)
         ) {
             // 1. 全屏底图：ShaderPreviewView GPU 渲染
             AndroidView(
@@ -639,7 +599,7 @@ class ShaderControlActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(if (isBypassActive) OrangeWarning else GreenActive)
+                        .background(if (isBypassActive) palette.warning else palette.active)
                 )
                 Text(
                     text = "CH-1 · AV-1 SCART · 1080P @ 60Hz",
@@ -650,7 +610,7 @@ class ShaderControlActivity : ComponentActivity() {
                 )
                 Text(
                     text = "• ${signalSources[signalSourceIndex]}",
-                    color = CyanAccent,
+                    color = palette.accent,
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace
                 )
@@ -666,8 +626,8 @@ class ShaderControlActivity : ComponentActivity() {
                         .padding(horizontal = 24.dp, vertical = 12.dp)
                 ) {
                     Text(
-                        text = "⚡ BYPASS · RAW SOURCE (原画对比中)",
-                        color = PureBlack,
+                        text = getString(R.string.text_bypass_raw_source),
+                        color = palette.background,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
                         fontFamily = FontFamily.Monospace
@@ -719,12 +679,12 @@ class ShaderControlActivity : ComponentActivity() {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                LegendChip("D-Pad ↑↓", "选择条目")
-                LegendChip("D-Pad ←→", "微调数值")
-                LegendChip("L1 / R1", "切换预设")
-                LegendChip("X", "按住原画对比", highlight = isBypassActive)
-                LegendChip("Y", if (isOsdVisible) "隐藏菜单" else "显示菜单")
-                LegendChip("B", "保存退出")
+                LegendChip("D-Pad ↑↓", getString(R.string.text_select_item))
+                LegendChip("D-Pad ←→", getString(R.string.text_adjust_value))
+                LegendChip("L1 / R1", getString(R.string.text_change_preset))
+                LegendChip("X", getString(R.string.text_hold_to_compare), highlight = isBypassActive)
+                LegendChip("Y", if (isOsdVisible) getString(R.string.text_hide_menu) else getString(R.string.text_show_menu))
+                LegendChip("B", getString(R.string.text_save_and_exit))
             }
         }
     }
@@ -742,6 +702,7 @@ class ShaderControlActivity : ComponentActivity() {
         onItemClick: (Int) -> Unit,
         onItemAdjust: (Int, Int) -> Unit
     ) {
+        val palette = LocalOdinPalette.current
         val listState = rememberLazyListState()
 
         LaunchedEffect(selectedIndex) {
@@ -766,7 +727,7 @@ class ShaderControlActivity : ComponentActivity() {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(text = "📺", fontSize = 16.sp)
                     Text(
-                        text = "TV DISPLAY CALIBRATION",
+                        text = getString(R.string.shader_calibration_title),
                         color = Color(0xFF00E5FF),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -782,7 +743,7 @@ class ShaderControlActivity : ComponentActivity() {
             }
 
             Text(
-                text = "目标: $targetName",
+                text = getString(R.string.text_target_value, targetName),
                 color = Color(0xFFA6B7CE),
                 fontSize = 11.sp,
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
@@ -803,14 +764,14 @@ class ShaderControlActivity : ComponentActivity() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "灰阶标定基准",
+                        text = getString(R.string.text_grayscale_reference),
                         color = Color(0xFF8899AC),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         fontFamily = FontFamily.Monospace
                     )
                     Text(
-                        text = "至左侧隐约可见·右侧清晰",
+                        text = getString(R.string.text_left_barely_visible_right_clear),
                         color = Color(0xFF5E7188),
                         fontSize = 10.sp
                     )
@@ -833,7 +794,7 @@ class ShaderControlActivity : ComponentActivity() {
                             .background(Color(0xFF0C0C0C)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "04% 隐约", color = Color(0xFF444444), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(text = getString(R.string.text_04_faint), color = Color(0xFF444444), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                     // 基准中灰 (50% 灰)
                     Box(
@@ -843,7 +804,7 @@ class ShaderControlActivity : ComponentActivity() {
                             .background(Color(0xFF7F7F7F)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "50% 基准", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(text = getString(R.string.text_50_reference), color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                     // 亮部清晰可见 (96% 白)
                     Box(
@@ -853,7 +814,7 @@ class ShaderControlActivity : ComponentActivity() {
                             .background(Color(0xFFF2F2F2)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "96% 清晰", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(text = getString(R.string.text_96_clear), color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -870,10 +831,10 @@ class ShaderControlActivity : ComponentActivity() {
                 // 0. 图像预设 (PICTURE PRESET)
                 item {
                     OsdRow(
-                        title = "图像预设",
-                        valueText = "◄ ${presetNames.getOrElse(currentPresetIndex) { "自定义" }} ►",
+                        title = getString(R.string.text_picture_preset),
+                        valueText = getString(R.string.text_value, presetNames.getOrElse(currentPresetIndex) { getString(R.string.text_custom) }),
                         isSelected = selectedIndex == 0,
-                        valueColor = CyanAccent,
+                        valueColor = palette.accent,
                         onClick = { onItemClick(0) },
                         onLeft = { onItemAdjust(0, -1) },
                         onRight = { onItemAdjust(0, 1) }
@@ -883,7 +844,7 @@ class ShaderControlActivity : ComponentActivity() {
                 // 1. 对比度
                 item {
                     OsdSliderRow(
-                        title = "画面对比度",
+                        title = getString(R.string.text_contrast),
                         value = effects.contrast.roundToInt(),
                         min = -100,
                         max = 100,
@@ -898,7 +859,7 @@ class ShaderControlActivity : ComponentActivity() {
                 // 2. 亮度
                 item {
                     OsdSliderRow(
-                        title = "画面亮度",
+                        title = getString(R.string.text_brightness),
                         value = effects.brightness.roundToInt(),
                         min = -100,
                         max = 100,
@@ -913,7 +874,7 @@ class ShaderControlActivity : ComponentActivity() {
                 // 3. 色彩伽马 (Gamma)
                 item {
                     OsdSliderRowFloat(
-                        title = "色彩伽马",
+                        title = getString(R.string.text_gamma),
                         value = effects.gamma,
                         min = 0.5f,
                         max = 2.5f,
@@ -927,7 +888,7 @@ class ShaderControlActivity : ComponentActivity() {
                 // 4. CRT 显像管扫描线
                 item {
                     OsdToggleRow(
-                        title = "CRT 显像管扫描线",
+                        title = getString(R.string.text_crt_scanlines),
                         enabled = effects.enableCRT,
                         isSelected = selectedIndex == 4,
                         onClick = { onItemClick(4) }
@@ -938,11 +899,11 @@ class ShaderControlActivity : ComponentActivity() {
                 item {
                     val isFsrActive = effects.scaling == ShaderScaling.FSR || effects.scaling == ShaderScaling.FSR_ASPECT
                     OsdSliderRow(
-                        title = "AMD FSR 超分锐度",
+                        title = getString(R.string.text_amd_fsr_sharpness),
                         value = if (isFsrActive) effects.fsrSharpnessLevel else 0,
                         min = 0,
                         max = 5,
-                        unit = if (isFsrActive) "档" else "关闭",
+                        unit = if (isFsrActive) getString(R.string.text_level) else getString(R.string.text_off),
                         isSelected = selectedIndex == 5,
                         onClick = { onItemClick(5) },
                         onLeft = { onItemAdjust(5, -1) },
@@ -953,7 +914,7 @@ class ShaderControlActivity : ComponentActivity() {
                 // 6. 鲜艳增强 (VIVID)
                 item {
                     OsdToggleRow(
-                        title = "Vivid 鲜艳色彩增强",
+                        title = getString(R.string.text_vivid_color_enhancement),
                         enabled = effects.enableVivid,
                         isSelected = selectedIndex == 6,
                         onClick = { onItemClick(6) }
@@ -963,7 +924,7 @@ class ShaderControlActivity : ComponentActivity() {
                 // 7. FXAA 平滑抗锯齿
                 item {
                     OsdToggleRow(
-                        title = "FXAA 平滑抗锯齿",
+                        title = getString(R.string.text_fxaa_anti_aliasing),
                         enabled = effects.enableFXAA,
                         isSelected = selectedIndex == 7,
                         onClick = { onItemClick(7) }
@@ -973,10 +934,10 @@ class ShaderControlActivity : ComponentActivity() {
                 // 8. 测试信号源切换
                 item {
                     OsdRow(
-                        title = "测试信号源",
+                        title = getString(R.string.text_test_signal),
                         valueText = "◄ ${signalSources[signalSourceIndex]} ►",
                         isSelected = selectedIndex == 8,
-                        valueColor = OrangeWarning,
+                        valueColor = palette.warning,
                         onClick = { onItemClick(8) },
                         onLeft = { onItemAdjust(8, -1) },
                         onRight = { onItemAdjust(8, 1) }
@@ -986,349 +947,13 @@ class ShaderControlActivity : ComponentActivity() {
                 // 9. 应用到当前游戏
                 item {
                     OsdToggleRow(
-                        title = if (isGame) "应用到当前游戏" else "应用到游戏 (未检测到运行中游戏)",
+                        title = if (isGame) getString(R.string.text_enable_for_this_game) else getString(R.string.text_enable_for_game_no_running_game_detected),
                         enabled = appFilterEnabled && isGame,
                         isSelected = selectedIndex == 9,
                         onClick = { onItemClick(9) }
                     )
                 }
             }
-        }
-    }
-
-    @Composable
-    private fun OsdRow(
-        title: String,
-        valueText: String,
-        isSelected: Boolean,
-        valueColor: Color = CyanAccent,
-        onClick: () -> Unit,
-        onLeft: () -> Unit,
-        onRight: () -> Unit
-    ) {
-        val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
-        val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
-        val cleanValueText = valueText.removePrefix("◄ ").removeSuffix(" ►")
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(bg)
-                .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(6.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { onClick() }
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (isSelected) {
-                    Text(text = "►", color = CyanAccent, fontSize = 11.sp)
-                }
-                Text(
-                    text = title,
-                    color = if (isSelected) TextWhite else Color(0xFFB0C0D4),
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { onLeft() }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "◄", color = if (isSelected) CyanAccent else Color(0xFF5A708C), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-                Text(
-                    text = cleanValueText,
-                    color = valueColor,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { onRight() }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "►", color = if (isSelected) CyanAccent else Color(0xFF5A708C), fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun OsdSliderRow(
-        title: String,
-        value: Int,
-        min: Int,
-        max: Int,
-        unit: String,
-        isSelected: Boolean,
-        onClick: () -> Unit,
-        onLeft: () -> Unit,
-        onRight: () -> Unit
-    ) {
-        val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
-        val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
-        val isClosed = (value == 0 && unit == "关闭")
-        val sign = if (value > 0 && unit == "%") "+" else ""
-        val ratio = if (isClosed) 0f else ((value - min).toFloat() / (max - min)).coerceIn(0f, 1f)
-        val barCount = 10
-        val filled = (ratio * barCount).roundToInt()
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(bg)
-                .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(6.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { onClick() }
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (isSelected) {
-                    Text(text = "►", color = CyanAccent, fontSize = 11.sp)
-                }
-                Text(
-                    text = title,
-                    color = if (isSelected) TextWhite else Color(0xFFB0C0D4),
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                // ◄ 独立触控减小按钮
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { onLeft() }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "◄",
-                        color = if (isSelected) CyanAccent else Color(0xFF5A708C),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // 点阵/段落刻度条
-                val barStr = "▮".repeat(filled) + "▯".repeat(barCount - filled)
-                Text(
-                    text = barStr,
-                    color = if (isClosed) Color(0xFF3A4B60) else if (isSelected) CyanAccent else Color(0xFF5A708C),
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace
-                )
-
-                // ► 独立触控增加按钮
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { onRight() }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "►",
-                        color = if (isSelected) CyanAccent else Color(0xFF5A708C),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Text(
-                    text = if (isClosed) "关闭" else "$sign$value$unit",
-                    color = if (isClosed) TextDim else if (value != 0) CyanAccent else TextDim,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-        }
-    }
-
-    @Composable
-    private fun OsdSliderRowFloat(
-        title: String,
-        value: Float,
-        min: Float,
-        max: Float,
-        isSelected: Boolean,
-        onClick: () -> Unit,
-        onLeft: () -> Unit,
-        onRight: () -> Unit
-    ) {
-        val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
-        val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
-        val ratio = ((value - min) / (max - min)).coerceIn(0f, 1f)
-        val barCount = 10
-        val filled = (ratio * barCount).roundToInt()
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(bg)
-                .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(6.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { onClick() }
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (isSelected) {
-                    Text(text = "►", color = CyanAccent, fontSize = 11.sp)
-                }
-                Text(
-                    text = title,
-                    color = if (isSelected) TextWhite else Color(0xFFB0C0D4),
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                // ◄ 独立触控减小按钮
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { onLeft() }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "◄",
-                        color = if (isSelected) CyanAccent else Color(0xFF5A708C),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                val barStr = "▮".repeat(filled) + "▯".repeat(barCount - filled)
-                Text(
-                    text = barStr,
-                    color = if (isSelected) CyanAccent else Color(0xFF5A708C),
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace
-                )
-
-                // ► 独立触控增加按钮
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { onRight() }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "►",
-                        color = if (isSelected) CyanAccent else Color(0xFF5A708C),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Text(
-                    text = String.format(Locale.US, "%.2f", value),
-                    color = CyanAccent,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-        }
-    }
-
-    @Composable
-    private fun OsdToggleRow(
-        title: String,
-        enabled: Boolean,
-        isSelected: Boolean,
-        onClick: () -> Unit
-    ) {
-        val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
-        val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(6.dp))
-                .background(bg)
-                .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(6.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { onClick() }
-                .padding(horizontal = 12.dp, vertical = 9.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (isSelected) {
-                    Text(text = "►", color = CyanAccent, fontSize = 11.sp)
-                }
-                Text(
-                    text = title,
-                    color = if (isSelected) TextWhite else Color(0xFFB0C0D4),
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                )
-            }
-            Text(
-                text = if (enabled) "[ ● 开启 ]" else "[ ○ 关闭 ]",
-                color = if (enabled) GreenActive else TextDim,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace
-            )
-        }
-    }
-
-    @Composable
-    private fun LegendChip(button: String, label: String, highlight: Boolean = false) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(5.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(if (highlight) OrangeWarning else Color(0xFF243248))
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    text = button,
-                    color = if (highlight) PureBlack else Color(0xFFD4E2F5),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-            }
-            Text(
-                text = label,
-                color = Color(0xFFA6B7CE),
-                fontSize = 11.sp
-            )
         }
     }
 
@@ -1340,49 +965,9 @@ class ShaderControlActivity : ComponentActivity() {
             inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
         }
 
-        private fun checkImageSize(bounds: BitmapFactory.Options) {
-            require(bounds.outWidth > 0 && bounds.outHeight > 0) { "请选择有效截图" }
-            require(bounds.outWidth.toLong() * bounds.outHeight <= 32_000_000L) { "截图过大" }
+        private fun checkImageSize(bounds: BitmapFactory.Options, context: android.content.Context) {
+            require(bounds.outWidth > 0 && bounds.outHeight > 0) { context.getString(R.string.text_choose_a_valid_screenshot) }
+            require(bounds.outWidth.toLong() * bounds.outHeight <= 32_000_000L) { context.getString(R.string.text_screenshot_too_large) }
         }
-    }
-}
-
-/** 异步持久化配置队列 */
-private object ControlConfigWrites {
-    private const val SCREENSHOT_PREFERENCES = "shader_screenshot_preview"
-    private const val SCREENSHOT_EFFECTS = "effects_json"
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var tail: Deferred<Result<Unit>> = CompletableDeferred(Result.success(Unit))
-
-    @Synchronized
-    fun save(context: Context, value: AppShaderConfigEntity): Deferred<Result<Unit>> {
-        val app = context.applicationContext
-        return enqueue {
-            OdinDatabase.getDatabase(app).appShaderConfigDao().insertOrUpdate(value)
-            withContext(Dispatchers.Main.immediate) { VideoShaderEngine.refreshConfig(app, value.packageName) }
-        }
-    }
-
-    suspend fun loadScreenshotSettings(context: Context): GameNativeShaderSettings = withContext(Dispatchers.IO) {
-        val json = context.applicationContext.getSharedPreferences(SCREENSHOT_PREFERENCES, Context.MODE_PRIVATE)
-            .getString(SCREENSHOT_EFFECTS, "").orEmpty()
-        GameNativeShaderSettings.fromJson(json)
-    }
-
-    fun saveScreenshotSettings(context: Context, value: GameNativeShaderSettings): Deferred<Result<Unit>> {
-        val app = context.applicationContext
-        return enqueue {
-            check(app.getSharedPreferences(SCREENSHOT_PREFERENCES, Context.MODE_PRIVATE).edit()
-                .putString(SCREENSHOT_EFFECTS, value.toJson()).commit()) { "截图预览参数保存失败" }
-        }
-    }
-
-    @Synchronized
-    private fun enqueue(write: suspend () -> Unit): Deferred<Result<Unit>> {
-        val previous = tail
-        return scope.async {
-            previous.await()
-            runCatching { write() }
-        }.also { tail = it }
     }
 }

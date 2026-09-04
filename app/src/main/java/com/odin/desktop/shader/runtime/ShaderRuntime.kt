@@ -1,12 +1,11 @@
 package com.odin.desktop.shader.runtime
 
+import com.odin.desktop.R
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
-import com.odin.desktop.shader.model.ShaderFamily
 
 data class ShaderRuntimeSelection(
-    val family: ShaderFamily,
     val status: String,
     val hasTarget: Boolean
 )
@@ -23,11 +22,11 @@ object ShaderRuntime {
         // is the AGSL multiplicative mask, which implements GameNative's Vulkan CRT equations.
         // This is a capability fallback, not a claim that the target app itself uses Vulkan.
         val status = when {
-            !hasTarget -> "请先打开游戏，再从下拉面板选择滤镜"
+            !hasTarget -> context.getString(R.string.text_open_a_game_then_choose_the_filter)
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && Settings.canDrawOverlays(context) ->
-                "自动 · 兼容扫描线"
-            else -> "自动 · 截图预览"
+                context.getString(R.string.text_auto_compatible_scanlines)
+            else -> context.getString(R.string.text_auto_screenshot_preview)
         }
-        return ShaderRuntimeSelection(ShaderFamily.VULKAN, status, hasTarget)
+        return ShaderRuntimeSelection(status, hasTarget)
     }
 }

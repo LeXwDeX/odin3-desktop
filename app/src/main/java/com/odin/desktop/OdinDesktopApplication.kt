@@ -1,20 +1,26 @@
 package com.odin.desktop
 
+import com.odin.desktop.R
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.Intent
 import android.os.Build
 import com.odin.desktop.data.db.OdinDatabase
-import com.odin.desktop.service.fan.FanWatchdogService
 
 class OdinDesktopApplication : Application() {
 
     val database: OdinDatabase by lazy { OdinDatabase.getDatabase(this) }
 
+    val appRepository by lazy { com.odin.desktop.data.repository.AppRepository(this, database) }
+
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannels()
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
         createNotificationChannels()
     }
 
@@ -24,34 +30,24 @@ class OdinDesktopApplication : Application() {
 
             val afkChannel = NotificationChannel(
                 CHANNEL_AFK,
-                "息屏挂机保护",
+                getString(R.string.text_idle_screen_protection),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "息屏挂机防烧屏前台通知"
+                description = getString(R.string.text_foreground_notification_for_oled_idle_protection)
                 setShowBadge(false)
             }
 
             val fanChannel = NotificationChannel(
                 CHANNEL_FAN,
-                "充电风扇守护",
+                getString(R.string.text_charging_fan_monitor),
                 NotificationManager.IMPORTANCE_MIN
             ).apply {
-                description = "充电与智能散热状态守护通知"
+                description = getString(R.string.text_charging_and_cooling_status_notifications)
                 setShowBadge(false)
             }
 
             notificationManager.createNotificationChannel(afkChannel)
             notificationManager.createNotificationChannel(fanChannel)
-        }
-    }
-
-    private fun startBackgroundServices() {
-        // 自动拉起充电风扇守护服务
-        val fanIntent = Intent(this, FanWatchdogService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(fanIntent)
-        } else {
-            startService(fanIntent)
         }
     }
 

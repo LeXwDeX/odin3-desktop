@@ -1,5 +1,9 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.data.model.displayName
+import androidx.compose.ui.platform.LocalContext
+import com.odin.desktop.R
 import android.widget.ImageView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -40,13 +43,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.model.InstalledApp
 import com.odin.desktop.ui.components.base.ConsoleModalDialog
-import com.odin.desktop.ui.theme.CardBackground
-import com.odin.desktop.ui.theme.CardBorder
-import com.odin.desktop.ui.theme.CyanAccent
-import com.odin.desktop.ui.theme.DarkSurface
-import com.odin.desktop.ui.theme.PureBlack
-import com.odin.desktop.ui.theme.TextDim
-import com.odin.desktop.ui.theme.TextWhite
 
 @Composable
 fun AppBatchManageDialog(
@@ -60,6 +56,8 @@ fun AppBatchManageDialog(
     onDismiss: () -> Unit,
     onToggleApp: (InstalledApp) -> Unit
 ) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     if (!isOpen || currentTab == null) return
 
     val filteredApps = remember(allApps, searchQuery) {
@@ -84,9 +82,9 @@ fun AppBatchManageDialog(
     ConsoleModalDialog(
         isOpen = isOpen,
         onDismissRequest = onDismiss,
-        title = "增删分类应用",
-        badgeText = currentTab.name,
-        footerHint = "【上下键选应用 • A 键勾选/移除 • B 键完成】",
+        title = strings.getString(R.string.text_manage_category_apps),
+        badgeText = currentTab.displayName(strings),
+        footerHint = strings.getString(R.string.text_up_down_select_app_a_add_remove),
         maxWidth = 680.dp,
         maxHeight = 440.dp
     ) {
@@ -96,21 +94,21 @@ fun AppBatchManageDialog(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchChange,
-                placeholder = { Text("输入应用名或包名即时过滤 (手柄下键可切回列表)...", color = TextDim, fontSize = 13.sp) },
+                placeholder = { Text(strings.getString(R.string.text_filter_by_app_or_package_name_down), color = palette.textDim, fontSize = 13.sp) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = TextWhite,
-                    unfocusedTextColor = TextWhite,
-                    focusedBorderColor = CyanAccent,
-                    unfocusedBorderColor = if (isSearchFocused) CyanAccent else CardBorder,
-                    focusedContainerColor = PureBlack,
-                    unfocusedContainerColor = PureBlack
+                    focusedTextColor = palette.text,
+                    unfocusedTextColor = palette.text,
+                    focusedBorderColor = palette.accent,
+                    unfocusedBorderColor = if (isSearchFocused) palette.accent else palette.border,
+                    focusedContainerColor = palette.background,
+                    unfocusedContainerColor = palette.background
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(
                         width = if (isSearchFocused) 2.dp else 0.dp,
-                        color = if (isSearchFocused) CyanAccent else Color.Transparent,
+                        color = if (isSearchFocused) palette.accent else Color.Transparent,
                         shape = RoundedCornerShape(8.dp)
                     )
             )
@@ -124,13 +122,13 @@ fun AppBatchManageDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "匹配应用 (${filteredApps.size} 项)：",
-                    color = TextDim,
+                    text = strings.getString(R.string.text_matching_apps_value, filteredApps.size),
+                    color = palette.textDim,
                     fontSize = 12.sp
                 )
                 Text(
-                    text = "当前分类已包含 ${currentTabAppPackages.size} 个应用",
-                    color = CyanAccent,
+                    text = strings.getString(R.string.text_this_category_contains_value_apps, currentTabAppPackages.size),
+                    color = palette.accent,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -144,7 +142,7 @@ fun AppBatchManageDialog(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("未匹配到符合条件的应用", color = TextDim, fontSize = 14.sp)
+                    Text(strings.getString(R.string.text_no_matching_apps), color = palette.textDim, fontSize = 14.sp)
                 }
             } else {
                 LazyColumn(
@@ -160,10 +158,10 @@ fun AppBatchManageDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isRowFocused) CyanAccent else PureBlack)
+                                .background(if (isRowFocused) palette.accent else palette.background)
                                 .border(
                                     width = if (isRowFocused) 2.dp else 1.dp,
-                                    color = if (isRowFocused) CyanAccent else CardBorder,
+                                    color = if (isRowFocused) palette.accent else palette.border,
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable { onToggleApp(app) }
@@ -191,7 +189,7 @@ fun AppBatchManageDialog(
                                 Column {
                                     Text(
                                         text = app.label,
-                                        color = if (isRowFocused) PureBlack else TextWhite,
+                                        color = if (isRowFocused) palette.background else palette.text,
                                         fontSize = 14.sp,
                                         fontWeight = if (isRowFocused) FontWeight.Bold else FontWeight.Normal,
                                         maxLines = 1,
@@ -199,7 +197,7 @@ fun AppBatchManageDialog(
                                     )
                                     Text(
                                         text = app.packageName,
-                                        color = if (isRowFocused) PureBlack.copy(alpha = 0.7f) else TextDim,
+                                        color = if (isRowFocused) palette.background.copy(alpha = 0.7f) else palette.textDim,
                                         fontSize = 11.sp,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -213,26 +211,26 @@ fun AppBatchManageDialog(
                                     .clip(RoundedCornerShape(4.dp))
                                     .background(
                                         when {
-                                            isRowFocused && isAdded -> PureBlack
-                                            isRowFocused && !isAdded -> PureBlack.copy(alpha = 0.2f)
-                                            isAdded -> CyanAccent.copy(alpha = 0.2f)
-                                            else -> DarkSurface
+                                            isRowFocused && isAdded -> palette.background
+                                            isRowFocused && !isAdded -> palette.background.copy(alpha = 0.2f)
+                                            isAdded -> palette.accent.copy(alpha = 0.2f)
+                                            else -> palette.surface
                                         }
                                     )
                                     .border(
                                         width = 1.dp,
-                                        color = if (isRowFocused) PureBlack else (if (isAdded) CyanAccent else CardBorder),
+                                        color = if (isRowFocused) palette.background else (if (isAdded) palette.accent else palette.border),
                                         shape = RoundedCornerShape(4.dp)
                                     )
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = if (isAdded) "✓ 已加入" else "+ 未加入",
+                                    text = if (isAdded) strings.getString(R.string.text_added) else strings.getString(R.string.text_not_added),
                                     color = when {
-                                        isRowFocused && isAdded -> CyanAccent
-                                        isRowFocused && !isAdded -> PureBlack
-                                        isAdded -> CyanAccent
-                                        else -> TextDim
+                                        isRowFocused && isAdded -> palette.accent
+                                        isRowFocused && !isAdded -> palette.background
+                                        isAdded -> palette.accent
+                                        else -> palette.textDim
                                     },
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold

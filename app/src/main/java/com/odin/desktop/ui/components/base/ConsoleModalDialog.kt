@@ -1,5 +1,8 @@
 package com.odin.desktop.ui.components.base
 
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import androidx.compose.ui.platform.LocalContext
+import com.odin.desktop.R
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,13 +33,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.odin.desktop.ui.theme.CardBorder
-import com.odin.desktop.ui.theme.CyanAccent
-import com.odin.desktop.ui.theme.DarkSurface
-import com.odin.desktop.ui.theme.PureBlack
-import com.odin.desktop.ui.theme.RedDanger
-import com.odin.desktop.ui.theme.TextDim
-import com.odin.desktop.ui.theme.TextWhite
 
 /**
  * Odin 3 掌机级原生模态框规范架构基类 (同一 Window 内原生全屏遮罩，避免任何 Window 劫持按键焦点)。
@@ -49,11 +45,13 @@ fun ConsoleModalDialog(
     title: String,
     titleIcon: @Composable (() -> Unit)? = null,
     badgeText: String? = null,
-    footerHint: String = "【上下键选择 • A 键确认 • B 键返回】",
+    footerHint: String? = null,
     maxWidth: Dp = 680.dp,
     maxHeight: Dp = 420.dp,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     AnimatedVisibility(
         visible = isOpen,
         enter = fadeIn(),
@@ -63,7 +61,7 @@ fun ConsoleModalDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(PureBlack.copy(alpha = 0.88f))
+                .background(palette.background.copy(alpha = 0.88f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
@@ -77,10 +75,10 @@ fun ConsoleModalDialog(
                     .width(maxWidth)
                     .height(maxHeight)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(DarkSurface)
+                    .background(palette.surface)
                     .border(
                         width = 1.5.dp,
-                        color = CyanAccent.copy(alpha = 0.85f),
+                        color = palette.accent.copy(alpha = 0.85f),
                         shape = RoundedCornerShape(16.dp)
                     )
                     .clickable(
@@ -103,7 +101,7 @@ fun ConsoleModalDialog(
                             titleIcon?.invoke()
                             Text(
                                 text = title,
-                                color = TextWhite,
+                                color = palette.text,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -111,12 +109,12 @@ fun ConsoleModalDialog(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(CyanAccent.copy(alpha = 0.18f))
+                                        .background(palette.accent.copy(alpha = 0.18f))
                                         .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = badgeText,
-                                        color = CyanAccent,
+                                        color = palette.accent,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -126,8 +124,8 @@ fun ConsoleModalDialog(
 
                         // 头部快捷 B 键返回提示
                         Text(
-                            text = "【B 键 / 触碰空白返回】",
-                            color = TextDim,
+                            text = strings.getString(R.string.text_b_or_tap_the_background_to_return_2),
+                            color = palette.textDim,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Normal
                         )
@@ -152,8 +150,8 @@ fun ConsoleModalDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = footerHint,
-                            color = CyanAccent,
+                            text = footerHint ?: strings.getString(R.string.text_up_down_select_a_confirm_b_back),
+                            color = palette.accent,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -180,25 +178,26 @@ fun ConsoleDialogItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalOdinPalette.current
     val bgColor = when {
-        isFocused && isDanger -> RedDanger
-        isFocused -> CyanAccent
-        isSelected -> CyanAccent.copy(alpha = 0.12f)
-        else -> PureBlack
+        isFocused && isDanger -> palette.danger
+        isFocused -> palette.accent
+        isSelected -> palette.accent.copy(alpha = 0.12f)
+        else -> palette.background
     }
 
     val contentColor = when {
-        isFocused -> PureBlack
-        isDanger -> RedDanger
-        isSelected -> CyanAccent
-        else -> TextWhite
+        isFocused -> palette.background
+        isDanger -> palette.danger
+        isSelected -> palette.accent
+        else -> palette.text
     }
 
     val borderColor = when {
-        isFocused && isDanger -> RedDanger
-        isFocused -> CyanAccent
-        isSelected -> CyanAccent.copy(alpha = 0.5f)
-        else -> CardBorder
+        isFocused && isDanger -> palette.danger
+        isFocused -> palette.accent
+        isSelected -> palette.accent.copy(alpha = 0.5f)
+        else -> palette.border
     }
 
     Row(
@@ -234,7 +233,7 @@ fun ConsoleDialogItem(
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
-                        color = if (isFocused) PureBlack.copy(alpha = 0.7f) else TextDim,
+                        color = if (isFocused) palette.background.copy(alpha = 0.7f) else palette.textDim,
                         fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -246,7 +245,7 @@ fun ConsoleDialogItem(
         if (trailingText != null) {
             Text(
                 text = trailingText,
-                color = if (isFocused) PureBlack else CyanAccent,
+                color = if (isFocused) palette.background else palette.accent,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )

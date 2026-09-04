@@ -16,8 +16,8 @@ import com.odin.desktop.shader.model.AppShaderConfigEntity
 
 @Database(
     entities = [TabEntity::class, AppMappingEntity::class, AppShaderConfigEntity::class],
-    version = 3,
-    exportSchema = false
+    version = 4,
+    exportSchema = true
 )
 abstract class OdinDatabase : RoomDatabase() {
 
@@ -54,29 +54,32 @@ abstract class OdinDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tabs ADD COLUMN kind TEXT NOT NULL DEFAULT 'custom'")
+                db.execSQL("ALTER TABLE tabs ADD COLUMN usesDefaultName INTEGER NOT NULL DEFAULT 0")
+                // Preserve names, IDs, ordering and mappings. Only legacy built-in labels
+                // acquire localized display names; subsequent renames keep their exact text.
+                db.execSQL("UPDATE tabs SET kind = 'all_apps', usesDefaultName = CASE WHEN id = 3 THEN 1 ELSE 0 END WHERE name = '全部应用'")
+                db.execSQL("UPDATE tabs SET kind = 'system', usesDefaultName = 1 WHERE id = 2 AND name IN ('系统应用', '系统工具')")
+                db.execSQL("UPDATE tabs SET kind = 'games', usesDefaultName = 1 WHERE id = 1 AND name = '游戏与模拟器'")
+            }
+        }
+
         fun getDatabase(context: Context): OdinDatabase {
             return INSTANCE ?: synchronized(this) {
+                INSTANCE?.let { return@synchronized it }
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     OdinDatabase::class.java,
                     "odin_desktop.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-                    .addCallback(DatabaseCallback())
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                 INSTANCE = instance
                 instance
             }
         }
 
-        private class DatabaseCallback : Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
-                // 首次安装或表创建时直接执行原生 SQL 预置常用掌机分类 Tab
-                db.execSQL("INSERT OR IGNORE INTO tabs (name, sortOrder, isDefault, isGameTab) VALUES ('游戏与模拟器', 0, 1, 1)")
-                db.execSQL("INSERT OR IGNORE INTO tabs (name, sortOrder, isDefault, isGameTab) VALUES ('系统应用', 1, 0, 0)")
-                db.execSQL("INSERT OR IGNORE INTO tabs (name, sortOrder, isDefault, isGameTab) VALUES ('全部应用', 2, 0, 0)")
-            }
-        }
     }
 }

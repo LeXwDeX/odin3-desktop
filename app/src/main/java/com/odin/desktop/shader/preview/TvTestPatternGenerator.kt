@@ -1,5 +1,6 @@
 package com.odin.desktop.shader.preview
 
+import com.odin.desktop.R
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -13,10 +14,10 @@ import kotlin.math.sin
  */
 object TvTestPatternGenerator {
 
-    enum class PatternType(val displayName: String) {
-        SMPTE_COLOR_BARS("SMPTE 电视彩条标定"),
-        CROSSHATCH_GRID("几何对齐网格"),
-        RETRO_PIXEL_SCENE("复古像素游戏场景")
+    enum class PatternType(@androidx.annotation.StringRes val displayNameRes: Int) {
+        SMPTE_COLOR_BARS(R.string.text_smpte_color_bars),
+        CROSSHATCH_GRID(R.string.text_alignment_grid),
+        RETRO_PIXEL_SCENE(R.string.text_retro_pixel_game_scene)
     }
 
     fun generate(type: PatternType, width: Int = 1920, height: Int = 1080): Bitmap {

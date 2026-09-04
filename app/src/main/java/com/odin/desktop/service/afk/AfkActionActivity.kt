@@ -1,5 +1,6 @@
 package com.odin.desktop.service.afk
 
+import com.odin.desktop.R
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -16,7 +17,7 @@ class AfkActionActivity : Activity() {
                 when {
                     AfkOverlayService.isAfkRunning -> stopService(Intent(this, AfkOverlayService::class.java))
                     !Settings.canDrawOverlays(this) -> {
-                        Toast.makeText(this, "请先授予悬浮窗权限，再点击息屏挂机", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this, this.getString(R.string.text_allow_display_over_other_apps_before_starting), Toast.LENGTH_LONG).show()
                         startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                             Uri.parse("package:$packageName")))
                     }
@@ -25,7 +26,7 @@ class AfkActionActivity : Activity() {
             }
         } catch (error: RuntimeException) {
             android.util.Log.e("AfkActionActivity", "Could not change AFK state", error)
-            Toast.makeText(this, "无法切换息屏挂机，请检查悬浮窗权限", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, this.getString(R.string.text_cannot_toggle_the_idle_screen_check_overlay), Toast.LENGTH_LONG).show()
         } finally {
             finish()
         }

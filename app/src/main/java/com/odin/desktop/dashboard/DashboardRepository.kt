@@ -1,5 +1,6 @@
 package com.odin.desktop.dashboard
 
+import com.odin.desktop.R
 import android.Manifest
 import android.app.ActivityManager
 import android.app.AppOpsManager
@@ -50,7 +51,7 @@ class DashboardRepository(context: Context) {
         val stateLock = Mutex()
         val sampler = LiveSampler(app)
         val dumpSampler = SystemDumpSampler(app)
-        var pss = PssSample(null, "正在读取非系统应用 PSS")
+        var pss = PssSample(null, app.getString(R.string.text_reading_non_system_app_pss))
         send(state)
         suspend fun publish(change: (DashboardState) -> DashboardState) {
             stateLock.withLock {
@@ -119,7 +120,7 @@ class DashboardRepository(context: Context) {
             if (volume.isPrimary || state !in setOf(Environment.MEDIA_MOUNTED, Environment.MEDIA_MOUNTED_READ_ONLY)) {
                 return@mapIndexedNotNull null
             }
-            val label = readOrNull { volume.getDescription(app) }?.takeIf { it.isNotBlank() } ?: "外部存储"
+            val label = readOrNull { volume.getDescription(app) }?.takeIf { it.isNotBlank() } ?: app.getString(R.string.text_external_storage)
             // API 29 has no public volume-directory accessor. Do not guess a mount path or
             // call getExternalFilesDirs(), which can create directories on the user's volume.
             val directory = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) readOrNull { volume.directory } else null
@@ -128,8 +129,8 @@ class DashboardRepository(context: Context) {
             val base = ExternalStorageUsage(id = id, label = label, readOnly = state == Environment.MEDIA_MOUNTED_READ_ONLY)
             if (directory == null) {
                 return@mapIndexedNotNull base.copy(note = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                    "当前 Android 版本未提供卷路径，容量不可读取"
-                } else "卷已挂载，但系统未提供可读取的路径")
+                    app.getString(R.string.text_this_android_version_does_not_provide_a)
+                } else app.getString(R.string.text_volume_mounted_but_its_path_is_unavailable))
             }
             // Only filesystem capacity metadata is read; file contents and directories are never scanned.
             val sizes = readOrNull {
@@ -138,7 +139,7 @@ class DashboardRepository(context: Context) {
                 val free = fs.availableBytes
                 if (total <= 0L || free !in 0L..total) null else total to free
             }
-            if (sizes == null) base.copy(note = "卷已挂载，但容量不可读取")
+            if (sizes == null) base.copy(note = app.getString(R.string.text_volume_mounted_but_its_capacity_is_unavailable))
             else base.copy(totalBytes = sizes.first, freeBytes = sizes.second)
         }
     }
@@ -146,7 +147,7 @@ class DashboardRepository(context: Context) {
     @Suppress("DEPRECATION")
     private suspend fun readStorage(hasAccess: Boolean): StorageUsage {
         val fs = readOrNull { StatFs(Environment.getDataDirectory().absolutePath) }
-            ?: return StorageUsage(loading = false, note = "内置存储不可读取")
+            ?: return StorageUsage(loading = false, note = app.getString(R.string.text_internal_storage_is_unavailable))
         val dataTotal = fs.totalBytes
         val free = fs.availableBytes.coerceIn(0L, dataTotal)
         val manager = app.getSystemService(StorageStatsManager::class.java)
@@ -160,34 +161,34 @@ class DashboardRepository(context: Context) {
             loading = false,
             needsUsageAccess = !hasAccess
         )
-        if (!hasAccess) return base.copy(note = "授权使用情况访问后统计应用；系统含分区及保留空间")
-        if (manager == null) return base.copy(note = "系统未提供应用存储统计")
+        if (!hasAccess) return base.copy(note = app.getString(R.string.text_allow_usage_access_to_measure_apps_system))
+        if (manager == null) return base.copy(note = app.getString(R.string.text_app_storage_statistics_are_unavailable))
         if (Build.VERSION.SDK_INT >= 30 && !hasPermission(app, Manifest.permission.QUERY_ALL_PACKAGES)) {
-            return base.copy(note = "应用列表受限，无法统计完整应用占用")
+            return base.copy(note = app.getString(R.string.text_the_app_list_is_restricted_total_app))
         }
         val installed = readOrNull { app.packageManager.getInstalledApplications(0) }
-            ?: return base.copy(note = "无法读取应用列表")
-        if (installed.isEmpty()) return base.copy(note = "应用列表不可用")
+            ?: return base.copy(note = app.getString(R.string.text_cannot_read_the_app_list))
+        if (installed.isEmpty()) return base.copy(note = app.getString(R.string.text_app_list_unavailable))
         var appsBytes = 0L
         for (uid in installed.map { it.uid }.distinct()) {
             currentCoroutineContext().ensureActive()
             val stats = readOrNull { manager.queryStatsForUid(StorageManager.UUID_DEFAULT, uid) }
                 ?: return base.copy(
                     needsUsageAccess = !hasUsageAccess(app),
-                    note = "部分应用存储不可读取，未显示不完整合计"
+                    note = app.getString(R.string.text_some_app_storage_is_unreadable_an_incomplete)
                 )
             // dataBytes already includes cacheBytes. Shared-UID packages are queried only once.
             appsBytes += stats.appBytes + stats.dataBytes
         }
         val dataUsed = dataTotal - free
         if (appsBytes !in 0L..dataUsed) {
-            return base.copy(note = "存储分类快照暂不一致，等待下次刷新")
+            return base.copy(note = app.getString(R.string.text_storage_snapshots_differ_waiting_for_the_next))
         }
         return base.copy(
             appsBytes = appsBytes,
             otherBytes = dataUsed - appsBytes,
-            note = if (system == null) "仅数据分区；系统总占用不可读取"
-            else "系统含分区及保留空间；应用含数据与缓存；其他含共享文件及其他用户数据"
+            note = if (system == null) app.getString(R.string.text_data_partition_only_total_system_usage_is)
+            else app.getString(R.string.text_system_includes_partitions_and_reserves_apps_include)
         )
     }
 
@@ -210,8 +211,8 @@ private class LiveSampler(private val app: Context) {
         val (cpuTemperature, gpuTemperature) = temperatures.read()
         return DashboardState(
             memory = memory(),
-            cpu = ProcessorUsage(cpuTemperature, if (cpuTemperature == null) "CPU 温度不可读取" else "CPU 传感器最高温"),
-            gpu = ProcessorUsage(gpuTemperature, if (gpuTemperature == null) "GPU 温度不可读取" else "GPU 传感器最高温"),
+            cpu = ProcessorUsage(cpuTemperature, if (cpuTemperature == null) app.getString(R.string.text_cpu_temperature_unavailable) else app.getString(R.string.text_highest_cpu_sensor_temperature)),
+            gpu = ProcessorUsage(gpuTemperature, if (gpuTemperature == null) app.getString(R.string.text_gpu_temperature_unavailable) else app.getString(R.string.text_highest_gpu_sensor_temperature)),
             wifi = wifi(),
             loading = false,
             updatedAtMillis = System.currentTimeMillis()
@@ -221,7 +222,7 @@ private class LiveSampler(private val app: Context) {
     private fun memory(): MemoryUsage {
         val memory = readOrNull {
             ActivityManager.MemoryInfo().also { requireNotNull(activity).getMemoryInfo(it) }
-        } ?: return MemoryUsage(note = "系统内存信息不可读取")
+        } ?: return MemoryUsage(note = app.getString(R.string.text_system_memory_information_unavailable))
         return MemoryUsage(
             totalBytes = memory.totalMem,
             usedBytes = (memory.totalMem - memory.availMem).coerceIn(0L, memory.totalMem)
@@ -232,7 +233,7 @@ private class LiveSampler(private val app: Context) {
     private fun wifi(): WifiUsage {
         if (!hasPermission(app, Manifest.permission.ACCESS_NETWORK_STATE) || connectivity == null) {
             lastWifi = null
-            return WifiUsage(note = "缺少网络状态访问权限")
+            return WifiUsage(note = app.getString(R.string.text_network_state_permission_is_missing))
         }
         val candidates = readOrNull {
             connectivity.allNetworks.mapNotNull { network ->
@@ -243,13 +244,13 @@ private class LiveSampler(private val app: Context) {
             }
         } ?: run {
             lastWifi = null
-            return WifiUsage(note = "Wi-Fi 网络状态不可读取")
+            return WifiUsage(note = app.getString(R.string.text_wi_fi_network_status_unavailable))
         }
         val active = readOrNull { connectivity.activeNetwork }
         val selected = candidates.firstOrNull { it.first == active } ?: candidates.firstOrNull()
         if (selected == null) {
             lastWifi = null
-            return WifiUsage(note = "Wi-Fi 未连接")
+            return WifiUsage(note = app.getString(R.string.text_wi_fi_disconnected))
         }
         val (network, caps) = selected
         val iface = readOrNull { connectivity.getLinkProperties(network)?.interfaceName }
@@ -280,14 +281,14 @@ private class LiveSampler(private val app: Context) {
             note = notes(
                 if (ssid == null) {
                     when {
-                        !fineLocation && !locationOn -> "Wi-Fi 名称需精确定位权限，且系统定位已关闭"
-                        !fineLocation -> "Wi-Fi 名称需精确定位权限"
-                        !locationOn -> "系统定位已关闭，Wi-Fi 名称不可读取"
-                        else -> "系统未提供 Wi-Fi 名称"
+                        !fineLocation && !locationOn -> app.getString(R.string.text_wi_fi_name_requires_precise_location_access)
+                        !fineLocation -> app.getString(R.string.text_wi_fi_name_requires_precise_location_access_2)
+                        !locationOn -> app.getString(R.string.text_system_location_is_off_wi_fi_name)
+                        else -> app.getString(R.string.text_wi_fi_name_unavailable)
                     }
                 } else null,
-                if (sample == null) "Wi-Fi 接口流量不可读取"
-                else if (!ratesValid) "正在采样 Wi-Fi 接口流量" else "Wi-Fi 接口 $iface"
+                if (sample == null) app.getString(R.string.text_wi_fi_traffic_counters_unavailable)
+                else if (!ratesValid) app.getString(R.string.text_sampling_wi_fi_traffic) else app.getString(R.string.text_wi_fi_interface_value, iface)
             )
         )
     }
@@ -345,41 +346,41 @@ private data class PssSample(val bytes: Long?, val note: String)
 private class SystemDumpSampler(private val app: Context) {
     @Suppress("DEPRECATION")
     suspend fun nonSystemPss(): PssSample {
-        diagnosticPermissionNote(app)?.let { return PssSample(null, "跨应用 PSS：$it") }
+        diagnosticPermissionNote(app)?.let { return PssSample(null, app.getString(R.string.text_app_pss_value, it)) }
         if (Build.VERSION.SDK_INT >= 30 && !hasPermission(app, Manifest.permission.QUERY_ALL_PACKAGES)) {
-            return PssSample(null, "应用列表受限，无法完整分类 PSS")
+            return PssSample(null, app.getString(R.string.text_the_app_list_is_restricted_pss_cannot))
         }
         val apps = readOrNull { app.packageManager.getInstalledApplications(0) }
-            ?: return PssSample(null, "无法识别非系统应用")
+            ?: return PssSample(null, app.getString(R.string.text_cannot_identify_non_system_apps))
         val uidSystem = apps.groupBy { it.uid }.mapValues { (_, packages) ->
             packages.any { it.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 }
         }
         val processes = boundedDump(app, "activity", "processes")
-            ?: return PssSample(null, "进程诊断不可读取或超时")
+            ?: return PssSample(null, app.getString(R.string.text_process_diagnostics_unavailable_or_timed_out))
         val records = parseProcesses(processes)
-            ?: return PssSample(null, "进程清单不完整，等待下次采样")
+            ?: return PssSample(null, app.getString(R.string.text_process_list_incomplete_waiting_for_the_next))
         val memory = boundedDump(app, "meminfo", "--oom")
-            ?: return PssSample(null, "内存诊断不可读取或超时")
+            ?: return PssSample(null, app.getString(R.string.text_memory_diagnostics_unavailable_or_timed_out))
         val pss = parsePss(memory)
-            ?: return PssSample(null, "系统未返回完整 PSS 段")
+            ?: return PssSample(null, app.getString(R.string.text_the_system_returned_an_incomplete_pss_section))
         // A process can start/exit between the two snapshots. Never report a partial total.
         if (pss.keys != records.keys || pss.any { (pid, value) -> records[pid]?.name != value.name }) {
-            return PssSample(null, "进程正在变化，等待一致的 PSS 快照")
+            return PssSample(null, app.getString(R.string.text_processes_are_changing_waiting_for_a_consistent))
         }
         val user = Process.myUid() / 100_000
         var sum = 0L
         for ((pid, process) in records) {
             if (process.uid / 100_000 != user || process.uid % 100_000 < Process.FIRST_APPLICATION_UID) continue
             val system = uidSystem[process.uid]
-                ?: return PssSample(null, "存在无法归属的应用进程，未显示不完整合计")
+                ?: return PssSample(null, app.getString(R.string.text_some_processes_cannot_be_classified_an_incomplete))
             if (!system) {
                 val bytes = pss.getValue(pid).bytes
-                if (bytes <= 0L) return PssSample(null, "部分应用 PSS 不可读取")
+                if (bytes <= 0L) return PssSample(null, app.getString(R.string.text_some_app_pss_readings_are_unavailable))
                 // Each PID is counted once. Multiple packages sharing its UID add no duplicates.
                 sum += bytes
             }
         }
-        return PssSample(sum, "当前用户非系统应用 PSS（含缓存进程），约 15 秒采样")
+        return PssSample(sum, app.getString(R.string.text_non_system_app_pss_for_this_user))
     }
 
     private fun parseProcesses(text: String): Map<Int, ProcessIdentity>? {
@@ -428,10 +429,10 @@ private class SystemDumpSampler(private val app: Context) {
 }
 
 private fun diagnosticPermissionNote(context: Context): String? = when {
-    !hasPermission(context, Manifest.permission.DUMP) -> "系统诊断权限尚未授予"
+    !hasPermission(context, Manifest.permission.DUMP) -> context.getString(R.string.text_system_diagnostics_permission_not_granted)
     // AppOps access alone permits storage stats, but the diagnostic service also checks this grant.
-    !hasPermission(context, Manifest.permission.PACKAGE_USAGE_STATS) -> "系统使用统计权限尚未授予"
-    !hasUsageAccess(context) -> "使用情况访问未开启"
+    !hasPermission(context, Manifest.permission.PACKAGE_USAGE_STATS) -> context.getString(R.string.text_system_usage_statistics_permission_not_granted)
+    !hasUsageAccess(context) -> context.getString(R.string.text_usage_access_is_off)
     else -> null
 }
 

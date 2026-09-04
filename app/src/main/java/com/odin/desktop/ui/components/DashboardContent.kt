@@ -1,5 +1,8 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import androidx.compose.ui.platform.LocalContext
+import com.odin.desktop.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -54,13 +57,8 @@ import com.odin.desktop.dashboard.MemoryUsage
 import com.odin.desktop.dashboard.ProcessorUsage
 import com.odin.desktop.dashboard.StorageUsage
 import com.odin.desktop.dashboard.WifiUsage
-import com.odin.desktop.ui.theme.CardBorder
 import com.odin.desktop.ui.theme.CyanAccent
-import com.odin.desktop.ui.theme.DarkSurface
-import com.odin.desktop.ui.theme.PureBlack
 import com.odin.desktop.ui.theme.OdinDesktopTheme
-import com.odin.desktop.ui.theme.TextDim
-import com.odin.desktop.ui.theme.TextWhite
 import java.util.Locale
 
 private val StorageColors = listOf(
@@ -79,7 +77,8 @@ fun DashboardContent(
     onAction: (DashboardAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    BoxWithConstraints(modifier.fillMaxSize().background(PureBlack)) {
+    val palette = LocalOdinPalette.current
+    BoxWithConstraints(modifier.fillMaxSize().background(palette.background)) {
         val wide = maxWidth >= 620.dp
         val storageRows = (state.externalStorage.size + 2) / 2
         val storageHeight = 136.dp * storageRows + 10.dp * (storageRows - 1)
@@ -123,7 +122,7 @@ fun DashboardContent(
                             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
                                 ActionIcon(action, Modifier.size(18.dp))
-                                Text(actionLabel(action), color = TextWhite, fontSize = 12.sp, lineHeight = 16.sp,
+                                Text(actionLabel(action), color = palette.text, fontSize = 12.sp, lineHeight = 16.sp,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
@@ -142,6 +141,7 @@ private fun DashboardCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val palette = LocalOdinPalette.current
     val shape = RoundedCornerShape(14.dp)
     val requester = remember { BringIntoViewRequester() }
     LaunchedEffect(selected) {
@@ -155,8 +155,8 @@ private fun DashboardCard(
     ProvideTextStyle(TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))) {
         Column(
             modifier.bringIntoViewRequester(requester).clip(shape)
-                .background(if (selected) Color(0xFF092127) else DarkSurface)
-                .border(if (selected) 2.dp else 1.dp, if (selected) CyanAccent else CardBorder, shape)
+                .background(if (selected) Color(0xFF092127) else palette.surface)
+                .border(if (selected) 2.dp else 1.dp, if (selected) palette.accent else palette.border, shape)
                 .then(touch).padding(12.dp),
             content = content
         )
@@ -165,10 +165,11 @@ private fun DashboardCard(
 
 @Composable
 private fun CardTitle(title: String, trailing: String = "") {
+    val palette = LocalOdinPalette.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = TextWhite, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium,
+        Text(title, color = palette.text, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(trailing, color = TextDim,
+        Text(trailing, color = palette.textDim,
             fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
     }
 }
@@ -198,19 +199,21 @@ private fun StorageCards(internal: StorageUsage, external: List<ExternalStorageU
 
 @Composable
 private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolean = false) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     val total = usage.totalBytes?.takeIf { it > 0 }
     val free = usage.freeBytes?.takeIf { it >= 0 }
     val used = if (total != null && free != null) (total - free).coerceIn(0, total) else null
     val categories = listOf(usage.systemBytes, usage.appsBytes, usage.otherBytes, usage.freeBytes)
     val complete = total != null && categories.all { it != null && it >= 0 }
     DashboardCard(modifier) {
-        CardTitle("内部存储", if (compact) "共 ${formatBytes(total)}" else if (usage.loading) "统计中" else "")
+        CardTitle(strings.getString(R.string.text_internal_storage), if (compact) strings.getString(R.string.text_total_value, formatBytes(total)) else if (usage.loading) strings.getString(R.string.text_measuring) else "")
         Row(Modifier.fillMaxWidth().padding(top = 3.dp), verticalAlignment = Alignment.Bottom) {
-            Text(formatBytes(used), color = TextWhite, fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold)
-            Text(" 已用", color = TextDim, fontSize = 10.sp, lineHeight = 12.sp, modifier = Modifier.padding(bottom = 3.dp))
+            Text(formatBytes(used), color = palette.text, fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold)
+            Text(strings.getString(R.string.text_used), color = palette.textDim, fontSize = 10.sp, lineHeight = 12.sp, modifier = Modifier.padding(bottom = 3.dp))
             if (!compact) {
                 Spacer(Modifier.weight(1f))
-                Text("共 ${formatBytes(total)}", color = TextDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.padding(bottom = 3.dp))
+                Text(strings.getString(R.string.text_total_value, formatBytes(total)), color = palette.textDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.padding(bottom = 3.dp))
             }
         }
         Spacer(Modifier.height(7.dp))
@@ -220,7 +223,7 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
             // Only total/free are known yet: show aggregate use, never invent category proportions.
             UsageBar(if (used != null && total != null) used.toFloat() / total else null, Color(0xFF6C96FF))
         }
-        val categoryNames = listOf("系统", "应用", "其他", "空闲")
+        val categoryNames = listOf(strings.getString(R.string.text_system_2), strings.getString(R.string.text_apps), strings.getString(R.string.text_other), strings.getString(R.string.text_free))
         if (compact) {
             Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 categoryNames.indices.chunked(2).forEach { indices ->
@@ -257,10 +260,10 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
             }
         }
         MetricNote(when {
-            usage.needsUsageAccess -> "应用分类统计权限未开启"
+            usage.needsUsageAccess -> strings.getString(R.string.text_app_storage_classification_permission_is_off)
             usage.note != null -> usage.note
-            usage.loading -> "正在读取存储分类…"
-            !complete -> "分类数据暂不可读取 · 条形显示总用量"
+            usage.loading -> strings.getString(R.string.text_reading_storage_categories)
+            !complete -> strings.getString(R.string.text_categories_unavailable_bar_shows_total_usage)
             else -> null
         })
     }
@@ -268,65 +271,71 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
 
 @Composable
 private fun ExternalStorageCard(usage: ExternalStorageUsage, modifier: Modifier) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     val total = usage.totalBytes?.takeIf { it > 0 }
     val free = usage.freeBytes?.takeIf { it >= 0 }
     val used = if (total != null && free != null) (total - free).coerceIn(0, total) else null
     DashboardCard(modifier) {
-        CardTitle(usage.label.ifBlank { "外部存储" }, if (usage.readOnly) "只读" else "")
+        CardTitle(usage.label.ifBlank { strings.getString(R.string.text_external_storage) }, if (usage.readOnly) strings.getString(R.string.text_read_only) else "")
         Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.Bottom) {
-            Text(formatBytes(total), color = TextWhite, fontSize = 21.sp, lineHeight = 26.sp,
+            Text(formatBytes(total), color = palette.text, fontSize = 21.sp, lineHeight = 26.sp,
                 fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Text(" 总量", color = TextDim, fontSize = 10.sp, lineHeight = 12.sp,
+            Text(strings.getString(R.string.text_total), color = palette.textDim, fontSize = 10.sp, lineHeight = 12.sp,
                 modifier = Modifier.padding(bottom = 3.dp))
         }
         Spacer(Modifier.height(7.dp))
-        UsageBar(if (used != null && total != null) used.toFloat() / total else null, CyanAccent)
+        UsageBar(if (used != null && total != null) used.toFloat() / total else null, palette.accent)
         Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            listOf("已用" to used, "空闲" to free).forEach { (title, bytes) ->
+            listOf(strings.getString(R.string.text_used_2) to used, strings.getString(R.string.text_free) to free).forEach { (title, bytes) ->
                 Row(Modifier.fillMaxWidth()) {
-                    Text(title, color = TextDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.weight(1f))
-                    Text(formatBytes(bytes), color = TextWhite, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1)
+                    Text(title, color = palette.textDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.weight(1f))
+                    Text(formatBytes(bytes), color = palette.text, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1)
                 }
             }
         }
-        MetricNote(usage.note ?: if (total == null || free == null) "容量暂不可读取" else null)
+        MetricNote(usage.note ?: if (total == null || free == null) strings.getString(R.string.text_capacity_unavailable) else null)
     }
 }
 
 @Composable
 private fun MemoryCard(usage: MemoryUsage, loading: Boolean, modifier: Modifier) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     val total = usage.totalBytes?.takeIf { it > 0 }
     val used = usage.usedBytes?.takeIf { it >= 0 }
     DashboardCard(modifier) {
-        CardTitle("运行内存", "RAM")
+        CardTitle(strings.getString(R.string.text_memory), "RAM")
         Row(Modifier.fillMaxWidth().padding(top = 3.dp), verticalAlignment = Alignment.Bottom) {
-            Text(formatBytes(used), color = TextWhite, fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold)
-            Text(" / ${formatBytes(total)}", color = TextDim, fontSize = 12.sp, lineHeight = 16.sp,
+            Text(formatBytes(used), color = palette.text, fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold)
+            Text(" / ${formatBytes(total)}", color = palette.textDim, fontSize = 12.sp, lineHeight = 16.sp,
                 modifier = Modifier.padding(bottom = 3.dp))
         }
         Spacer(Modifier.height(7.dp))
-        UsageBar(if (used != null && total != null) used.toFloat() / total else null, CyanAccent)
+        UsageBar(if (used != null && total != null) used.toFloat() / total else null, palette.accent)
         Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("非系统应用", color = TextDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.weight(1f))
-            Text(formatBytes(usage.nonSystemAppBytes), color = TextWhite, fontSize = 15.sp, lineHeight = 19.sp,
+            Text(strings.getString(R.string.text_non_system_apps), color = palette.textDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.weight(1f))
+            Text(formatBytes(usage.nonSystemAppBytes), color = palette.text, fontSize = 15.sp, lineHeight = 19.sp,
                 fontWeight = FontWeight.Medium)
         }
-        MetricNote(usage.note ?: if (loading) "正在读取内存…" else null)
+        MetricNote(usage.note ?: if (loading) strings.getString(R.string.text_reading_memory) else null)
     }
 }
 
 @Composable
 private fun ProcessorCard(title: String, usage: ProcessorUsage, modifier: Modifier) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     val temperature = usage.temperatureC?.takeIf { it.isFinite() }
     val barColor = when {
-        temperature == null || temperature < 60f -> CyanAccent
+        temperature == null || temperature < 60f -> palette.accent
         temperature < 80f -> Color(0xFFFFB454)
         else -> Color(0xFFFF6262)
     }
     DashboardCard(modifier) {
-        CardTitle("$title 温度")
+        CardTitle(strings.getString(R.string.text_value_temperature, title))
         Text(temperature?.let { String.format(Locale.getDefault(), "%.0f °C", it) } ?: "— °C",
-            color = TextWhite, fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.SemiBold,
+            color = palette.text, fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(top = 4.dp))
         // The scale and colors are visual guides, not OEM thermal policy thresholds.
         Canvas(Modifier.fillMaxWidth().padding(top = 3.dp).height(5.dp).clip(RoundedCornerShape(3.dp))) {
@@ -336,42 +345,46 @@ private fun ProcessorCard(title: String, usage: ProcessorUsage, modifier: Modifi
             }
         }
         Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("0°", color = TextDim, fontSize = 9.sp, lineHeight = 12.sp)
-            Text("105°", color = TextDim, fontSize = 9.sp, lineHeight = 12.sp)
+            Text("0°", color = palette.textDim, fontSize = 9.sp, lineHeight = 12.sp)
+            Text("105°", color = palette.textDim, fontSize = 9.sp, lineHeight = 12.sp)
         }
     }
 }
 
 @Composable
 private fun WifiCard(usage: WifiUsage, loading: Boolean, modifier: Modifier) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     val name = when {
         usage.ssid != null -> usage.ssid
-        loading -> "正在读取…"
-        usage.connected -> "已连接 Wi-Fi"
-        else -> "未连接 Wi-Fi"
+        loading -> strings.getString(R.string.text_reading)
+        usage.connected -> strings.getString(R.string.text_wi_fi_connected)
+        else -> strings.getString(R.string.text_wi_fi_disconnected_2)
     }
     DashboardCard(modifier) {
-        CardTitle("Wi-Fi", if (usage.connected) "已连接" else "未连接")
-        Text(name, color = TextWhite, fontSize = 15.sp, lineHeight = 19.sp, fontWeight = FontWeight.Medium,
+        CardTitle("Wi-Fi", if (usage.connected) strings.getString(R.string.text_connected) else strings.getString(R.string.text_offline))
+        Text(name, color = palette.text, fontSize = 15.sp, lineHeight = 19.sp, fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(top = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Row(Modifier.fillMaxWidth().padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("↑ ${formatRate(usage.txBytesPerSecond)}", color = CyanAccent, fontSize = 11.sp, lineHeight = 14.sp)
-            Text("↓ ${formatRate(usage.rxBytesPerSecond)}", color = TextWhite, fontSize = 11.sp, lineHeight = 14.sp)
+            Text("↑ ${formatRate(usage.txBytesPerSecond)}", color = palette.accent, fontSize = 11.sp, lineHeight = 14.sp)
+            Text("↓ ${formatRate(usage.rxBytesPerSecond)}", color = palette.text, fontSize = 11.sp, lineHeight = 14.sp)
         }
-        MetricNote(usage.note ?: if (usage.needsLocationAccess) "Wi-Fi 名称读取权限未开启" else null)
+        MetricNote(usage.note ?: if (usage.needsLocationAccess) strings.getString(R.string.text_wi_fi_name_permission_is_off) else null)
     }
 }
 
 @Composable
 private fun MetricNote(note: String?) {
+    val palette = LocalOdinPalette.current
     if (!note.isNullOrBlank()) {
-        Text(note, color = TextDim, fontSize = 9.sp, lineHeight = 11.sp,
+        Text(note, color = palette.textDim, fontSize = 9.sp, lineHeight = 11.sp,
             modifier = Modifier.padding(top = 3.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
 @Composable
 private fun UsageBar(fraction: Float?, color: Color, modifier: Modifier = Modifier) {
+    val palette = LocalOdinPalette.current
     if (fraction != null && fraction.isFinite()) {
         SegmentedBar(listOf(fraction.coerceIn(0f, 1f), (1f - fraction).coerceIn(0f, 1f)),
             listOf(color, Color(0xFF26343A)), modifier)
@@ -381,7 +394,7 @@ private fun UsageBar(fraction: Float?, color: Color, modifier: Modifier = Modifi
             // A striped placeholder distinguishes an unavailable measurement from zero usage.
             var x = -size.height
             while (x < size.width) {
-                drawLine(CardBorder, Offset(x, size.height), Offset(x + size.height, 0f), 2.dp.toPx())
+                drawLine(palette.border, Offset(x, size.height), Offset(x + size.height, 0f), 2.dp.toPx())
                 x += 10.dp.toPx()
             }
         }
@@ -412,21 +425,27 @@ private fun formatBytes(bytes: Long?): String {
 
 private fun formatRate(bytes: Long?): String = if (bytes == null || bytes < 0) "—" else "${formatBytes(bytes)}/s"
 
-private fun actionLabel(action: DashboardAction): String = when (action) {
-    DashboardAction.FILES -> "文件管理"
-    DashboardAction.SYSTEM_SETTINGS -> "系统设置"
-    DashboardAction.ODIN_SETTINGS -> "Odin 设置"
-    DashboardAction.FILTERS -> "滤镜调整"
+@Composable
+private fun actionLabel(action: DashboardAction): String {
+    val strings = LocalContext.current
+    return when (action) {
+    DashboardAction.FILES -> strings.getString(R.string.text_files)
+    DashboardAction.SYSTEM_SETTINGS -> strings.getString(R.string.text_system_settings)
+    DashboardAction.ODIN_SETTINGS -> strings.getString(R.string.text_odin_settings)
+    DashboardAction.FILTERS -> strings.getString(R.string.text_filters)
 }
+}
+
 
 @Composable
 private fun ActionIcon(action: DashboardAction, modifier: Modifier) {
+    val palette = LocalOdinPalette.current
     Canvas(modifier) {
         val stroke = 1.5.dp.toPx()
         val w = size.width
         val h = size.height
         fun line(x1: Float, y1: Float, x2: Float, y2: Float) =
-            drawLine(CyanAccent, Offset(x1 * w, y1 * h), Offset(x2 * w, y2 * h), stroke, StrokeCap.Round)
+            drawLine(palette.accent, Offset(x1 * w, y1 * h), Offset(x2 * w, y2 * h), stroke, StrokeCap.Round)
         when (action) {
             DashboardAction.FILES -> {
                 val folder = Path().apply {
@@ -434,30 +453,30 @@ private fun ActionIcon(action: DashboardAction, modifier: Modifier) {
                     lineTo(w * .55f, h * .36f); lineTo(w * .9f, h * .36f)
                     lineTo(w * .9f, h * .82f); lineTo(w * .1f, h * .82f); close()
                 }
-                drawPath(folder, CyanAccent, style = Stroke(stroke))
+                drawPath(folder, palette.accent, style = Stroke(stroke))
             }
             DashboardAction.SYSTEM_SETTINGS -> {
                 listOf(.23f, .5f, .77f).forEachIndexed { index, y ->
                     line(.1f, y, .9f, y)
-                    drawCircle(DarkSurface, stroke * 1.9f, Offset(w * (if (index == 1) .66f else .34f), h * y))
-                    drawCircle(CyanAccent, stroke * 1.5f, Offset(w * (if (index == 1) .66f else .34f), h * y), style = Stroke(stroke))
+                    drawCircle(palette.surface, stroke * 1.9f, Offset(w * (if (index == 1) .66f else .34f), h * y))
+                    drawCircle(palette.accent, stroke * 1.5f, Offset(w * (if (index == 1) .66f else .34f), h * y), style = Stroke(stroke))
                 }
             }
             DashboardAction.ODIN_SETTINGS -> {
                 listOf(.12f, .58f).forEach { x -> listOf(.12f, .58f).forEach { y ->
-                    drawRoundRect(CyanAccent, Offset(w * x, h * y), Size(w * .3f, h * .3f),
+                    drawRoundRect(palette.accent, Offset(w * x, h * y), Size(w * .3f, h * .3f),
                         CornerRadius(stroke), style = Stroke(stroke))
                 } }
             }
             else -> listOf(.22f, .5f, .78f).forEachIndexed { index, y ->
-                drawLine(CyanAccent.copy(alpha = 1f - index * .25f), Offset(w * .1f, h * y),
+                drawLine(palette.accent.copy(alpha = 1f - index * .25f), Offset(w * .1f, h * y),
                     Offset(w * .9f, h * y), stroke, StrokeCap.Round)
             }
         }
     }
 }
 
-@Preview(name = "Dashboard · 仅内置存储", widthDp = 833, heightDp = 350)
+@Preview(name = "Dashboard · Internal storage", widthDp = 833, heightDp = 350)
 @Composable
 private fun InternalStorageDashboardPreview() {
     OdinDesktopTheme {
@@ -465,7 +484,7 @@ private fun InternalStorageDashboardPreview() {
     }
 }
 
-@Preview(name = "Dashboard · 内置和外部存储", widthDp = 833, heightDp = 350)
+@Preview(name = "Dashboard · Internal and external storage", widthDp = 833, heightDp = 350)
 @Composable
 private fun ExternalStorageDashboardPreview() {
     OdinDesktopTheme {
@@ -474,18 +493,20 @@ private fun ExternalStorageDashboardPreview() {
 }
 
 /** Synthetic preview data, with no device or repository access. */
+@Composable
 private fun previewDashboardState(withExternal: Boolean = false): DashboardState {
+    val strings = LocalContext.current
     val gib = 1024L * 1024 * 1024
     return DashboardState(
         storage = StorageUsage(totalBytes = 512 * gib, freeBytes = 300 * gib,
             systemBytes = 40 * gib, appsBytes = 150 * gib, otherBytes = 22 * gib, loading = false),
         externalStorage = if (withExternal) listOf(
-            ExternalStorageUsage("preview-sd", "SD 卡", totalBytes = 256 * gib, freeBytes = 100 * gib)
+            ExternalStorageUsage("preview-sd", strings.getString(R.string.text_sd_card), totalBytes = 256 * gib, freeBytes = 100 * gib)
         ) else emptyList(),
         memory = MemoryUsage(totalBytes = 16 * gib, usedBytes = 6 * gib, nonSystemAppBytes = 3 * gib),
         cpu = ProcessorUsage(temperatureC = 41f),
         gpu = ProcessorUsage(temperatureC = 39f),
-        wifi = WifiUsage(connected = true, ssid = "示例 Wi-Fi", rxBytesPerSecond = 1_250_000, txBytesPerSecond = 800_000),
+        wifi = WifiUsage(connected = true, ssid = strings.getString(R.string.text_example_wi_fi), rxBytesPerSecond = 1_250_000, txBytesPerSecond = 800_000),
         loading = false
     )
 }

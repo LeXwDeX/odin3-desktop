@@ -6,27 +6,30 @@ import android.os.SystemClock
 import android.view.View
 import com.odin.desktop.shader.model.AppShaderConfigEntity
 import com.odin.desktop.shader.pipeline.AgslVideoShaderPipeline
-import com.odin.desktop.shader.pipeline.IVideoShaderPipeline
+import com.odin.desktop.shader.pipeline.OverlayShaderPipeline
+import com.odin.desktop.shader.pipeline.OverlayShaderConfig
 
 /**
  * 掌机专属低延迟着色器覆盖层画布视图
  * 承载硬件加速 Shader 渲染管线，支持动态扫描线循环刷新与静态 0 功耗保持
  */
-class ShaderOverlayView(context: Context) : View(context) {
+class ShaderOverlayView(
+    context: Context,
+    private val pipeline: OverlayShaderPipeline = AgslVideoShaderPipeline()
+) : View(context) {
 
-    private var pipeline: IVideoShaderPipeline = AgslVideoShaderPipeline()
     private var startTimeMs: Long = SystemClock.uptimeMillis()
     private var currentConfig: AppShaderConfigEntity? = null
 
     init {
         // 强制开启硬件加速
         setLayerType(LAYER_TYPE_HARDWARE, null)
-        pipeline.init(context)
+        check(pipeline.init(context)) { "CRT overlay initialization failed" }
     }
 
     fun applyConfig(config: AppShaderConfigEntity) {
         currentConfig = config
-        pipeline.updateConfig(config)
+        pipeline.updateConfig(OverlayShaderConfig(config.isEnabled, config.effects))
         postInvalidate()
     }
 

@@ -14,11 +14,11 @@ object GamepadKeyHandler {
             val dockIndex = viewModel.selectedDockIndex.value
             if (dockIndex == 1) {
                 xKeyDownTime = 0L
-                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) viewModel.toggleAutoFanControl()
+                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) viewModel.hardware.toggleAutoFanControl()
                 return true
             } else if (dockIndex == 3) {
                 xKeyDownTime = 0L
-                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) viewModel.toggleChargingSeparation()
+                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) viewModel.hardware.toggleChargingSeparation()
                 return true
             }
         }

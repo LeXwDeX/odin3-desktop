@@ -31,6 +31,8 @@ class AfkTileService : TileService() {
         }
     }
 
+    // The Intent overload is required on API 29-33; API 34+ uses PendingIntent below.
+    @Suppress("StartActivityAndCollapseDeprecated")
     private fun launchAction() {
         val intent = Intent(this, AfkActionActivity::class.java).apply {
             // A separate temporary task returns to the game when the action finishes.
@@ -48,7 +50,7 @@ class AfkTileService : TileService() {
             }
         } catch (error: RuntimeException) {
             android.util.Log.e("AfkTileService", "Could not launch AFK action", error)
-            Toast.makeText(this, "无法打开息屏挂机，请重试", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, this.getString(R.string.text_cannot_start_the_idle_screen_try_again), Toast.LENGTH_LONG).show()
             updateTileState()
         }
     }

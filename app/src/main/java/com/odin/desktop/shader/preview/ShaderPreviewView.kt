@@ -1,5 +1,6 @@
 package com.odin.desktop.shader.preview
 
+import com.odin.desktop.R
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
@@ -7,6 +8,7 @@ import android.opengl.GLES30 as GL
 import android.opengl.GLSurfaceView
 import android.opengl.GLUtils
 import com.odin.desktop.shader.gl.GameNativeGlRenderer
+import com.odin.desktop.shader.pipeline.GlesFrameRenderer
 import com.odin.desktop.shader.model.GameNativeShaderSettings
 import com.odin.desktop.shader.model.ShaderFamily
 import com.odin.desktop.shader.model.ShaderScaling
@@ -19,7 +21,11 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 /** Full-screen GPU preview. Validation exports are available only in debug builds. */
-class ShaderPreviewView(context: Context, private val report: (String) -> Unit) : GLSurfaceView(context) {
+class ShaderPreviewView(
+    context: Context,
+    private val rendererFactory: (Context) -> GlesFrameRenderer<GameNativeShaderSettings> = { GameNativeGlRenderer(it) },
+    private val report: (String) -> Unit
+) : GLSurfaceView(context) {
     private val renderer = PreviewRenderer()
     init {
         setEGLContextClientVersion(3)
@@ -27,10 +33,15 @@ class ShaderPreviewView(context: Context, private val report: (String) -> Unit) 
         renderMode = RENDERMODE_WHEN_DIRTY
     }
 
-    fun setEffects(value: GameNativeShaderSettings) { queueEvent { renderer.effects = value.normalized() }; requestRender() }
-    fun showOriginal(value: Boolean) { queueEvent { renderer.original = value }; requestRender() }
+    fun setEffects(value: GameNativeShaderSettings) { queueEvent { renderer.effects = value.normalized(); renderer.retry() }; requestRender() }
+    fun showOriginal(value: Boolean) { queueEvent { renderer.original = value; renderer.retry() }; requestRender() }
     fun setImage(value: Bitmap) {
-        queueEvent { renderer.source?.recycle(); renderer.source = value; renderer.upload = true }
+        queueEvent {
+            if (renderer.source !== value) renderer.source?.recycle()
+            renderer.source = value
+            renderer.upload = true
+            renderer.retry()
+        }
         requestRender()
     }
     fun runValidationSuite() { queueEvent { renderer.validate = true }; requestRender() }
@@ -41,7 +52,7 @@ class ShaderPreviewView(context: Context, private val report: (String) -> Unit) 
         var source: Bitmap? = null
         var upload = false
         var validate = false
-        private var gpu: GameNativeGlRenderer? = null
+        private var gpu: GlesFrameRenderer<GameNativeShaderSettings>? = null
         private var texture = 0
         private var width = 0
         private var height = 0
@@ -50,11 +61,13 @@ class ShaderPreviewView(context: Context, private val report: (String) -> Unit) 
         private val originalSettings = neutral.copy(scaling = ShaderScaling.NEAREST)
 
         override fun onSurfaceCreated(unused: GL10?, config: EGLConfig?) {
-            gpu = GameNativeGlRenderer(context)
+            gpu = null
             texture = 0
             upload = source != null
             failed = false
         }
+
+        fun retry() { failed = false }
 
         override fun onSurfaceChanged(unused: GL10?, w: Int, h: Int) { width = w; height = h }
 
@@ -81,7 +94,7 @@ class ShaderPreviewView(context: Context, private val report: (String) -> Unit) 
                     if (flipped !== bitmap) flipped.recycle()
                     upload = false
                 }
-                val engine = gpu ?: return
+                val engine = gpu ?: rendererFactory(context).also { gpu = it }
                 if (validate) {
                     validate = false
                     validate(engine, bitmap)
@@ -89,11 +102,11 @@ class ShaderPreviewView(context: Context, private val report: (String) -> Unit) 
                 val value = if (original) originalSettings else effects
                 engine.render(texture, bitmap.width, bitmap.height, width, height, value, android.os.SystemClock.uptimeMillis() / 1000f)
                 val error = GL.glGetError()
-                check(error == GL.GL_NO_ERROR) { "GPU 错误 0x${error.toString(16)}" }
+                check(error == GL.GL_NO_ERROR) { context.getString(R.string.text_gpu_error_0xvalue, error.toString(16)) }
                 if (value.enableNTSC && value.family == ShaderFamily.OPENGL) requestRender()
             } catch (error: Exception) {
                 failed = true
-                report("滤镜渲染失败：${error.message}")
+                report(context.getString(R.string.text_filter_rendering_failed_value, error.message))
                 android.util.Log.e("ShaderPreview", "Rendering failed", error)
             }
         }
@@ -112,7 +125,7 @@ class ShaderPreviewView(context: Context, private val report: (String) -> Unit) 
             return result
         }
 
-        private fun validate(engine: GameNativeGlRenderer, bitmap: Bitmap) {
+        private fun validate(engine: GlesFrameRenderer<GameNativeShaderSettings>, bitmap: Bitmap) {
             val dir = File(context.filesDir, "shader_preview/results").apply { mkdirs() }
             File(dir, "source-srgb.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             val cases = linkedMapOf("original" to originalSettings)
@@ -158,7 +171,7 @@ class ShaderPreviewView(context: Context, private val report: (String) -> Unit) 
                 .put("scope", "GPU rendering and image comparison; not live-game hook or frame-rate validation")
                 .put("colorSpace", bitmap.colorSpace?.name)
                 .put("renderer", GL.glGetString(GL.GL_RENDERER)).put("cases", results).toString(2))
-            report("GPU 对照已导出 ${results.length()} 组；X 对比当前设置与原图。")
+            report(context.getString(R.string.text_exported_value_gpu_comparisons_press_x_to, results.length()))
             android.util.Log.i("ShaderPreview", "Validation suite complete: ${results.length()} cases")
         }
     }

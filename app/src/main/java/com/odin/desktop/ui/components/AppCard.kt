@@ -1,5 +1,6 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.LocalOdinPalette
 import android.widget.ImageView
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -28,9 +29,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.odin.desktop.data.model.InstalledApp
-import com.odin.desktop.ui.theme.CardBackground
-import com.odin.desktop.ui.theme.CardBorder
-import com.odin.desktop.ui.theme.CyanAccent
 
 @Composable
 fun AppCard(
@@ -42,6 +40,7 @@ fun AppCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalOdinPalette.current
     val targetScale = when {
         isPicked -> 1.18f
         isFocused -> 1.10f
@@ -99,7 +98,7 @@ fun AppCard(
                 .scale(scale)
                 .size(110.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(if (isPicked) CyanAccent.copy(alpha = 0.15f) else CardBackground)
+                .background(if (isPicked) palette.accent.copy(alpha = 0.15f) else palette.card)
                 .border(
                     width = when {
                         isPicked -> 3.5.dp
@@ -108,10 +107,10 @@ fun AppCard(
                         else -> 1.dp
                     },
                     color = when {
-                        isPicked -> CyanAccent
-                        isFocused -> CyanAccent
-                        isReordering -> CardBorder.copy(alpha = 0.8f)
-                        else -> CardBorder
+                        isPicked -> palette.accent
+                        isFocused -> palette.accent
+                        isReordering -> palette.border.copy(alpha = 0.8f)
+                        else -> palette.border
                     },
                     shape = RoundedCornerShape(16.dp)
                 )

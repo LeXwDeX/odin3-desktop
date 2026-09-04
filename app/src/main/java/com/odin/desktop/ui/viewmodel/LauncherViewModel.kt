@@ -1,38 +1,26 @@
 package com.odin.desktop.ui.viewmodel
 
+import com.odin.desktop.data.model.displayName
+import com.odin.desktop.R
 import android.app.Application
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
-import android.database.ContentObserver
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.odin.desktop.dashboard.DashboardAction
 import com.odin.desktop.dashboard.DashboardRepository
 import com.odin.desktop.dashboard.DashboardState
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.model.InstalledApp
-import com.odin.desktop.data.repository.AppRepository
 import com.odin.desktop.service.fan.HardwareController
 import com.odin.desktop.ui.navigation.FocusZone
 import com.odin.desktop.ui.components.AppActionType
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,11 +31,9 @@ import kotlinx.coroutines.withContext
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
     private val context: Context get() = getApplication<Application>().applicationContext
-    private val appRepository = AppRepository(
-        context,
-        (application as com.odin.desktop.OdinDesktopApplication).database.tabDao(),
-        application.database.appMappingDao()
-    )
+    private val appRepository = (application as com.odin.desktop.OdinDesktopApplication).appRepository
+
+    val hardware = LauncherHardwareControls(context, viewModelScope)
 
     // --- 焦点与区域状态 ---
     private val _focusZone = MutableStateFlow(FocusZone.DASHBOARD)
@@ -122,79 +108,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _selectedAppIndex = MutableStateFlow(0)
     val selectedAppIndex: StateFlow<Int> = _selectedAppIndex.asStateFlow()
 
-    val hoveredApp: StateFlow<InstalledApp?> get() {
-        val apps = _currentTabApps.value
-        val index = _selectedAppIndex.value
-        return MutableStateFlow(apps.getOrNull(index)).asStateFlow()
-    }
-
     // --- 底部 Dock 状态 ---
     private val _selectedDockIndex = MutableStateFlow(0)
     val selectedDockIndex: StateFlow<Int> = _selectedDockIndex.asStateFlow()
-
-    private val _performanceMode = MutableStateFlow(-1)
-    val performanceMode: StateFlow<Int> = _performanceMode.asStateFlow()
-
-    private val _fanMode = MutableStateFlow(-1)
-    val fanMode: StateFlow<Int> = _fanMode.asStateFlow()
-
-    private val _joystickLightEnabled = MutableStateFlow(false)
-    val joystickLightEnabled: StateFlow<Boolean> = _joystickLightEnabled.asStateFlow()
-
-    private val _joystickColor = MutableStateFlow("#ff00e5ff")
-    val joystickColor: StateFlow<String> = _joystickColor.asStateFlow()
-
-    private val _chargingSeparation = MutableStateFlow(false)
-    val chargingSeparation: StateFlow<Boolean> = _chargingSeparation.asStateFlow()
-
-    private val _chargePowerLimit = MutableStateFlow(true)
-    val chargePowerLimit: StateFlow<Boolean> = _chargePowerLimit.asStateFlow()
-
-    private val _chargeLimit80 = MutableStateFlow(false)
-    val chargeLimit80: StateFlow<Boolean> = _chargeLimit80.asStateFlow()
-    private val hardwareLock = Mutex()
-    private val hardwareRefreshRequests = Channel<Unit>(Channel.CONFLATED)
-    private val hardwareObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-        override fun onChange(selfChange: Boolean) { hardwareRefreshRequests.trySend(Unit) }
-    }
-    private val fanStateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == HardwareController.ACTION_FAN_STATE_CHANGED) {
-                hardwareRefreshRequests.trySend(Unit)
-            }
-        }
-    }
-    private var coolingJob: Job? = null
-    @Volatile private var coolingIntentPending = false
-    private val coolingIntentRevision = java.util.concurrent.atomic.AtomicLong()
-    // Each press updates the selection immediately. Coalesce pending commands by kind,
-    // finish in-flight writes, then reconcile only if no newer user intent has arrived.
-    private val pendingCoolingActions = linkedMapOf<String, () -> Unit>()
-    private var lightJob: Job? = null
-    private var chargePowerJob: Job? = null
-    private var chargeSeparationJob: Job? = null
-    private var airplaneJob: Job? = null
-
-    private val _airplaneMode = MutableStateFlow(false)
-    val airplaneMode: StateFlow<Boolean> = _airplaneMode.asStateFlow()
-
-    private val _orientationMode = MutableStateFlow(HardwareController.ORIENTATION_LANDSCAPE)
-    val orientationMode: StateFlow<Int> = _orientationMode.asStateFlow()
-
-    private val _autoFanControlEnabled = MutableStateFlow(true)
-    val autoFanControlEnabled: StateFlow<Boolean> = _autoFanControlEnabled.asStateFlow()
-
-    private val _currentSocTemp = MutableStateFlow(Float.NaN)
-    val currentSocTemp: StateFlow<Float> = _currentSocTemp.asStateFlow()
-
-    private val _isDefaultHome = MutableStateFlow(false)
-    val isDefaultHome: StateFlow<Boolean> = _isDefaultHome.asStateFlow()
-
-    private val _bootAutoStartEnabled = MutableStateFlow(true)
-    val bootAutoStartEnabled: StateFlow<Boolean> = _bootAutoStartEnabled.asStateFlow()
-
-    private val _requestRoleEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val requestRoleEvent: SharedFlow<Unit> = _requestRoleEvent.asSharedFlow()
 
     // --- Config 弹窗手柄导航状态 ---
     private val _isConfigOpen = MutableStateFlow(false)
@@ -247,93 +163,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     val pickedAppIndex: StateFlow<Int?> = _pickedAppIndex.asStateFlow()
 
     init {
-        ContextCompat.registerReceiver(context, fanStateReceiver,
-            IntentFilter(HardwareController.ACTION_FAN_STATE_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED)
-        context.contentResolver.registerContentObserver(
-            Settings.System.getUriFor(HardwareController.KEY_FAN_MODE), false, hardwareObserver)
-        context.contentResolver.registerContentObserver(
-            Settings.System.getUriFor(HardwareController.KEY_PERFORMANCE_MODE), false, hardwareObserver)
-        viewModelScope.launch(Dispatchers.IO) {
-            for (ignored in hardwareRefreshRequests) {
-                delay(150)
-                while (hardwareRefreshRequests.tryReceive().isSuccess) { /* Coalesce OEM notifications. */ }
-                // Keep the completion event until the optimistic selection has been committed.
-                while (coolingIntentPending) delay(50)
-                // Settings observers fire before the OEM's asynchronous PWM write completes.
-                // Retry a short, bounded window so an intermediate mismatch is not left on screen.
-                for (attempt in 0..2) {
-                    hardwareLock.withLock { refreshHardwareStates(refreshPerformance = true) }
-                    if (_fanMode.value >= 0) break
-                    if (attempt < 2) delay(300)
-                }
-            }
-        }
         viewModelScope.launch(Dispatchers.IO) {
             appRepository.sanitizeDefaultTabs()
         }
-        loadHardwareStates()
+        hardware.loadHardwareStates()
         observeTabs()
         scanInstalledApps()
     }
 
-    fun loadHardwareStates() {
-        hardwareRefreshRequests.trySend(Unit)
-    }
-
     override fun onCleared() {
-        context.unregisterReceiver(fanStateReceiver)
-        context.contentResolver.unregisterContentObserver(hardwareObserver)
-        hardwareRefreshRequests.close()
+        hardware.close()
         super.onCleared()
-    }
-
-    private suspend fun refreshHardwareStates(refreshPerformance: Boolean = false) {
-        val revision = coolingIntentRevision.get()
-        if (!coolingIntentPending) {
-            val performance = if (refreshPerformance || _performanceMode.value < 0) {
-                runCatching { HardwareController.getPerformanceMode(context) }.getOrDefault(-1)
-            } else _performanceMode.value
-            val fan = runCatching { HardwareController.getFanMode(context) }.getOrDefault(-1)
-            val auto = HardwareController.isAutoFanControlEnabled(context)
-            // Publish on the input thread: checking the revision and changing the visible
-            // selection must not race a button press between the check and the assignment.
-            withContext(Dispatchers.Main) {
-                if (!coolingIntentPending && revision == coolingIntentRevision.get()) {
-                    _performanceMode.value = performance
-                    _fanMode.value = fan
-                    _autoFanControlEnabled.value = auto
-                }
-            }
-        }
-        runCatching { HardwareController.isJoystickLightEnabled(context) }.onSuccess { _joystickLightEnabled.value = it }
-        runCatching { HardwareController.getJoystickColor(context) }.onSuccess { _joystickColor.value = it.substringBefore(',') }
-        runCatching { HardwareController.isChargingSeparationEnabled(context) }.onSuccess { _chargingSeparation.value = it }
-        runCatching { HardwareController.isChargePowerLimit5V(context) }.onSuccess { _chargePowerLimit.value = it }
-        runCatching { HardwareController.isChargeLimit80Enabled(context) }.onSuccess { _chargeLimit80.value = it }
-        runCatching { HardwareController.isAirplaneModeOn(context) }.onSuccess { _airplaneMode.value = it }
-        _orientationMode.value = HardwareController.getOrientationMode(context)
-        _isDefaultHome.value = HardwareController.isDefaultHome(context)
-        _bootAutoStartEnabled.value = HardwareController.isBootAutoStartEnabled(context)
-        _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
-    }
-
-    private fun changeHardware(refreshPerformance: Boolean = false, action: () -> Unit) {
-        viewModelScope.launch(Dispatchers.IO) {
-            hardwareLock.withLock {
-                try {
-                    action()
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Hardware action failed", failure)
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: "硬件设置未生效，请重试", Toast.LENGTH_LONG).show()
-                    }
-                } finally {
-                    refreshHardwareStates(refreshPerformance)
-                }
-            }
-        }
     }
 
     private var isFirstTabLoad = true
@@ -383,7 +223,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             if (currentTab == null) {
                 _currentTabApps.value = allApps
                 _currentTabAppPackages.value = allApps.map { it.packageName }.toSet()
-            } else if (currentTab.name == "全部应用") {
+            } else if (currentTab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS) {
                 val mappings = withContext(Dispatchers.IO) {
                     appRepository.getAppsForTabFlow(currentTab.id)
                 }
@@ -678,7 +518,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             FocusZone.APP_ACTION_MODAL -> {
                 if (_appActionInTabPicker.value) {
                     val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
-                    val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.name != "全部应用" }
+                    val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS }
                     if (_appActionTabPickerFocusIndex.value < targetTabs.size - 1) {
                         _appActionTabPickerFocusIndex.value += 1
                     }
@@ -745,7 +585,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 if (app != null) {
                     if (_appActionInTabPicker.value) {
                         val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
-                        val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.name != "全部应用" }
+                        val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS }
                         val target = targetTabs.getOrNull(_appActionTabPickerFocusIndex.value)
                         if (target != null) {
                             moveAppToTab(app, target.id)
@@ -842,7 +682,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             openBatchManageDialog()
         } else if (_focusZone.value == FocusZone.CONFIG_MODAL && _configInSubMenu.value && _configSectionIndex.value == 4) {
             val tab = _tabs.value.getOrNull(_configContentFocusIndex.value)
-            if (tab != null && !tab.isDefault && tab.name != "全部应用") {
+            if (tab != null && !tab.isDefault && tab.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS) {
                 deleteTab(tab)
             }
         }
@@ -855,7 +695,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(context, app.packageName)
             context.startActivity(launchIntent)
         } else {
-            Toast.makeText(context, "无法启动 ${app.label}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.text_cannot_launch_value, app.label), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -864,11 +704,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
      */
     private fun triggerDockAction(index: Int) {
         when (index) {
-            0 -> cyclePerformanceMode()
-            1 -> cycleFanMode()
-            2 -> toggleJoystickLight()
-            3 -> toggleChargePowerLimit()
-            4 -> toggleAirplaneMode()
+            0 -> hardware.cyclePerformanceMode()
+            1 -> hardware.cycleFanMode()
+            2 -> hardware.toggleJoystickLight()
+            3 -> hardware.toggleChargePowerLimit()
+            4 -> hardware.toggleAirplaneMode()
         }
     }
 
@@ -878,7 +718,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             0 -> { // 摇杆灯颜色
                 val colors = listOf("#ff00e5ff", "#ff7c4dff", "#ffff5252", "#ff00e676", "#ffffffff", "#ff2e2e2e")
                 val selected = colors.getOrNull(_configContentFocusIndex.value % colors.size) ?: "#ff00e5ff"
-                setJoystickColor(selected)
+                hardware.setJoystickColor(selected)
             }
             1 -> { // 屏幕方向 (仅支持固定横屏与传感器自适应横屏)
                 val orientations = listOf(
@@ -887,17 +727,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 )
                 val sel = orientations.getOrNull(_configContentFocusIndex.value % orientations.size)
                     ?: HardwareController.ORIENTATION_LANDSCAPE
-                setOrientationMode(sel)
+                hardware.setOrientationMode(sel)
             }
             2 -> { // 默认主屏幕与开机自启
                 if (_configContentFocusIndex.value == 0) {
-                    requestDefaultHome()
+                    hardware.requestDefaultHome()
                 } else {
-                    toggleBootAutoStart()
+                    hardware.toggleBootAutoStart()
                 }
             }
             3 -> { // 自动风扇控制
-                toggleAutoFanControl()
+                hardware.toggleAutoFanControl()
             }
             4 -> { // Tab 页编辑：执行当前光标左右选中的操作按钮
                 val currentTabs = _tabs.value
@@ -937,7 +777,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openConfigDialog() {
-        refreshHomeAndBootStatus()
+        hardware.refreshHomeAndBootStatus()
         _isConfigOpen.value = true
         _configInSubMenu.value = false
         _configSectionIndex.value = 0
@@ -958,229 +798,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _configContentFocusIndex.value = 0
     }
 
-    fun setOrientationMode(mode: Int) {
-        _orientationMode.value = mode
-        viewModelScope.launch(Dispatchers.IO) {
-            HardwareController.setOrientationMode(context, mode)
-        }
-    }
-
-    fun toggleBootAutoStart() {
-        val next = !_bootAutoStartEnabled.value
-        _bootAutoStartEnabled.value = next
-        HardwareController.setBootAutoStartEnabled(context, next)
-    }
-
-    fun requestDefaultHome() {
-        _requestRoleEvent.tryEmit(Unit)
-    }
-
-    fun refreshHomeAndBootStatus() {
-        _isDefaultHome.value = HardwareController.isDefaultHome(context)
-        _bootAutoStartEnabled.value = HardwareController.isBootAutoStartEnabled(context)
-    }
-
-    private fun enqueueCoolingAction(kind: String, action: () -> Unit) {
-        coolingIntentRevision.incrementAndGet()
-        coolingIntentPending = true
-        pendingCoolingActions.remove(kind)
-        pendingCoolingActions[kind] = action
-        if (coolingJob?.isActive == true) return
-        coolingJob = viewModelScope.launch {
-            try {
-                delay(150)
-                while (pendingCoolingActions.isNotEmpty()) {
-                    val actions = pendingCoolingActions.values.toList()
-                    pendingCoolingActions.clear()
-                    withContext(Dispatchers.IO) {
-                        hardwareLock.withLock {
-                            for (pending in actions) {
-                                try {
-                                    pending()
-                                } catch (cancelled: CancellationException) {
-                                    throw cancelled
-                                } catch (failure: Exception) {
-                                    android.util.Log.w("OdinHardware", "Performance/fan action failed", failure)
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(context, failure.message ?: "性能或风扇设置未生效，请重试", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (pendingCoolingActions.isEmpty()) {
-                        coolingIntentPending = false
-                        withContext(Dispatchers.IO) {
-                            hardwareLock.withLock { refreshHardwareStates(refreshPerformance = true) }
-                        }
-                    }
-                    if (pendingCoolingActions.isNotEmpty()) delay(150)
-                }
-            } finally {
-                coolingIntentPending = false
-            }
-        }
-    }
-
-    fun cyclePerformanceMode() {
-        val current = _performanceMode.value
-        val next = if (current in 0..2) (current + 1) % 3 else HardwareController.PERF_NORMAL
-        _performanceMode.value = next
-        val auto = _autoFanControlEnabled.value
-        val currentFan = _fanMode.value
-        val fanTarget = if (!auto && currentFan == HardwareController.FAN_SPORT) HardwareController.FAN_SPORT
-            else if (auto || next != HardwareController.PERF_NORMAL) HardwareController.FAN_SMART
-            else HardwareController.FAN_OFF
-        _fanMode.value = fanTarget
-        enqueueCoolingAction("performance") { HardwareController.setPerformanceAndFan(context, next, fanTarget) }
-    }
-
-    fun cycleFanMode() {
-        val targetFan = when (_fanMode.value) {
-            HardwareController.FAN_OFF -> HardwareController.FAN_SMART
-            HardwareController.FAN_SMART -> HardwareController.FAN_SPORT
-            HardwareController.FAN_SPORT -> HardwareController.FAN_OFF
-            else -> HardwareController.FAN_SMART
-        }
-        _fanMode.value = targetFan
-        _autoFanControlEnabled.value = false
-        // Manual fan selection includes disabling automation, superseding an earlier toggle.
-        pendingCoolingActions.remove("automation")
-        enqueueCoolingAction("fan") {
-            HardwareController.setManualFanMode(context, targetFan)
-        }
-    }
-
-    fun toggleAutoFanControl() {
-        val next = !(_autoFanControlEnabled.value)
-        _autoFanControlEnabled.value = next
-        enqueueCoolingAction("automation") { HardwareController.setAutoFanControlEnabled(context, next) }
-    }
-
-    fun toggleJoystickLight() {
-        val next = !_joystickLightEnabled.value
-        _joystickLightEnabled.value = next
-
-        lightJob?.cancel()
-        lightJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(150)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setJoystickLightEnabled(context, next)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Joystick light toggle failed", failure)
-                    runCatching { HardwareController.isJoystickLightEnabled(context) }
-                        .onSuccess { _joystickLightEnabled.value = it }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: "摇杆灯切换失败，请重试", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
-
-    fun toggleChargingSeparation() {
-        val next = !_chargingSeparation.value
-        _chargingSeparation.value = next
-
-        chargeSeparationJob?.cancel()
-        chargeSeparationJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(150)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setChargingSeparationEnabled(context, next)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Charging separation toggle failed", failure)
-                    runCatching { HardwareController.isChargingSeparationEnabled(context) }
-                        .onSuccess { _chargingSeparation.value = it }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: "充电分离切换失败，请重试", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
-
-    fun toggleChargePowerLimit() {
-        val next = !_chargePowerLimit.value
-        _chargePowerLimit.value = next
-
-        chargePowerJob?.cancel()
-        chargePowerJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(150)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setChargePowerLimit5V(context, next)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Power limit toggle failed", failure)
-                    runCatching { HardwareController.isChargePowerLimit5V(context) }
-                        .onSuccess { _chargePowerLimit.value = it }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: "充电功率档位切换失败，请重试", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
-
-    fun toggleAirplaneMode() {
-        val next = !_airplaneMode.value
-        _airplaneMode.value = next
-
-        airplaneJob?.cancel()
-        airplaneJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(150)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setAirplaneMode(context, next)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Airplane mode toggle failed", failure)
-                    runCatching { HardwareController.isAirplaneModeOn(context) }
-                        .onSuccess { _airplaneMode.value = it }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: "飞行模式切换失败，请重试", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-    }
-
-    fun refreshSocTemp() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
-        }
-    }
-
-    fun setJoystickColor(hex: String) {
-        _joystickColor.value = hex
-        lightJob?.cancel()
-        lightJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(150)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setJoystickColor(context, hex)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Joystick color set failed", failure)
-                    runCatching { HardwareController.getJoystickColor(context) }
-                        .onSuccess { _joystickColor.value = it.substringBefore(',') }
-                }
-            }
-        }
-    }
-
     fun addTab(name: String, isGame: Boolean = false) {
         if (_tabs.value.size >= 10) {
-            Toast.makeText(context, "最多支持创建 10 个 Tab", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.text_you_can_create_up_to_10_tabs), Toast.LENGTH_SHORT).show()
             return
         }
         viewModelScope.launch {
@@ -1190,13 +810,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun renameTab(tab: TabEntity, newName: String) {
         viewModelScope.launch {
-            appRepository.updateTab(tab.copy(name = newName))
+            appRepository.updateTab(tab.copy(name = newName, usesDefaultName = false))
         }
     }
 
     fun deleteTab(tab: TabEntity) {
-        if (tab.name == "全部应用" || tab.isDefault) {
-            Toast.makeText(context, "默认分类不可删除", Toast.LENGTH_SHORT).show()
+        if (tab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS || tab.isDefault) {
+            Toast.makeText(context, context.getString(R.string.text_the_default_category_cannot_be_deleted), Toast.LENGTH_SHORT).show()
             return
         }
         viewModelScope.launch {
@@ -1220,14 +840,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch(Dispatchers.IO) {
             appRepository.setDefaultHomeTab(tab.id)
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "已将「${tab.name}」设为默认首页", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.text_set_value_as_the_home_tab, tab.displayName(context)), Toast.LENGTH_SHORT).show()
             }
         }
     }
 
     fun moveAppToTab(app: InstalledApp, targetTabId: Long) {
         val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
-        if (currentTab != null && currentTab.name != "全部应用") {
+        if (currentTab != null && currentTab.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS) {
             _currentTabApps.value = _currentTabApps.value.filter { it.packageName != app.packageName }
             _currentTabAppPackages.value = _currentTabAppPackages.value - app.packageName
             if (_selectedAppIndex.value >= _currentTabApps.value.size) {
@@ -1235,13 +855,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
         }
         viewModelScope.launch {
-            if (currentTab != null && currentTab.name != "全部应用") {
+            if (currentTab != null && currentTab.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS) {
                 appRepository.removeAppFromTab(currentTab.id, app.packageName)
             }
             appRepository.addAppToTab(targetTabId, app.packageName)
             closeAppActionDialog()
-            val targetName = _tabs.value.find { it.id == targetTabId }?.name ?: "目标分类"
-            Toast.makeText(context, "已将「${app.label}」添加到「$targetName」最左侧", Toast.LENGTH_SHORT).show()
+            val targetName = _tabs.value.find { it.id == targetTabId }?.displayName(context) ?: context.getString(R.string.text_target_category)
+            Toast.makeText(context, context.getString(R.string.text_added_value_to_the_start_of_value, app.label, targetName), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1250,7 +870,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (_focusZone.value == FocusZone.APPS && _currentTabApps.value.isNotEmpty()) {
             _isReorderingApps.value = true
             _pickedAppIndex.value = null
-            Toast.makeText(context, "已进入图标排序模式 (A键抓起/移动，B键退出)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.text_sorting_icons_a_to_pick_up_or), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1258,7 +878,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _isReorderingApps.value = false
         _pickedAppIndex.value = null
         saveCurrentTabAppOrder()
-        Toast.makeText(context, "已保存图标排序", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.text_icon_order_saved), Toast.LENGTH_SHORT).show()
     }
 
     fun togglePickApp() {
@@ -1305,8 +925,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun removeAppFromCurrentTab(app: InstalledApp) {
         val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value) ?: return
-        if (currentTab.name == "全部应用") {
-            Toast.makeText(context, "【全部应用】为系统全集分类，无法直接移除图标", Toast.LENGTH_SHORT).show()
+        if (currentTab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS) {
+            Toast.makeText(context, context.getString(R.string.text_all_apps_contains_every_installed_app_icons), Toast.LENGTH_SHORT).show()
             return
         }
         _currentTabApps.value = _currentTabApps.value.filter { it.packageName != app.packageName }
@@ -1317,7 +937,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             appRepository.removeAppFromTab(currentTab.id, app.packageName)
             closeAppActionDialog()
-            Toast.makeText(context, "已从「${currentTab.name}」移除图标", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.text_removed_icon_from_value, currentTab.displayName(context)), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1355,12 +975,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         when (type) {
             AppActionType.MOVE_TO_TAB -> {
                 val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
-                val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.name != "全部应用" }
+                val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS }
                 if (targetTabs.isNotEmpty()) {
                     _appActionInTabPicker.value = true
                     _appActionTabPickerFocusIndex.value = 0
                 } else {
-                    Toast.makeText(context, "暂无其他可移动的自定义分类", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.text_no_other_custom_categories_are_available), Toast.LENGTH_SHORT).show()
                 }
             }
             AppActionType.APP_DETAILS -> {
@@ -1381,7 +1001,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "无法打开应用详情: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.text_cannot_open_app_details_value, e.message), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1390,8 +1010,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun openBatchManageDialog() {
         if (_isDashboardSelected.value || _isConfigOpen.value || _isAppBatchManageDialogOpen.value || _isAppActionDialogOpen.value || _isReorderingApps.value) return
         val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
-        if (currentTab != null && currentTab.name == "全部应用") {
-            Toast.makeText(context, "【全部应用】由系统自动管理所有已安装应用", Toast.LENGTH_SHORT).show()
+        if (currentTab != null && currentTab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS) {
+            Toast.makeText(context, context.getString(R.string.text_all_apps_is_managed_automatically), Toast.LENGTH_SHORT).show()
             return
         }
         _batchManageFocusIndex.value = 0

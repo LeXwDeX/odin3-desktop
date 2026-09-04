@@ -1,6 +1,7 @@
 package com.odin.desktop.data.entity
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.PrimaryKey
 
 @Entity(tableName = "tabs")
@@ -11,8 +12,19 @@ data class TabEntity(
     val sortOrder: Int = 0,
     val isDefault: Boolean = false,
     val isGameTab: Boolean = false, // 标记是否为游戏分类（用于风扇调度判定）
-    val iconKey: String? = null
+    val iconKey: String? = null,
+    @ColumnInfo(defaultValue = "'custom'")
+    val kind: String = TabKind.CUSTOM,
+    @ColumnInfo(defaultValue = "0")
+    val usesDefaultName: Boolean = false
 )
+
+object TabKind {
+    const val CUSTOM = "custom"
+    const val GAMES = "games"
+    const val SYSTEM = "system"
+    const val ALL_APPS = "all_apps"
+}
 
 enum class TabAction {
     MOVE_UP,
@@ -26,6 +38,6 @@ fun getAvailableTabActions(tab: TabEntity, index: Int, totalTabs: Int): List<Tab
     if (index > 0) list.add(TabAction.MOVE_UP)
     if (index < totalTabs - 1) list.add(TabAction.MOVE_DOWN)
     if (!tab.isDefault) list.add(TabAction.SET_DEFAULT)
-    if (!tab.isDefault && tab.name != "全部应用") list.add(TabAction.DELETE)
+    if (!tab.isDefault && tab.kind != TabKind.ALL_APPS) list.add(TabAction.DELETE)
     return list
 }

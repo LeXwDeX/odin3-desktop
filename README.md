@@ -15,6 +15,8 @@
 
 当前开发交接见 [性能、风扇与 Home/返回键修复记录](docs/performance-fan-home-fixes.md)。其中包含新机器 clone 后的构建步骤、已验证结果及设备重连后的待验项目。
 
+首版已接入简体中文与英文资源，默认跟随系统语言；Android 13+ 同时声明系统应用语言列表。分类身份与显示名称分离，自定义名称保持原样。架构调整、扩展接口和本地验证范围见 [架构审计与首版扩展接口](docs/architecture.md)。下方截图来自此前实机版本，本轮多语言排版尚待设备重连验证。
+
 ---
 
 ## 📸 掌机视觉画册 (Showcase)
@@ -211,4 +213,4 @@ adb shell am start -n com.odin.desktop/.ui.MainActivity
 * **GameNative & Winlator**：感谢复古游戏开源社区对于 CRT 着色器渲染算法的卓越贡献；
 * **AYN Odin 社区**：专为追求极致纯粹安卓掌机体验的硬核玩家打造。
 
-*License: [Apache-2.0](LICENSE)*
+第三方 Shader 来源与许可见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。仓库尚未包含第一方代码的统一 LICENSE 文本。

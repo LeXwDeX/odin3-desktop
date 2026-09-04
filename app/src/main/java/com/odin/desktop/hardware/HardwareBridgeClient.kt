@@ -1,5 +1,6 @@
 package com.odin.desktop.hardware
 
+import com.odin.desktop.R
 import android.content.Context
 import java.io.File
 import java.io.InputStream
@@ -21,7 +22,7 @@ internal object HardwareBridgeClient {
             File(context.noBackupFilesDir, "hardware_bridge/token").readText(Charsets.US_ASCII).trim()
                 .also { check(it.matches(Regex("[0-9a-f]{64}"))) }
         } catch (error: Exception) {
-            throw HardwareControlException("硬件控制尚未连接，请通过 ADB 重新连接控制服务。", error)
+            throw HardwareControlException(context.getString(R.string.text_hardware_control_is_not_connected_reconnect_the), error)
         }
         try {
             Socket().use { socket ->
@@ -32,7 +33,7 @@ internal object HardwareBridgeClient {
                 if (greeting.size != 3 || greeting[0] != "ODIN1" ||
                     !greeting[1].matches(Regex("[0-9a-f]{64}")) ||
                     !matches(mac(token, "SERVER\n${greeting[1]}"), greeting[2])) {
-                    throw HardwareControlException("硬件控制服务身份验证失败，请通过 ADB 重新连接。")
+                    throw HardwareControlException(context.getString(R.string.text_the_hardware_service_could_not_be_authenticated))
                 }
                 val nonce = greeting[1]
                 val signed = "$body\t${mac(token, "CLIENT\n$nonce\n$body")}\n"
@@ -41,17 +42,17 @@ internal object HardwareBridgeClient {
                 val wire = readLine(input)
                 val cut = wire.lastIndexOf('\t')
                 if (cut < 0 || !matches(mac(token, "RESPONSE\n$nonce\n${wire.substring(0, cut)}"), wire.substring(cut + 1))) {
-                    throw HardwareControlException("硬件控制返回了无法验证的响应，请刷新状态后重试。")
+                    throw HardwareControlException(context.getString(R.string.text_the_hardware_response_could_not_be_verified))
                 }
                 val result = wire.substring(0, cut).split('\t')
                 if (result.firstOrNull() != "OK") {
                     val reason = when (result.getOrNull(1)) {
-                        "ROLLBACK_INCOMPLETE" -> "操作未全部完成，部分旧状态未能恢复，请检查设备设置。"
-                        "READBACK_MISMATCH" -> "系统未保持所选设置，已尝试恢复原状态。"
-                        "READ_UNAVAILABLE" -> "硬件状态暂时无法确认，请稍后刷新。"
-                        "BAD_REQUEST" -> "此硬件操作不在允许范围内。"
-                        "AUTH_FAILED" -> "硬件控制认证失败，请通过 ADB 重新连接。"
-                        else -> "系统拒绝了硬件操作，已尝试恢复原状态。"
+                        "ROLLBACK_INCOMPLETE" -> context.getString(R.string.text_the_operation_was_incomplete_and_some_settings)
+                        "READBACK_MISMATCH" -> context.getString(R.string.text_the_system_did_not_keep_the_selected)
+                        "READ_UNAVAILABLE" -> context.getString(R.string.text_hardware_status_is_temporarily_unavailable_refresh_it)
+                        "BAD_REQUEST" -> context.getString(R.string.text_this_hardware_operation_is_not_allowed)
+                        "AUTH_FAILED" -> context.getString(R.string.text_hardware_authentication_failed_reconnect_through_adb)
+                        else -> context.getString(R.string.text_the_system_rejected_the_operation_restoration_was)
                     }
                     throw HardwareControlException(reason)
                 }
@@ -60,7 +61,7 @@ internal object HardwareBridgeClient {
         } catch (error: HardwareControlException) {
             throw error
         } catch (error: Exception) {
-            throw HardwareControlException("硬件控制服务未连接或响应超时，请通过 ADB 重新连接并刷新状态。", error)
+            throw HardwareControlException(context.getString(R.string.text_the_hardware_service_is_offline_or_timed), error)
         }
     }
 

@@ -1,7 +1,6 @@
 package com.odin.desktop.data.dao
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -32,13 +31,10 @@ interface TabDao {
     @Update
     suspend fun updateTabs(tabs: List<TabEntity>)
 
-    @Query("UPDATE tabs SET isDefault = CASE WHEN id = :defaultTabId THEN 1 ELSE 0 END")
+    @Query("UPDATE tabs SET isDefault = CASE WHEN id = :defaultTabId THEN 1 ELSE 0 END WHERE EXISTS (SELECT 1 FROM tabs WHERE id = :defaultTabId)")
     suspend fun setDefaultTab(defaultTabId: Long)
 
-    @Delete
-    suspend fun deleteTab(tab: TabEntity)
-
-    @Query("DELETE FROM tabs WHERE id = :tabId")
+    @Query("DELETE FROM tabs WHERE id = :tabId AND isDefault = 0 AND kind != 'all_apps'")
     suspend fun deleteTabById(tabId: Long)
 
     @Query("SELECT COUNT(*) FROM tabs")

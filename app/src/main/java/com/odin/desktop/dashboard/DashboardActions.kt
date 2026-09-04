@@ -1,5 +1,6 @@
 package com.odin.desktop.dashboard
 
+import com.odin.desktop.R
 import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
@@ -54,7 +55,7 @@ class DashboardActions(private val activity: Activity) {
                 // Try the next standard destination when a vendor activity is unavailable.
             }
         }
-        toast("无法打开这个系统页面。")
+        toast(activity.getString(R.string.text_cannot_open_this_system_page))
     }
 
     private fun toast(message: String) {

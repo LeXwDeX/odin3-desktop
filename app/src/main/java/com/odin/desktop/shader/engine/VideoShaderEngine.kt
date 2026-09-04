@@ -1,5 +1,6 @@
 package com.odin.desktop.shader.engine
 
+import com.odin.desktop.R
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
@@ -17,6 +18,8 @@ import com.odin.desktop.shader.runtime.ShaderRuntime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -36,7 +39,7 @@ object VideoShaderEngine {
     private var controlSessions = 0
     private val toggleMutex = Mutex()
     private val frameInputNoticeShownFor = mutableSetOf<String>()
-    private val scope = CoroutineScope(Dispatchers.Main + Job())
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     fun currentTargetPackage(context: Context): String? = currentForegroundPackage?.takeUnless {
         it == context.packageName || it == "com.android.systemui" || it == "android"
@@ -66,7 +69,7 @@ object VideoShaderEngine {
     fun toggleCurrentAppShader(context: Context, onToggled: (Boolean) -> Unit) {
         val target = currentTargetPackage(context)
         if (controlSessions > 0 || !ShaderRuntime.resolve(context, target).hasTarget || target == null) {
-            Toast.makeText(context, "请先返回游戏，再切换滤镜", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.text_return_to_the_game_before_toggling_its), Toast.LENGTH_SHORT).show()
             onToggled(false)
             return
         }
@@ -88,7 +91,7 @@ object VideoShaderEngine {
                     }
                 }.onFailure {
                     Log.e("VideoShaderEngine", "Could not save shader toggle", it)
-                    Toast.makeText(context, "滤镜开关保存失败", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.text_could_not_save_the_filter_switch), Toast.LENGTH_SHORT).show()
                 }
                 onToggled(isShaderActive())
             }
@@ -110,9 +113,16 @@ object VideoShaderEngine {
         }
 
         foregroundLookup = scope.launch {
-            val db = OdinDatabase.getDatabase(context)
-            val config = withContext(Dispatchers.IO) {
-                db.appShaderConfigDao().getConfig(packageName)
+            val config = try {
+                withContext(Dispatchers.IO) {
+                    OdinDatabase.getDatabase(context).appShaderConfigDao().getConfig(packageName)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Log.e("VideoShaderEngine", "Could not load app shader settings", failure)
+                hideOverlay()
+                return@launch
             }
             if (currentForegroundPackage != packageName) return@launch
             android.util.Log.d("VideoShaderEngine", "Package $packageName config: isEnabled=${config?.isEnabled}")
@@ -130,16 +140,14 @@ object VideoShaderEngine {
             hideOverlay()
             return
         }
-        val effectiveConfig = config.withEffects(config.effects.copy(
-            family = ShaderRuntime.resolve(context, config.packageName).family
-        ))
+        val effectiveConfig = config
         val effects = effectiveConfig.effects
         if (effects.requiresFrameInput) {
             hideOverlay()
             if (config.isEnabled && currentForegroundPackage == config.packageName &&
                 frameInputNoticeShownFor.add(config.packageName)
             ) {
-                Toast.makeText(context, "该组合需原生接入，当前仅保存供预览", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, context.getString(R.string.text_this_combination_needs_game_frame_integration_saved), Toast.LENGTH_LONG).show()
             }
             return
         }
@@ -165,7 +173,13 @@ object VideoShaderEngine {
         val wm = windowManager ?: return
 
         if (overlayView == null) {
-            overlayView = ShaderOverlayView(context.applicationContext)
+            overlayView = try {
+                ShaderOverlayView(context.applicationContext)
+            } catch (failure: Exception) {
+                Log.e("VideoShaderEngine", "Could not initialize CRT overlay", failure)
+                hideOverlay()
+                return
+            }
         }
 
         val view = overlayView ?: return

@@ -1,0 +1,335 @@
+<resources>
+    <string name="app_name" formatted="false">"Odin 启动台"</string>
+    <string name="tile_afk_label" formatted="false">"息屏挂机"</string>
+    <string name="tile_afk_active" formatted="false">"挂机中"</string>
+    <string name="tile_afk_inactive" formatted="false">"未开启"</string>
+    <string name="afk_overlay_unlock_hint" formatted="false">"双击屏幕退出"</string>
+    <string name="afk_notification_title" formatted="false">"OLED 防烧屏挂机运行中"</string>
+    <string name="afk_notification_text" formatted="false">"纯黑遮罩已开启，点击恢复画面"</string>
+    <string name="fan_notification_title" formatted="false">"充电风扇智能守护"</string>
+    <string name="fan_notification_text" formatted="false">"未运行游戏，风扇保持静音停转"</string>
+    <string name="tab_games" formatted="false">"游戏与模拟器"</string>
+    <string name="tab_system" formatted="false">"系统应用"</string>
+    <string name="tab_all_apps" formatted="false">"全部应用"</string>
+    <string name="text_idle_screen_protection" formatted="false">"息屏挂机保护"</string>
+    <string name="text_foreground_notification_for_oled_idle_protection" formatted="false">"息屏挂机防烧屏前台通知"</string>
+    <string name="text_charging_fan_monitor" formatted="false">"充电风扇守护"</string>
+    <string name="text_charging_and_cooling_status_notifications" formatted="false">"充电与智能散热状态守护通知"</string>
+    <string name="text_hardware_control_is_not_connected_reconnect_the" formatted="false">"硬件控制尚未连接，请通过 ADB 重新连接控制服务。"</string>
+    <string name="text_the_hardware_service_could_not_be_authenticated" formatted="false">"硬件控制服务身份验证失败，请通过 ADB 重新连接。"</string>
+    <string name="text_the_hardware_response_could_not_be_verified" formatted="false">"硬件控制返回了无法验证的响应，请刷新状态后重试。"</string>
+    <string name="text_the_operation_was_incomplete_and_some_settings" formatted="false">"操作未全部完成，部分旧状态未能恢复，请检查设备设置。"</string>
+    <string name="text_the_system_did_not_keep_the_selected" formatted="false">"系统未保持所选设置，已尝试恢复原状态。"</string>
+    <string name="text_hardware_status_is_temporarily_unavailable_refresh_it" formatted="false">"硬件状态暂时无法确认，请稍后刷新。"</string>
+    <string name="text_this_hardware_operation_is_not_allowed" formatted="false">"此硬件操作不在允许范围内。"</string>
+    <string name="text_hardware_authentication_failed_reconnect_through_adb" formatted="false">"硬件控制认证失败，请通过 ADB 重新连接。"</string>
+    <string name="text_the_system_rejected_the_operation_restoration_was" formatted="false">"系统拒绝了硬件操作，已尝试恢复原状态。"</string>
+    <string name="text_the_hardware_service_is_offline_or_timed" formatted="false">"硬件控制服务未连接或响应超时，请通过 ADB 重新连接并刷新状态。"</string>
+    <string name="text_reading_non_system_app_pss" formatted="false">"正在读取非系统应用 PSS"</string>
+    <string name="text_external_storage" formatted="false">"外部存储"</string>
+    <string name="text_this_android_version_does_not_provide_a" formatted="false">"当前 Android 版本未提供卷路径，容量不可读取"</string>
+    <string name="text_volume_mounted_but_its_path_is_unavailable" formatted="false">"卷已挂载，但系统未提供可读取的路径"</string>
+    <string name="text_volume_mounted_but_its_capacity_is_unavailable" formatted="false">"卷已挂载，但容量不可读取"</string>
+    <string name="text_internal_storage_is_unavailable" formatted="false">"内置存储不可读取"</string>
+    <string name="text_allow_usage_access_to_measure_apps_system" formatted="false">"授权使用情况访问后统计应用；系统含分区及保留空间"</string>
+    <string name="text_app_storage_statistics_are_unavailable" formatted="false">"系统未提供应用存储统计"</string>
+    <string name="text_the_app_list_is_restricted_total_app" formatted="false">"应用列表受限，无法统计完整应用占用"</string>
+    <string name="text_cannot_read_the_app_list" formatted="false">"无法读取应用列表"</string>
+    <string name="text_app_list_unavailable" formatted="false">"应用列表不可用"</string>
+    <string name="text_some_app_storage_is_unreadable_an_incomplete" formatted="false">"部分应用存储不可读取，未显示不完整合计"</string>
+    <string name="text_storage_snapshots_differ_waiting_for_the_next" formatted="false">"存储分类快照暂不一致，等待下次刷新"</string>
+    <string name="text_data_partition_only_total_system_usage_is" formatted="false">"仅数据分区；系统总占用不可读取"</string>
+    <string name="text_system_includes_partitions_and_reserves_apps_include" formatted="false">"系统含分区及保留空间；应用含数据与缓存；其他含共享文件及其他用户数据"</string>
+    <string name="text_cpu_temperature_unavailable" formatted="false">"CPU 温度不可读取"</string>
+    <string name="text_highest_cpu_sensor_temperature" formatted="false">"CPU 传感器最高温"</string>
+    <string name="text_gpu_temperature_unavailable" formatted="false">"GPU 温度不可读取"</string>
+    <string name="text_highest_gpu_sensor_temperature" formatted="false">"GPU 传感器最高温"</string>
+    <string name="text_system_memory_information_unavailable" formatted="false">"系统内存信息不可读取"</string>
+    <string name="text_network_state_permission_is_missing" formatted="false">"缺少网络状态访问权限"</string>
+    <string name="text_wi_fi_network_status_unavailable" formatted="false">"Wi-Fi 网络状态不可读取"</string>
+    <string name="text_wi_fi_disconnected" formatted="false">"Wi-Fi 未连接"</string>
+    <string name="text_wi_fi_name_requires_precise_location_access" formatted="false">"Wi-Fi 名称需精确定位权限，且系统定位已关闭"</string>
+    <string name="text_wi_fi_name_requires_precise_location_access_2" formatted="false">"Wi-Fi 名称需精确定位权限"</string>
+    <string name="text_system_location_is_off_wi_fi_name" formatted="false">"系统定位已关闭，Wi-Fi 名称不可读取"</string>
+    <string name="text_wi_fi_name_unavailable" formatted="false">"系统未提供 Wi-Fi 名称"</string>
+    <string name="text_wi_fi_traffic_counters_unavailable" formatted="false">"Wi-Fi 接口流量不可读取"</string>
+    <string name="text_sampling_wi_fi_traffic" formatted="false">"正在采样 Wi-Fi 接口流量"</string>
+    <string name="text_wi_fi_interface_value">"Wi-Fi 接口 %1$s"</string>
+    <string name="text_app_pss_value">"跨应用 PSS：%1$s"</string>
+    <string name="text_the_app_list_is_restricted_pss_cannot" formatted="false">"应用列表受限，无法完整分类 PSS"</string>
+    <string name="text_cannot_identify_non_system_apps" formatted="false">"无法识别非系统应用"</string>
+    <string name="text_process_diagnostics_unavailable_or_timed_out" formatted="false">"进程诊断不可读取或超时"</string>
+    <string name="text_process_list_incomplete_waiting_for_the_next" formatted="false">"进程清单不完整，等待下次采样"</string>
+    <string name="text_memory_diagnostics_unavailable_or_timed_out" formatted="false">"内存诊断不可读取或超时"</string>
+    <string name="text_the_system_returned_an_incomplete_pss_section" formatted="false">"系统未返回完整 PSS 段"</string>
+    <string name="text_processes_are_changing_waiting_for_a_consistent" formatted="false">"进程正在变化，等待一致的 PSS 快照"</string>
+    <string name="text_some_processes_cannot_be_classified_an_incomplete" formatted="false">"存在无法归属的应用进程，未显示不完整合计"</string>
+    <string name="text_some_app_pss_readings_are_unavailable" formatted="false">"部分应用 PSS 不可读取"</string>
+    <string name="text_non_system_app_pss_for_this_user" formatted="false">"当前用户非系统应用 PSS（含缓存进程），约 15 秒采样"</string>
+    <string name="text_system_diagnostics_permission_not_granted" formatted="false">"系统诊断权限尚未授予"</string>
+    <string name="text_system_usage_statistics_permission_not_granted" formatted="false">"系统使用统计权限尚未授予"</string>
+    <string name="text_usage_access_is_off" formatted="false">"使用情况访问未开启"</string>
+    <string name="text_cannot_open_this_system_page" formatted="false">"无法打开这个系统页面。"</string>
+    <string name="text_allow_display_over_other_apps_before_starting" formatted="false">"请先授予悬浮窗权限，再点击息屏挂机"</string>
+    <string name="text_cannot_toggle_the_idle_screen_check_overlay" formatted="false">"无法切换息屏挂机，请检查悬浮窗权限"</string>
+    <string name="text_cannot_start_the_idle_screen_try_again" formatted="false">"无法打开息屏挂机，请重试"</string>
+    <string name="text_overlay_permission_is_unavailable_cannot_start_the" formatted="false">"悬浮窗权限不可用，无法开启息屏挂机"</string>
+    <string name="text_idle_screen_failed_to_start_the_picture" formatted="false">"息屏挂机启动失败，已恢复画面"</string>
+    <string name="text_idle_screen_active_value_nvalue">"挂机运行中 • %1$s\n%2$s"</string>
+    <string name="text_hardware_readback_differs_from_the_requested_setting" formatted="false">"硬件设置读回不一致，请刷新状态后重试。"</string>
+    <string name="text_system_performance_mode_is_unavailable_refresh_the" formatted="false">"系统性能模式不可用，请刷新状态。"</string>
+    <string name="text_cannot_confirm_the_actual_fan_mode_refresh" formatted="false">"无法确认风扇实际档位，请刷新状态。"</string>
+    <string name="text_cannot_read_the_selected_fan_mode" formatted="false">"无法读取已选择的风扇档位。"</string>
+    <string name="text_performance_and_fan_settings_were_not_both" formatted="false">"性能和风扇未全部切换成功，请刷新状态。"</string>
+    <string name="text_stick_lighting_readback_differs_refresh_the_status" formatted="false">"摇杆灯状态读回不一致，请刷新状态。"</string>
+    <string name="text_charging_limits_were_not_both_applied_refresh" formatted="false">"充电限制未全部切换，请刷新两项状态。"</string>
+    <string name="text_airplane_mode_could_not_be_changed_refresh" formatted="false">"飞行模式切换失败，请刷新状态。"</string>
+    <string name="text_airplane_mode_readback_differs" formatted="false">"飞行模式读回不一致。"</string>
+    <string name="text_gamenative_crt_scanlines" formatted="false">"GameNative CRT 扫描线"</string>
+    <string name="text_could_not_save_screenshot_preview_settings" formatted="false">"截图预览参数保存失败"</string>
+    <string name="text_open_a_game_then_choose_the_filter" formatted="false">"请先打开游戏，再从下拉面板选择滤镜"</string>
+    <string name="text_auto_compatible_scanlines" formatted="false">"自动 · 兼容扫描线"</string>
+    <string name="text_auto_screenshot_preview" formatted="false">"自动 · 截图预览"</string>
+    <string name="text_smpte_color_bars" formatted="false">"SMPTE 电视彩条标定"</string>
+    <string name="text_alignment_grid" formatted="false">"几何对齐网格"</string>
+    <string name="text_retro_pixel_game_scene" formatted="false">"复古像素游戏场景"</string>
+    <string name="text_cannot_read_the_image" formatted="false">"无法读取图片"</string>
+    <string name="text_choose_a_valid_game_screenshot" formatted="false">"请选择有效的游戏截图"</string>
+    <string name="text_image_too_large" formatted="false">"图片过大"</string>
+    <string name="text_screenshot_import_failed" formatted="false">"截图导入失败"</string>
+    <string name="text_back" formatted="false">"返回"</string>
+    <string name="text_import_unfiltered_screenshot" formatted="false">"导入无滤镜截图"</string>
+    <string name="text_show_original_x" formatted="false">"显示原图 · X"</string>
+    <string name="text_live_integration_status" formatted="false">"原生接入状态"</string>
+    <string name="text_import_a_game_screenshot_with_all_filters" formatted="false">"导入关闭所有滤镜后的游戏截图；预览按屏幕分辨率运行。"</string>
+    <string name="text_value_value_source_value_screen_resolution_preview">"%1$d × %2$d 原图 · %3$s · 屏幕分辨率渲染 · X 对比原图"</string>
+    <string name="text_show_filter_x" formatted="false">"显示滤镜 · X"</string>
+    <string name="text_live_rendering_integration" formatted="false">"原生渲染接入"</string>
+    <string name="text_this_preview_processes_your_imported_screenshot_on" formatted="false">"这里在 GPU 上处理你导入的截图，可对比全部滤镜组合。\n\n实时游戏接入尚未完成。需要在目标应用的 Vulkan / OpenGL 渲染流程中加载效果；仅开启桌面选项无法给任意第三方应用注入 Shader。\n\n现有轻量扫描线覆盖层只支持 Vulkan CRT。其他效果在原生接入前仅供截图预览，设置会按应用保存。"</string>
+    <string name="text_got_it" formatted="false">"知道了"</string>
+    <string name="text_gpu_error_0xvalue">"GPU 错误 0x%1$s"</string>
+    <string name="text_filter_rendering_failed_value">"滤镜渲染失败：%1$s"</string>
+    <string name="text_exported_value_gpu_comparisons_press_x_to">"GPU 对照已导出 %1$d 组；X 对比当前设置与原图。"</string>
+    <string name="text_game_filter" formatted="false">"滤镜开关"</string>
+    <string name="text_on_hold_to_adjust" formatted="false">"已开启 · 长按调整"</string>
+    <string name="text_off_hold_to_adjust" formatted="false">"已关闭 · 长按调整"</string>
+    <string name="text_return_to_the_game_before_toggling_its" formatted="false">"请先返回游戏，再切换滤镜"</string>
+    <string name="text_could_not_save_the_filter_switch" formatted="false">"滤镜开关保存失败"</string>
+    <string name="text_this_combination_needs_game_frame_integration_saved" formatted="false">"该组合需原生接入，当前仅保存供预览"</string>
+    <string name="text_off" formatted="false">"关闭"</string>
+    <string name="text_on" formatted="false">"[ ● 开启 ]"</string>
+    <string name="text_off_2" formatted="false">"[ ○ 关闭 ]"</string>
+    <string name="text_standalone_calibration" formatted="false">"独立校准模式"</string>
+    <string name="text_ready" formatted="false">"已就绪"</string>
+    <string name="text_trinitron_crt" formatted="false">"CRT 特丽珑"</string>
+    <string name="text_retro_arcade" formatted="false">"复古街机"</string>
+    <string name="text_vivid_game" formatted="false">"鲜艳游戏"</string>
+    <string name="text_hd_fxaa" formatted="false">"高清 FXAA"</string>
+    <string name="text_unfiltered" formatted="false">"纯净原画"</string>
+    <string name="text_custom" formatted="false">"自定义"</string>
+    <string name="text_smpte_calibration_bars" formatted="false">"SMPTE 彩条标定"</string>
+    <string name="text_retro_pixel_scene" formatted="false">"复古像素场景"</string>
+    <string name="text_game_screenshot" formatted="false">"游戏实机截图"</string>
+    <string name="text_loading_screenshot" formatted="false">"正在载入截图…"</string>
+    <string name="text_choose_a_valid_screenshot" formatted="false">"请选择有效截图"</string>
+    <string name="text_screenshot_loaded" formatted="false">"截图载入完成"</string>
+    <string name="text_could_not_read_screenshot_value">"读取截图失败：%1$s"</string>
+    <string name="text_saved_automatically" formatted="false">"已自动保存"</string>
+    <string name="text_save_failed_value">"保存失败: %1$s"</string>
+    <string name="text_enabled_for_this_game" formatted="false">"已保存游戏滤镜设置"</string>
+    <string name="text_disabled_for_this_game" formatted="false">"已从游戏停用"</string>
+    <string name="text_preset_value">"预设 %1$d"</string>
+    <string name="text_filter_preset_value">"滤镜预设：%1$s"</string>
+    <string name="text_bypass_raw_source" formatted="false">"⚡ BYPASS · RAW SOURCE (原画对比中)"</string>
+    <string name="text_select_item" formatted="false">"选择条目"</string>
+    <string name="text_adjust_value" formatted="false">"微调数值"</string>
+    <string name="text_change_preset" formatted="false">"切换预设"</string>
+    <string name="text_hold_to_compare" formatted="false">"按住原画对比"</string>
+    <string name="text_hide_menu" formatted="false">"隐藏菜单"</string>
+    <string name="text_show_menu" formatted="false">"显示菜单"</string>
+    <string name="text_save_and_exit" formatted="false">"保存退出"</string>
+    <string name="text_target_value">"目标: %1$s"</string>
+    <string name="text_grayscale_reference" formatted="false">"灰阶标定基准"</string>
+    <string name="text_left_barely_visible_right_clear" formatted="false">"至左侧隐约可见·右侧清晰"</string>
+    <string name="text_04_faint" formatted="false">"04% 隐约"</string>
+    <string name="text_50_reference" formatted="false">"50% 基准"</string>
+    <string name="text_96_clear" formatted="false">"96% 清晰"</string>
+    <string name="text_picture_preset" formatted="false">"图像预设"</string>
+    <string name="text_value">"◄ %1$s ►"</string>
+    <string name="text_contrast" formatted="false">"画面对比度"</string>
+    <string name="text_brightness" formatted="false">"画面亮度"</string>
+    <string name="text_gamma" formatted="false">"色彩伽马"</string>
+    <string name="text_crt_scanlines" formatted="false">"CRT 显像管扫描线"</string>
+    <string name="text_amd_fsr_sharpness" formatted="false">"AMD FSR 超分锐度"</string>
+    <string name="text_level" formatted="false">"档"</string>
+    <string name="text_vivid_color_enhancement" formatted="false">"Vivid 鲜艳色彩增强"</string>
+    <string name="text_fxaa_anti_aliasing" formatted="false">"FXAA 平滑抗锯齿"</string>
+    <string name="text_test_signal" formatted="false">"测试信号源"</string>
+    <string name="text_enable_for_this_game" formatted="false">"应用到当前游戏"</string>
+    <string name="text_enable_for_game_no_running_game_detected" formatted="false">"应用到游戏 (未检测到运行中游戏)"</string>
+    <string name="text_screenshot_too_large" formatted="false">"截图过大"</string>
+    <string name="text_all_apps" formatted="false">"全部应用"</string>
+    <string name="text_cannot_launch_value">"无法启动 %1$s"</string>
+    <string name="text_you_can_create_up_to_10_tabs" formatted="false">"最多支持创建 10 个 Tab"</string>
+    <string name="text_the_default_category_cannot_be_deleted" formatted="false">"默认分类不可删除"</string>
+    <string name="text_set_value_as_the_home_tab">"已将「%1$s」设为默认首页"</string>
+    <string name="text_target_category" formatted="false">"目标分类"</string>
+    <string name="text_added_value_to_the_start_of_value">"已将「%1$s」添加到「%2$s」最左侧"</string>
+    <string name="text_sorting_icons_a_to_pick_up_or" formatted="false">"已进入图标排序模式 (A键抓起/移动，B键退出)"</string>
+    <string name="text_icon_order_saved" formatted="false">"已保存图标排序"</string>
+    <string name="text_all_apps_contains_every_installed_app_icons" formatted="false">"【全部应用】为系统全集分类，无法直接移除图标"</string>
+    <string name="text_removed_icon_from_value">"已从「%1$s」移除图标"</string>
+    <string name="text_no_other_custom_categories_are_available" formatted="false">"暂无其他可移动的自定义分类"</string>
+    <string name="text_cannot_open_app_details_value">"无法打开应用详情: %1$s"</string>
+    <string name="text_all_apps_is_managed_automatically" formatted="false">"【全部应用】由系统自动管理所有已安装应用"</string>
+    <string name="text_hardware_setting_failed_try_again" formatted="false">"硬件设置未生效，请重试"</string>
+    <string name="text_performance_or_fan_setting_failed_try_again" formatted="false">"性能或风扇设置未生效，请重试"</string>
+    <string name="text_stick_lighting_could_not_be_changed_try" formatted="false">"摇杆灯切换失败，请重试"</string>
+    <string name="text_bypass_charging_could_not_be_changed_try" formatted="false">"充电分离切换失败，请重试"</string>
+    <string name="text_charging_power_could_not_be_changed_try" formatted="false">"充电功率档位切换失败，请重试"</string>
+    <string name="text_airplane_mode_could_not_be_changed_try" formatted="false">"飞行模式切换失败，请重试"</string>
+    <string name="text_no_apps_in_this_category" formatted="false">"该分类暂无应用"</string>
+    <string name="text_normal" formatted="false">"默认"</string>
+    <string name="text_performance" formatted="false">"性能"</string>
+    <string name="text_maximum" formatted="false">"最高"</string>
+    <string name="text_offline" formatted="false">"未连接"</string>
+    <string name="text_smart" formatted="false">"智能"</string>
+    <string name="text_maximum_2" formatted="false">"最大"</string>
+    <string name="text_quiet" formatted="false">"静音"</string>
+    <string name="text_system" formatted="false">"系统档"</string>
+    <string name="text_unknown" formatted="false">"未读取"</string>
+    <string name="text_on_2" formatted="false">"开启"</string>
+    <string name="text_5v_bypass" formatted="false">"5V 分离"</string>
+    <string name="text_9v_bypass" formatted="false">"9V 分离"</string>
+    <string name="text_performance_2" formatted="false">"⚡ 性能"</string>
+    <string name="text_fan" formatted="false">"🌀 风扇"</string>
+    <string name="text_stick_lights" formatted="false">"💡 摇杆灯"</string>
+    <string name="text_charging" formatted="false">"🔋 充电优化"</string>
+    <string name="text_airplane_mode" formatted="false">"✈️ 飞行模式"</string>
+    <string name="text_tab_groups_and_order_value_10">"Tab 分组管理与排序 (%1$d/10)："</string>
+    <string name="text_up_down_tab_left_right_action_a" formatted="false">"【上下键选Tab • 左右光标选中按钮 • A键确认】"</string>
+    <string name="text_new_tab_name" formatted="false">"输入新 Tab 名称..."</string>
+    <string name="text_add" formatted="false">"添加"</string>
+    <string name="text_home_tab" formatted="false">"★ 默认首页"</string>
+    <string name="text_game_category" formatted="false">"游戏分类"</string>
+    <string name="text_move_up" formatted="false">"▲ 上移"</string>
+    <string name="text_move_down" formatted="false">"▼ 下移"</string>
+    <string name="text_set_as_home" formatted="false">"设为首页"</string>
+    <string name="text_delete" formatted="false">"删除"</string>
+    <string name="text_move_to_another_tab" formatted="false">"📁 移动至其他 Tab 分类"</string>
+    <string name="text_assign_this_icon_to_another_category_tab" formatted="false">"将图标分配至其他分类 Tab"</string>
+    <string name="text_app_details_system_settings" formatted="false">"⚙️ 进入应用属性详情 (系统设置)"</string>
+    <string name="text_stop_or_uninstall_the_app_or_manage" formatted="false">"可在此停止运行、卸载应用、管理存储与权限"</string>
+    <string name="text_remove_from_this_category" formatted="false">"🗑️ 从当前分类移除"</string>
+    <string name="text_remove_from_this_tab_keep_the_app" formatted="false">"仅从当前 Tab 移除，不影响应用安装状态"</string>
+    <string name="text_choose_target_tab" formatted="false">"选择目标 Tab"</string>
+    <string name="text_up_down_target_tab_a_move_b" formatted="false">"【上下键选目标 Tab • A 键确认移动 • B 键返回上一层】"</string>
+    <string name="text_up_down_select_a_execute_b_close" formatted="false">"【上下键选择 • A 键执行 • B 键关闭】"</string>
+    <string name="text_choose_a_target_tab_for_value">"请选择要将 \"%1$s\" 移动到的目标 Tab："</string>
+    <string name="text_games_and_emulators" formatted="false">"游戏模拟器分类"</string>
+    <string name="text_general_category" formatted="false">"常规分类"</string>
+    <string name="text_default_home_and_startup" formatted="false">"系统默认主屏幕与开机自启："</string>
+    <string name="text_use_odin_desktop_as_the_system_home" formatted="false">"注册为掌机专属系统主屏幕与开机自动启动项，打造纯粹掌机一体化体验。"</string>
+    <string name="text_default_home_screen" formatted="false">"系统默认主屏幕 (Home)"</string>
+    <string name="text_set_as_default" formatted="false">"✓ 已设为默认"</string>
+    <string name="text_not_the_default" formatted="false">"未设为默认"</string>
+    <string name="text_the_home_button_opens_odin_desktop" formatted="false">"已接管实体 Home 键与系统主屏幕角色。按 Home 键直接回到 Odin 启动台。"</string>
+    <string name="text_press_a_or_tap_to_choose_odin" formatted="false">"尚未设为系统默认桌面。点击或按 A 键调起系统授权弹窗，一键接管主屏幕角色。"</string>
+    <string name="text_manage_home_settings_a" formatted="false">"管理桌面设置 (A)"</string>
+    <string name="text_set_as_default_a" formatted="false">"立即设为默认 (A)"</string>
+    <string name="text_start_odin_desktop_at_boot" formatted="false">"开机自启 Odin 桌面"</string>
+    <string name="text_on_enabled" formatted="false">"ON 已开启"</string>
+    <string name="text_off_disabled" formatted="false">"OFF 已关闭"</string>
+    <string name="text_start_odin_desktop_and_the_cooling_monitor" formatted="false">"设备开机后自动拉起 Odin 启动台与温控守护后台，无需手动查找应用启动。"</string>
+    <string name="text_start_the_desktop_only_when_opened_by" formatted="false">"开机时不主动拉起桌面界面，仅在被系统或用户显式调用时启动。"</string>
+    <string name="text_disable_startup_a" formatted="false">"关闭自启 (A)"</string>
+    <string name="text_enable_startup_a" formatted="false">"开启自启 (A)"</string>
+    <string name="text_internal_storage" formatted="false">"内部存储"</string>
+    <string name="text_total_value">"共 %1$s"</string>
+    <string name="text_measuring" formatted="false">"统计中"</string>
+    <string name="text_used" formatted="false">" 已用"</string>
+    <string name="text_system_2" formatted="false">"系统"</string>
+    <string name="text_apps" formatted="false">"应用"</string>
+    <string name="text_other" formatted="false">"其他"</string>
+    <string name="text_free" formatted="false">"空闲"</string>
+    <string name="text_app_storage_classification_permission_is_off" formatted="false">"应用分类统计权限未开启"</string>
+    <string name="text_reading_storage_categories" formatted="false">"正在读取存储分类…"</string>
+    <string name="text_categories_unavailable_bar_shows_total_usage" formatted="false">"分类数据暂不可读取 · 条形显示总用量"</string>
+    <string name="text_read_only" formatted="false">"只读"</string>
+    <string name="text_total" formatted="false">" 总量"</string>
+    <string name="text_used_2" formatted="false">"已用"</string>
+    <string name="text_capacity_unavailable" formatted="false">"容量暂不可读取"</string>
+    <string name="text_memory" formatted="false">"运行内存"</string>
+    <string name="text_non_system_apps" formatted="false">"非系统应用"</string>
+    <string name="text_reading_memory" formatted="false">"正在读取内存…"</string>
+    <string name="text_value_temperature">"%1$s 温度"</string>
+    <string name="text_reading" formatted="false">"正在读取…"</string>
+    <string name="text_wi_fi_connected" formatted="false">"已连接 Wi-Fi"</string>
+    <string name="text_wi_fi_disconnected_2" formatted="false">"未连接 Wi-Fi"</string>
+    <string name="text_connected" formatted="false">"已连接"</string>
+    <string name="text_wi_fi_name_permission_is_off" formatted="false">"Wi-Fi 名称读取权限未开启"</string>
+    <string name="text_files" formatted="false">"文件管理"</string>
+    <string name="text_system_settings" formatted="false">"系统设置"</string>
+    <string name="text_odin_settings" formatted="false">"Odin 设置"</string>
+    <string name="text_filters" formatted="false">"滤镜调整"</string>
+    <string name="text_dashboard_internal_storage" formatted="false">"Dashboard · 仅内置存储"</string>
+    <string name="text_dashboard_internal_and_external_storage" formatted="false">"Dashboard · 内置和外部存储"</string>
+    <string name="text_sd_card" formatted="false">"SD 卡"</string>
+    <string name="text_example_wi_fi" formatted="false">"示例 Wi-Fi"</string>
+    <string name="text_screen_orientation" formatted="false">"设置掌机屏幕握持旋转策略："</string>
+    <string name="text_the_usb_port_is_on_the_bottom" formatted="false">"AYN Odin 3 底侧为 USB 接口，仅支持固定横屏与传感器横屏两种模式。"</string>
+    <string name="text_fixed_landscape_default_grip" formatted="false">"固定横屏（默认握持方向）"</string>
+    <string name="text_sensor_landscape_either_landscape_direction" formatted="false">"传感器横屏（自适应正反横屏）"</string>
+    <string name="text_active" formatted="false">"✓ 当前生效"</string>
+    <string name="text_1_stick_light_color" formatted="false">"1. 摇杆灯颜色"</string>
+    <string name="text_2_screen_orientation" formatted="false">"2. 屏幕方向规则"</string>
+    <string name="text_3_home_and_startup" formatted="false">"3. 默认桌面与自启"</string>
+    <string name="text_4_automatic_fan" formatted="false">"4. 自动风扇控制"</string>
+    <string name="text_5_edit_tabs" formatted="false">"5. Tab 页编辑"</string>
+    <string name="text_6_about" formatted="false">"6. 关于"</string>
+    <string name="text_b_or_tap_the_background_to_return" formatted="false">"【B 键 / 点击空白返回桌面】"</string>
+    <string name="text_manage_category_apps" formatted="false">"增删分类应用"</string>
+    <string name="text_up_down_select_app_a_add_remove" formatted="false">"【上下键选应用 • A 键勾选/移除 • B 键完成】"</string>
+    <string name="text_filter_by_app_or_package_name_down" formatted="false">"输入应用名或包名即时过滤 (手柄下键可切回列表)..."</string>
+    <string name="text_matching_apps_value">"匹配应用 (%1$d 项)："</string>
+    <string name="text_this_category_contains_value_apps">"当前分类已包含 %1$d 个应用"</string>
+    <string name="text_no_matching_apps" formatted="false">"未匹配到符合条件的应用"</string>
+    <string name="text_added" formatted="false">"✓ 已加入"</string>
+    <string name="text_not_added" formatted="false">"+ 未加入"</string>
+    <string name="text_cyan_default" formatted="false">"青蓝(默认)"</string>
+    <string name="text_purple" formatted="false">"极客紫"</string>
+    <string name="text_red" formatted="false">"战斗红"</string>
+    <string name="text_green" formatted="false">"荧光绿"</string>
+    <string name="text_white" formatted="false">"冰川白"</string>
+    <string name="text_dark_gray" formatted="false">"暗夜灰"</string>
+    <string name="text_choose_a_stick_led_color_a_to" formatted="false">"选择摇杆 LED 灯光色彩预设（A键即时确认）："</string>
+    <string name="text_automatic_fan_policy" formatted="false">"自动风扇控制策略："</string>
+    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"掌机在充电且未处于游戏状态，且 CPU &amp; GPU 温度 &lt;= 60°C 时将自动关闭风扇，保持安静。"</string>
+    <string name="text_automatic_fan_control" formatted="false">"自动风扇控制"</string>
+    <string name="text_automatic_control_enabled_a_or_tap_to" formatted="false">"自动调度已开启 (按 A 键或点击切换)"</string>
+    <string name="text_automatic_control_disabled_manual_mode_retained" formatted="false">"自动调度已停用 (保留手动风扇档位)"</string>
+    <string name="text_on_3" formatted="false">"✓ [ 开启 ]"</string>
+    <string name="text_off_3" formatted="false">"✕ [ 关闭 ]"</string>
+    <string name="text_temperature_and_cooling_status" formatted="false">"实时状态与温控保护监控"</string>
+    <string name="text_highest_chip_temperature_soc" formatted="false">"• 芯片实时最高温度 (SoC)："</string>
+    <string name="text_cooling_threshold" formatted="false">"• 安全硬温控阈值："</string>
+    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60.0 °C (高于此温度强制散热)"</string>
+    <string name="text_automatic_stop_conditions" formatted="false">"• 调度执行条件："</string>
+    <string name="text_charging_no_game_temperature_60_c" formatted="false">"充电中 + 无游戏 + 温度 &lt;= 60°C"</string>
+    <string name="text_no_apps_press_x_to_manage_this" formatted="false">"暂无应用，按 X 键可管理或添加应用至此分类"</string>
+    <string name="text_picked_up_left_right_to_move_a" formatted="false">"【已抓起】按方向键左右移动位置 • 按 A 键放下"</string>
+    <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"【排序模式】按 A 键抓起图标 • 方向键左右选应用 • 按 B 键完成退出"</string>
+    <string name="text_odin_3_handheld_launcher" formatted="false">"Odin 3 专属掌机启动台"</string>
+    <string name="text_a_desktop_and_system_controls_for_ayn" formatted="false">"专为 AYN Odin 3 打造的极简高效掌机专属桌面与系统增强系统。\n"</string>
+    <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• 纯黑 OLED 省电与防烧屏优化\n"</string>
+    <string name="text_full_gamepad_navigation_n" formatted="false">"• 实体手柄全键位盲操适配\n"</string>
+    <string name="text_default_home_and_startup_integration_n" formatted="false">"• 系统级默认主屏幕与开机自启\n"</string>
+    <string name="text_charging_fan_control_n_n" formatted="false">"• 充电风扇智能调度\n\n"</string>
+    <string name="text_open_source_acknowledgements_n" formatted="false">"开源与技术组件致谢：\n"</string>
+    <string name="text_up_down_select_a_confirm_b_back" formatted="false">"【上下键选择 • A 键确认 • B 键返回】"</string>
+    <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"【B 键 / 触碰空白返回】"</string>
+    <string name="text_write_error" formatted="false">"写入错误"</string>
+    <string name="page_dashboard" formatted="false">"仪表盘"</string>
+    <string name="page_config" formatted="false">"⚙️ 设置"</string>
+    <string name="shader_calibration_title" formatted="false">"电视画面校准"</string>
+</resources>

@@ -22,7 +22,7 @@ import kotlin.math.abs
  * It does not hook another process, acquire its frames, or implement Vulkan command submission;
  * VULKAN selects GameNative's Vulkan shader equations, compiled for GLES for image comparisons.
  */
-class GameNativeGlRenderer(context: Context) {
+class GameNativeGlRenderer(context: Context) : com.odin.desktop.shader.pipeline.GlesFrameRenderer<GameNativeShaderSettings> {
     private val assets = context.applicationContext.assets
     private val ownerThread = Thread.currentThread().id
     private val ownerContext = EGL14.eglGetCurrentContext()
@@ -68,7 +68,7 @@ class GameNativeGlRenderer(context: Context) {
      * cadence; pass the same time for reproducible comparisons. A destination must not sample its
      * own attached input texture. Shader compile/link and framebuffer errors are reported to callers.
      */
-    fun render(
+    override fun render(
         inputTextureId: Int,
         inputWidth: Int,
         inputHeight: Int,
@@ -76,7 +76,7 @@ class GameNativeGlRenderer(context: Context) {
         outputHeight: Int,
         settings: GameNativeShaderSettings,
         timeSeconds: Float,
-        framebuffer: Int = 0
+        framebuffer: Int
     ) {
         checkCurrentContext()
         require(inputTextureId > 0 && GLES30.glIsTexture(inputTextureId)) { "Shader input must be an existing 2D texture" }
@@ -165,7 +165,7 @@ class GameNativeGlRenderer(context: Context) {
         }
     }
 
-    fun release() {
+    override fun release() {
         if (released) return
         checkCurrentContext()
         programs.values.forEach { GLES30.glDeleteProgram(it.id) }

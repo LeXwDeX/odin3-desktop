@@ -1,10 +1,10 @@
 package com.odin.desktop.ui.screens
 
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import androidx.compose.ui.platform.LocalContext
+import com.odin.desktop.R
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,10 +30,6 @@ import com.odin.desktop.ui.components.BottomDockBar
 import com.odin.desktop.ui.components.ConfigDialog
 import com.odin.desktop.ui.components.TopTabBar
 import com.odin.desktop.ui.navigation.FocusZone
-import com.odin.desktop.ui.theme.CyanAccent
-import com.odin.desktop.ui.theme.PureBlack
-import com.odin.desktop.ui.theme.TextDim
-import com.odin.desktop.ui.theme.TextWhite
 import com.odin.desktop.ui.viewmodel.LauncherViewModel
 
 @Composable
@@ -41,6 +37,8 @@ fun LauncherScreen(
     viewModel: LauncherViewModel,
     onOrientationChange: (Int) -> Unit
 ) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     val isDashboardSelected by viewModel.isDashboardSelected.collectAsState()
     val dashboardState by viewModel.dashboardState.collectAsState()
     val selectedDashboardControl by viewModel.selectedDashboardControl.collectAsState()
@@ -53,18 +51,18 @@ fun LauncherScreen(
     val selectedAppIndex by viewModel.selectedAppIndex.collectAsState()
 
     val selectedDockIndex by viewModel.selectedDockIndex.collectAsState()
-    val performanceMode by viewModel.performanceMode.collectAsState()
-    val fanMode by viewModel.fanMode.collectAsState()
-    val joystickLightEnabled by viewModel.joystickLightEnabled.collectAsState()
-    val joystickColor by viewModel.joystickColor.collectAsState()
-    val chargingSeparation by viewModel.chargingSeparation.collectAsState()
-    val chargePowerLimit by viewModel.chargePowerLimit.collectAsState()
-    val airplaneMode by viewModel.airplaneMode.collectAsState()
-    val orientationMode by viewModel.orientationMode.collectAsState()
-    val autoFanControlEnabled by viewModel.autoFanControlEnabled.collectAsState()
-    val currentSocTemp by viewModel.currentSocTemp.collectAsState()
-    val isDefaultHome by viewModel.isDefaultHome.collectAsState()
-    val bootAutoStartEnabled by viewModel.bootAutoStartEnabled.collectAsState()
+    val performanceMode by viewModel.hardware.performanceMode.collectAsState()
+    val fanMode by viewModel.hardware.fanMode.collectAsState()
+    val joystickLightEnabled by viewModel.hardware.joystickLightEnabled.collectAsState()
+    val joystickColor by viewModel.hardware.joystickColor.collectAsState()
+    val chargingSeparation by viewModel.hardware.chargingSeparation.collectAsState()
+    val chargePowerLimit by viewModel.hardware.chargePowerLimit.collectAsState()
+    val airplaneMode by viewModel.hardware.airplaneMode.collectAsState()
+    val orientationMode by viewModel.hardware.orientationMode.collectAsState()
+    val autoFanControlEnabled by viewModel.hardware.autoFanControlEnabled.collectAsState()
+    val currentSocTemp by viewModel.hardware.currentSocTemp.collectAsState()
+    val isDefaultHome by viewModel.hardware.isDefaultHome.collectAsState()
+    val bootAutoStartEnabled by viewModel.hardware.bootAutoStartEnabled.collectAsState()
 
     val isConfigOpen by viewModel.isConfigOpen.collectAsState()
     val configSectionIndex by viewModel.configSectionIndex.collectAsState()
@@ -94,7 +92,7 @@ fun LauncherScreen(
     // 硬件温度与风扇保护周期轮询 (仅当弹窗打开时活跃，减少后台功耗)
     androidx.compose.runtime.LaunchedEffect(isConfigOpen) {
         while (isConfigOpen) {
-            viewModel.refreshSocTemp()
+            viewModel.hardware.refreshSocTemp()
             kotlinx.coroutines.delay(1500)
         }
     }
@@ -103,7 +101,7 @@ fun LauncherScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PureBlack)
+            .background(palette.background)
     ) {
         if (isDashboardSelected) {
             DashboardContent(
@@ -152,8 +150,8 @@ fun LauncherScreen(
                 contentAlignment = Alignment.TopStart
             ) {
                 Text(
-                    text = hoveredApp?.label ?: if (currentTabApps.isEmpty()) "该分类暂无应用" else "",
-                    color = if (focusZone == FocusZone.APPS) CyanAccent else TextWhite,
+                    text = hoveredApp?.label ?: if (currentTabApps.isEmpty()) strings.getString(R.string.text_no_apps_in_this_category) else "",
+                    color = if (focusZone == FocusZone.APPS) palette.accent else palette.text,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -180,7 +178,7 @@ fun LauncherScreen(
             ) {
                 Text(
                     text = hoveredApp?.packageName ?: "",
-                    color = TextDim,
+                    color = palette.textDim,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -257,11 +255,11 @@ fun LauncherScreen(
         bootAutoStartEnabled = bootAutoStartEnabled,
         autoFanControlEnabled = autoFanControlEnabled,
         socTemp = currentSocTemp,
-        onColorSelect = { hex -> viewModel.setJoystickColor(hex) },
-        onOrientationSelect = { mode -> viewModel.setOrientationMode(mode) },
-        onRequestDefaultHome = { viewModel.requestDefaultHome() },
-        onToggleBootAutoStart = { viewModel.toggleBootAutoStart() },
-        onToggleAutoFan = { viewModel.toggleAutoFanControl() },
+        onColorSelect = { hex -> viewModel.hardware.setJoystickColor(hex) },
+        onOrientationSelect = { mode -> viewModel.hardware.setOrientationMode(mode) },
+        onRequestDefaultHome = { viewModel.hardware.requestDefaultHome() },
+        onToggleBootAutoStart = { viewModel.hardware.toggleBootAutoStart() },
+        onToggleAutoFan = { viewModel.hardware.toggleAutoFanControl() },
         tabs = tabs,
         tabActionFocusIndex = configTabActionIndex,
         onAddTab = { name, isGame -> viewModel.addTab(name, isGame) },

@@ -60,7 +60,7 @@ class AfkOverlayService : Service() {
         }
 
         if (!Settings.canDrawOverlays(this)) {
-            Toast.makeText(this, "悬浮窗权限不可用，无法开启息屏挂机", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.text_overlay_permission_is_unavailable_cannot_start_the), Toast.LENGTH_LONG).show()
             stopAfk()
             return START_NOT_STICKY
         }
@@ -71,7 +71,7 @@ class AfkOverlayService : Service() {
             showOverlay()
         } catch (error: RuntimeException) {
             android.util.Log.e("AfkOverlayService", "Could not start black overlay", error)
-            Toast.makeText(this, "息屏挂机启动失败，已恢复画面", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.text_idle_screen_failed_to_start_the_picture), Toast.LENGTH_LONG).show()
             stopAfk()
         }
         return START_NOT_STICKY
@@ -159,7 +159,7 @@ class AfkOverlayService : Service() {
         val offset = shifter.shift()
         val currentTime = timeFormat.format(Date())
 
-        textView.text = "挂机运行中 • $currentTime\n${getString(R.string.afk_overlay_unlock_hint)}"
+        textView.text = getString(R.string.text_idle_screen_active_value_nvalue, currentTime, getString(R.string.afk_overlay_unlock_hint))
         textView.translationX = offset.first.toFloat()
         textView.translationY = offset.second.toFloat()
     }
@@ -203,6 +203,11 @@ class AfkOverlayService : Service() {
     private fun stopAfk() {
         cleanUp()
         stopSelf()
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        getSystemService(android.app.NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
     }
 
     private fun buildNotification(): Notification {

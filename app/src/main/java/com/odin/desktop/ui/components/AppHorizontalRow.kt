@@ -1,5 +1,8 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import androidx.compose.ui.platform.LocalContext
+import com.odin.desktop.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -27,9 +30,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.odin.desktop.data.model.InstalledApp
 import com.odin.desktop.ui.navigation.FocusZone
-import com.odin.desktop.ui.theme.CyanAccent
-import com.odin.desktop.ui.theme.DarkSurface
-import com.odin.desktop.ui.theme.TextDim
 
 /**
  * 掌机控制台级大卡片滑带（严格屏幕级垂直绝对居中，Slot 固定 128dp，彻底杜绝相邻挤压与漂移）
@@ -44,6 +44,8 @@ fun AppHorizontalRow(
     onAppClick: (InstalledApp, Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
     val listState = rememberLazyListState()
 
     BoxWithConstraints(
@@ -79,8 +81,8 @@ fun AppHorizontalRow(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     Text(
-                        text = "暂无应用，按 X 键可管理或添加应用至此分类",
-                        color = TextDim,
+                        text = strings.getString(R.string.text_no_apps_press_x_to_manage_this),
+                        color = palette.textDim,
                         fontSize = 14.sp
                     )
                 }
@@ -115,13 +117,13 @@ fun AppHorizontalRow(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(DarkSurface.copy(alpha = 0.92f))
-                        .border(1.dp, CyanAccent.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                        .background(palette.surface.copy(alpha = 0.92f))
+                        .border(1.dp, palette.accent.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
                         .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Text(
-                        text = if (pickedIndex != null) "【已抓起】按方向键左右移动位置 • 按 A 键放下" else "【排序模式】按 A 键抓起图标 • 方向键左右选应用 • 按 B 键完成退出",
-                        color = CyanAccent,
+                        text = if (pickedIndex != null) strings.getString(R.string.text_picked_up_left_right_to_move_a) else strings.getString(R.string.text_sorting_a_to_pick_up_left_right),
+                        color = palette.accent,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )

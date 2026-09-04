@@ -144,6 +144,7 @@ import com.odin.desktop.ui.navigation.FocusZone
 class Value<T>(var value: T)
 class Flow { fun collect(block: (Any) -> Unit) {} }
 class LauncherViewModel {
+    val hardware get() = this
     companion object { var instance = LauncherViewModel() }
     val focusZone = Value(FocusZone.APPS)
     val selectedDockIndex = Value(0)
@@ -156,7 +157,7 @@ class LauncherViewModel {
     fun loadHardwareStates() { hardwareLoads++ }
     fun setLauncherVisible(value: Boolean) { if (value != visible) visibilityChanges++; visible = value }
     fun onBack(): Boolean { backCalls++; val handled = modalOpen; modalOpen = false; return handled }
-''' + "\n".join(f"fun {name}() {{}}" for name in sorted(set(re.findall(r"viewModel\.(\w+)\(", gamepad.read_text())) - {"onBack"})) + '''
+''' + "\n".join(f"fun {name}() {{}}" for name in sorted(set(re.findall(r"viewModel\.(?:hardware\.)?(\w+)\(", gamepad.read_text())) - {"onBack"})) + '''
 }
 ''',
     "test": '''package com.odin.desktop.ui

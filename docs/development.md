@@ -14,6 +14,8 @@
 
 按改动范围选择验证：性能、风扇与 Home/返回的 Python 3 回归命令及缓存前提见 [修复记录](performance-fan-home-fixes.md)；硬件桥构建和 JVM 自检见 [桥接说明](../tools/hardware-bridge/README.md)。纯文档修改检查内容和链接，无需无关的全量测试。
 
+首版多语言和扩展接口见 [架构审计](architecture.md)。`python3 tools/architecture-regression.py` 验证语言资源、分类身份、实际数据库迁移 SQL 和 Shader 预设；发布构建还需运行 `:app:assembleRelease :app:lintDebug`。首次 Lint 需要联网获取工具依赖。Room schema 导出文件应随迁移提交。
+
 ## 设备调试授权与验收
 
 - 项目应用调试已获准唤醒设备、切换前台和操作应用，无需逐步重复确认；用户当前明确的暂停或限制优先。

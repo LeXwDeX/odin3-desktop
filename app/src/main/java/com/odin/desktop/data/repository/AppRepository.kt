@@ -5,21 +5,24 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
-import com.odin.desktop.data.dao.AppMappingDao
-import com.odin.desktop.data.dao.TabDao
 import com.odin.desktop.data.entity.AppMappingEntity
 import com.odin.desktop.data.entity.TabEntity
+import com.odin.desktop.data.entity.TabKind
+import com.odin.desktop.data.db.OdinDatabase
+import androidx.room.withTransaction
 import com.odin.desktop.data.model.InstalledApp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 
 class AppRepository(
     private val context: Context,
-    private val tabDao: TabDao,
-    private val appMappingDao: AppMappingDao
+    private val database: OdinDatabase,
+    private val classifier: AppClassifier = AndroidAppClassifier
 ) {
+
+    private val tabDao = database.tabDao()
+    private val appMappingDao = database.appMappingDao()
 
     val allTabs: Flow<List<TabEntity>> = tabDao.getAllTabsFlow()
     val gamePackages: Flow<List<String>> = appMappingDao.getGamePackageNamesFlow()
@@ -77,23 +80,23 @@ class AppRepository(
         tabDao.updateTab(tab)
     }
 
-    suspend fun moveTabUp(tab: TabEntity) {
+    suspend fun moveTabUp(tab: TabEntity) = database.withTransaction {
         val all = tabDao.getAllTabs().toMutableList()
         val index = all.indexOfFirst { it.id == tab.id }
         if (index > 0) {
             val prev = all[index - 1]
-            all[index - 1] = tab.copy(sortOrder = index - 1)
+            all[index - 1] = all[index].copy(sortOrder = index - 1)
             all[index] = prev.copy(sortOrder = index)
             tabDao.updateTabs(all)
         }
     }
 
-    suspend fun moveTabDown(tab: TabEntity) {
+    suspend fun moveTabDown(tab: TabEntity) = database.withTransaction {
         val all = tabDao.getAllTabs().toMutableList()
         val index = all.indexOfFirst { it.id == tab.id }
         if (index in 0 until all.size - 1) {
             val next = all[index + 1]
-            all[index + 1] = tab.copy(sortOrder = index + 1)
+            all[index + 1] = all[index].copy(sortOrder = index + 1)
             all[index] = next.copy(sortOrder = index)
             tabDao.updateTabs(all)
         }
@@ -152,48 +155,41 @@ class AppRepository(
     }
 
     suspend fun sanitizeDefaultTabs() {
-        val tabs = tabDao.getAllTabs()
-        // 1. 首次启动初始化种子数据 (仅在没有任何 Tab 时执行一次)
-        if (tabs.isEmpty()) {
-            val defaultTabs = listOf(
-                TabEntity(name = "游戏与模拟器", sortOrder = 0, isDefault = true, isGameTab = true),
-                TabEntity(name = "系统应用", sortOrder = 1, isDefault = false, isGameTab = false),
-                TabEntity(name = "全部应用", sortOrder = 2, isDefault = false, isGameTab = false)
-            )
-            tabDao.insertTabs(defaultTabs)
-            autoPopulateDefaultTabMappings()
-            return
-        }
+        val apps = if (tabDao.getTabCount() == 0) getInstalledLaunchableApps() else emptyList()
+        database.withTransaction {
+            val tabs = tabDao.getAllTabs()
+            // 1. 首次启动初始化种子数据 (仅在没有任何 Tab 时执行一次)
+            if (tabs.isEmpty()) {
+                val defaultTabs = listOf(
+                    TabEntity(name = "", kind = TabKind.GAMES, usesDefaultName = true, sortOrder = 0, isDefault = true, isGameTab = true),
+                    TabEntity(name = "", kind = TabKind.SYSTEM, usesDefaultName = true, sortOrder = 1),
+                    TabEntity(name = "", kind = TabKind.ALL_APPS, usesDefaultName = true, sortOrder = 2)
+                )
+                tabDao.insertTabs(defaultTabs)
+                autoPopulateDefaultTabMappings(apps)
+                return@withTransaction
+            }
 
-        // 2. 日常启动轻量校验：保留用户的所有自定义设置，仅托底确保有默认首页
-        if (tabs.none { it.isDefault }) {
-            val first = tabs.minByOrNull { it.sortOrder }
-            if (first != null) {
-                tabDao.updateTab(first.copy(isDefault = true))
+            // 2. 日常启动轻量校验：保留用户的所有自定义设置，仅托底确保有默认首页
+            if (tabs.none { it.isDefault }) {
+                val first = tabs.minByOrNull { it.sortOrder }
+                if (first != null) {
+                    tabDao.updateTab(first.copy(isDefault = true))
+                }
             }
         }
     }
 
-    suspend fun autoPopulateDefaultTabMappings() {
+    private suspend fun autoPopulateDefaultTabMappings(apps: List<InstalledApp>) {
         val tabs = tabDao.getAllTabs()
-        val systemTab = tabs.find { it.name == "系统应用" || it.name == "系统工具" }
-        val gameTab = tabs.find { it.isGameTab || it.name == "游戏与模拟器" }
-        val apps = getInstalledLaunchableApps()
+        val systemTab = tabs.find { it.kind == TabKind.SYSTEM }
+        val gameTab = tabs.find { it.kind == TabKind.GAMES }
 
         // 1. 系统应用：默认摆放本系统的 Google 原生与系统应用
         if (systemTab != null) {
-            val existingSystemApps = appMappingDao.getAppsForTabFlow(systemTab.id).firstOrNull() ?: emptyList()
+            val existingSystemApps = appMappingDao.getAppsForTab(systemTab.id)
             if (existingSystemApps.isEmpty()) {
-                val googleAndSystemPkgs = apps.filter { app ->
-                    val pkg = app.packageName
-                    pkg.startsWith("com.google.android.") ||
-                    pkg.startsWith("com.android.") ||
-                    pkg == "com.android.vending" ||
-                    pkg == "com.android.chrome" ||
-                    pkg == "com.android.settings" ||
-                    pkg == "com.odin.settings" ||
-                    app.isSystemApp
-                }
+                val googleAndSystemPkgs = apps.filter(classifier::isSystem)
                 for (app in googleAndSystemPkgs) {
                     appMappingDao.insertMapping(AppMappingEntity(tabId = systemTab.id, packageName = app.packageName))
                 }
@@ -202,21 +198,9 @@ class AppRepository(
 
         // 2. 游戏与模拟器：扫描游戏与已知模拟器
         if (gameTab != null) {
-            val existingGameApps = appMappingDao.getAppsForTabFlow(gameTab.id).firstOrNull() ?: emptyList()
+            val existingGameApps = appMappingDao.getAppsForTab(gameTab.id)
             if (existingGameApps.isEmpty()) {
-                val knownGameOrEmu = apps.filter { app ->
-                    app.isGame ||
-                    app.packageName.contains("emu", ignoreCase = true) ||
-                    app.packageName.contains("mame", ignoreCase = true) ||
-                    app.packageName.contains("duckstation", ignoreCase = true) ||
-                    app.packageName.contains("ppsspp", ignoreCase = true) ||
-                    app.packageName.contains("retroarch", ignoreCase = true) ||
-                    app.packageName.contains("armsx2", ignoreCase = true) ||
-                    app.packageName.contains("es_de", ignoreCase = true) ||
-                    app.packageName.contains("citron", ignoreCase = true) ||
-                    app.packageName.contains("yuzu", ignoreCase = true) ||
-                    app.packageName.contains("skyemu", ignoreCase = true)
-                }
+                val knownGameOrEmu = apps.filter(classifier::isGame)
                 for (app in knownGameOrEmu) {
                     appMappingDao.insertMapping(AppMappingEntity(tabId = gameTab.id, packageName = app.packageName))
                 }

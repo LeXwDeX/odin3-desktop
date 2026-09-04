@@ -1,5 +1,6 @@
 package com.odin.desktop.shader.overlay
 
+import com.odin.desktop.R
 import android.content.ComponentName
 import android.content.Context
 import android.service.quicksettings.Tile
@@ -32,8 +33,8 @@ class ShaderTileService : TileService() {
     private fun updateTileState(isActive: Boolean) {
         val tile = qsTile ?: return
         tile.state = if (isActive) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        tile.label = "滤镜开关"
-        tile.subtitle = if (isActive) "已开启 · 长按调整" else "已关闭 · 长按调整"
+        tile.label = this.getString(R.string.text_game_filter)
+        tile.subtitle = if (isActive) this.getString(R.string.text_on_hold_to_adjust) else this.getString(R.string.text_off_hold_to_adjust)
         tile.updateTile()
     }
 
