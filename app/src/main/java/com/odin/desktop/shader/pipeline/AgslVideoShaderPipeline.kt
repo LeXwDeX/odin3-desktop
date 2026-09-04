@@ -31,14 +31,16 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
             uniform float2 uResolution;
 
             vec4 main(vec2 fragCoord) {
-                vec2 uv = fragCoord / uResolution;
                 const float PI = 3.14159265;
 
-                // 物理像素 1:1 对齐，绝无缩放摩尔纹与粗细不均
-                float scanline = 0.86 + 0.14 * sin(uv.y * uResolution.y * PI);
-                float grille = 0.94 + 0.06 * sin(uv.x * uResolution.x * PI);
+                // 物理像素精准 3.0 像素周期 (1080 / 3 = 360 根物理扫描线，整除 1080 零摩尔纹)
+                // 完美还原 GameNative 细腻高通透特丽珑显像管质感，线条清晰可见且极度细腻柔和
+                float scanline = 0.82 + 0.18 * sin((fragCoord.y / 3.0) * 2.0 * PI);
 
-                // 在覆盖层混合模式下：gameColor * (1.0 - alpha) 等价于 color * scanline * grille
+                // 横向 3.0 像素周期微弱特丽珑孔栅 (1920 / 3 = 640 列，整除 1920 零摩尔纹)
+                float grille = 0.94 + 0.06 * sin((fragCoord.x / 3.0) * 2.0 * PI);
+
+                // 在覆盖层混合模式下：gameColor * (scanline * grille)
                 float alpha = clamp(1.0 - (scanline * grille), 0.0, 1.0);
                 return vec4(0.0, 0.0, 0.0, alpha);
             }

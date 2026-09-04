@@ -44,6 +44,7 @@ object VideoShaderEngine {
             val config = withContext(Dispatchers.IO) {
                 db.appShaderConfigDao().getConfig(packageName)
             }
+            android.util.Log.d("VideoShaderEngine", "Package $packageName config: isEnabled=${config?.isEnabled}")
 
             if (config != null && config.isEnabled) {
                 showOverlay(context, config)

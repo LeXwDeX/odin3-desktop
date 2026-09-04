@@ -51,6 +51,9 @@ class MainActivity : ComponentActivity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
 
+        // 自动激活前台应用监听无障碍服务（本应用已授权 WRITE_SECURE_SETTINGS，确保从任意位置打开/切换游戏均能无缝激活 Shader）
+        ensureAccessibilityServiceEnabled()
+
         setContent {
             OdinDesktopTheme {
                 LauncherScreen(
@@ -61,6 +64,18 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    private fun ensureAccessibilityServiceEnabled() {
+        try {
+            val serviceName = "$packageName/${com.odin.desktop.service.fan.AppMonitorAccessibilityService::class.java.name}"
+            val enabled = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+            if (!enabled.contains(serviceName)) {
+                val newEnabled = if (enabled.isEmpty()) serviceName else "$enabled:$serviceName"
+                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, newEnabled)
+                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, "1")
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onStart() {
