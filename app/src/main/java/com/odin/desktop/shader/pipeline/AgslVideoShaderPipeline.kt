@@ -32,16 +32,19 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
 
             vec4 main(vec2 fragCoord) {
                 const float PI = 3.14159265;
+                vec2 uv = fragCoord / uResolution;
 
-                // 物理像素精准 3.0 像素周期 (1080 / 3 = 360 根物理扫描线，整除 1080 零摩尔纹)
-                // 完美还原 GameNative 细腻高通透特丽珑显像管质感，线条清晰可见且极度细腻柔和
-                float scanline = 0.82 + 0.18 * sin((fragCoord.y / 3.0) * 2.0 * PI);
+                // 严格基于物理屏幕输出分辨率 (uResolution = 1920x1080 屏幕输出分辨率)
+                // 纵向按屏幕物理分辨率精准 3.0 像素周期 (1080 / 3 = 360 根物理扫描线，整除 1080 零摩尔纹)
+                float scanline = 0.82 + 0.18 * sin(uv.y * (uResolution.y / 3.0) * 2.0 * PI);
 
-                // 横向 3.0 像素周期微弱特丽珑孔栅 (1920 / 3 = 640 列，整除 1920 零摩尔纹)
-                float grille = 0.94 + 0.06 * sin((fragCoord.x / 3.0) * 2.0 * PI);
+                // 横向按屏幕物理分辨率精准 3.0 像素周期 (1920 / 3 = 640 列特丽珑微孔栅)
+                float grille = 0.94 + 0.06 * sin(uv.x * (uResolution.x / 3.0) * 2.0 * PI);
 
-                // 在覆盖层混合模式下：gameColor * (scanline * grille)
-                float alpha = clamp(1.0 - (scanline * grille), 0.0, 1.0);
+                // 还原 GameNative 真实色彩乘法混合：color * (scanline * grille)
+                // 补偿 Android 系统对 TYPE_APPLICATION_OVERLAY 悬浮窗强制应用的 0.8 混合系数限制
+                float factor = scanline * grille;
+                float alpha = clamp((1.0 - factor) / 0.8, 0.0, 1.0);
                 return vec4(0.0, 0.0, 0.0, alpha);
             }
         """

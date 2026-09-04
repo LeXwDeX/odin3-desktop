@@ -84,8 +84,23 @@ class FanWatchdogService : Service() {
         periodicJob = serviceScope.launch {
             while (isActive) {
                 delay(8000) // 每 8 秒复检一次温度与充电状态
+                ensureAccessibilityAlive()
                 evaluateFanPolicy()
             }
+        }
+    }
+
+    private fun ensureAccessibilityAlive() {
+        if (!AppMonitorAccessibilityService.isRunning) {
+            try {
+                val serviceName = "$packageName/${AppMonitorAccessibilityService::class.java.name}"
+                val enabled = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
+                val without = enabled.split(":").filter { it.isNotEmpty() && it != serviceName }.joinToString(":")
+                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, without)
+                val targetList = if (without.isEmpty()) serviceName else "$without:$serviceName"
+                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, targetList)
+                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, "1")
+            } catch (_: Exception) {}
         }
     }
 

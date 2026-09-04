@@ -6,6 +6,18 @@ import android.view.accessibility.AccessibilityEvent
 
 class AppMonitorAccessibilityService : AccessibilityService() {
 
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        isRunning = true
+        android.util.Log.d("AppMonitor", "AppMonitorAccessibilityService connected!")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        isRunning = false
+        android.util.Log.d("AppMonitor", "AppMonitorAccessibilityService destroyed!")
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
@@ -17,8 +29,13 @@ class AppMonitorAccessibilityService : AccessibilityService() {
                 return
             }
 
-            // 过滤输入法和临时系统提示，避免误判离开游戏
-            if (packageName == "com.google.android.inputmethod.latin" ||
+            // 过滤系统辅助浮层、通知栏、输入法与掌机侧边栏助手，
+            // 严禁因呼出游戏助手、调节音量或呼出输入法而误判离开游戏并关闭 Shader
+            if (packageName == "com.android.systemui" ||
+                packageName == "com.odin.gameassistant" ||
+                packageName == "com.odin.mapping" ||
+                packageName == "com.odin.settings" ||
+                packageName == "com.google.android.inputmethod.latin" ||
                 packageName.contains("inputmethod") ||
                 packageName == "android"
             ) {
@@ -45,6 +62,9 @@ class AppMonitorAccessibilityService : AccessibilityService() {
     companion object {
         const val ACTION_FOREGROUND_CHANGED = "com.odin.desktop.action.FOREGROUND_CHANGED"
         const val EXTRA_PACKAGE_NAME = "extra_package_name"
+
+        var isRunning: Boolean = false
+            private set
 
         var currentForegroundPackage: String? = null
             private set

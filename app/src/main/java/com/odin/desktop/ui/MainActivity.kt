@@ -70,7 +70,13 @@ class MainActivity : ComponentActivity() {
         try {
             val serviceName = "$packageName/${com.odin.desktop.service.fan.AppMonitorAccessibilityService::class.java.name}"
             val enabled = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
-            if (!enabled.contains(serviceName)) {
+            if (!com.odin.desktop.service.fan.AppMonitorAccessibilityService.isRunning) {
+                val without = enabled.split(":").filter { it.isNotEmpty() && it != serviceName }.joinToString(":")
+                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, without)
+                val targetList = if (without.isEmpty()) serviceName else "$without:$serviceName"
+                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, targetList)
+                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, "1")
+            } else if (!enabled.contains(serviceName)) {
                 val newEnabled = if (enabled.isEmpty()) serviceName else "$enabled:$serviceName"
                 android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, newEnabled)
                 android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, "1")
@@ -92,6 +98,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        ensureAccessibilityServiceEnabled()
         // 回到桌面时刷新硬件状态与应用列表，并确保隐藏 VideoShader 遮罩 (Shader 仅在应用内生效)
         viewModel.loadHardwareStates()
         viewModel.scanInstalledApps()
