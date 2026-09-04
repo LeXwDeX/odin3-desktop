@@ -21,28 +21,26 @@ class AgslVideoShaderPipeline : IVideoShaderPipeline {
     private var currentConfig: AppShaderConfigEntity? = null
 
     companion object {
-        // 完全遵循 GameNative CRTEffect.java:
-        // #define SCANLINE_INTENSITY_X 0.125
-        // #define SCANLINE_INTENSITY_Y 0.375
-        // #define SCANLINE_SIZE 1024.0
-        // float scanlineX = abs(sin(vUV.x * SCANLINE_SIZE) * 0.5 * SCANLINE_INTENSITY_X);
-        // float scanlineY = abs(sin(vUV.y * SCANLINE_SIZE) * 0.5 * SCANLINE_INTENSITY_Y);
-        // gl_FragColor = vec4(mix(finalColor.rgb, vec3(0.0), scanlineX + scanlineY), finalColor.a);
+        // 完全遵循 GameNative Vulkan 原生渲染管线核心着色器 (app/src/main/cpp/winlator/window.frag 第 252-256 行):
+        // vec3 applyCRTOverlay(vec2 uv, vec3 color) {
+        //     float scanline = 0.86 + 0.14 * sin(uv.y * max(pc.resH, 1.0) * 3.14159265);
+        //     float grille = 0.94 + 0.06 * sin(uv.x * max(pc.resW, 1.0) * 3.14159265);
+        //     return clamp(color * scanline * grille, 0.0, 1.0);
+        // }
         private const val AGSL_SHADER_CODE = """
             uniform float2 uResolution;
 
             vec4 main(vec2 fragCoord) {
                 vec2 uv = fragCoord / uResolution;
+                const float PI = 3.14159265;
 
-                const float SCANLINE_SIZE = 1024.0;
-                const float SCANLINE_INTENSITY_X = 0.125;
-                const float SCANLINE_INTENSITY_Y = 0.375;
+                // 物理像素 1:1 对齐，绝无缩放摩尔纹与粗细不均
+                float scanline = 0.86 + 0.14 * sin(uv.y * uResolution.y * PI);
+                float grille = 0.94 + 0.06 * sin(uv.x * uResolution.x * PI);
 
-                float scanlineX = abs(sin(uv.x * SCANLINE_SIZE) * 0.5 * SCANLINE_INTENSITY_X);
-                float scanlineY = abs(sin(uv.y * SCANLINE_SIZE) * 0.5 * SCANLINE_INTENSITY_Y);
-
-                float dark = scanlineX + scanlineY;
-                return vec4(0.0, 0.0, 0.0, clamp(dark, 0.0, 1.0));
+                // 在覆盖层混合模式下：gameColor * (1.0 - alpha) 等价于 color * scanline * grille
+                float alpha = clamp(1.0 - (scanline * grille), 0.0, 1.0);
+                return vec4(0.0, 0.0, 0.0, alpha);
             }
         """
     }
