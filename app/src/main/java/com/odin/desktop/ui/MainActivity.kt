@@ -46,8 +46,9 @@ class MainActivity : ComponentActivity() {
         }
         registerReceiver(packageReceiver, filter)
 
-        // 默认应用传感器横屏
-        HardwareController.applyOrientation(this, HardwareController.ORIENTATION_SENSOR_LANDSCAPE)
+        // 读取并应用用户配置的屏幕方向（固定横屏或传感器横屏）
+        val initialOrientation = HardwareController.getOrientationMode(this)
+        HardwareController.applyOrientation(this, initialOrientation)
 
         // 全屏沉浸模式（隐藏系统导航条与状态栏，滑动临时浮现）
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -63,6 +64,13 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.dashboardActions.collect { dashboardActions.execute(it) }
+            }
+        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.requestRoleEvent.collect {
+                    HardwareController.requestDefaultHomeRole(this@MainActivity)
+                }
             }
         }
 

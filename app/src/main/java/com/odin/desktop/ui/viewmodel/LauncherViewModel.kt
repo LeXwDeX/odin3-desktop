@@ -10,6 +10,7 @@ import com.odin.desktop.dashboard.DashboardAction
 import com.odin.desktop.dashboard.DashboardRepository
 import com.odin.desktop.dashboard.DashboardState
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -22,6 +23,9 @@ import com.odin.desktop.service.fan.HardwareController
 import com.odin.desktop.ui.navigation.FocusZone
 import com.odin.desktop.ui.components.AppActionType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -133,12 +137,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _joystickColor = MutableStateFlow("#ff00e5ff")
     val joystickColor: StateFlow<String> = _joystickColor.asStateFlow()
 
+    private val _chargingSeparation = MutableStateFlow(false)
+    val chargingSeparation: StateFlow<Boolean> = _chargingSeparation.asStateFlow()
+
+    private val _chargePowerLimit = MutableStateFlow(true)
+    val chargePowerLimit: StateFlow<Boolean> = _chargePowerLimit.asStateFlow()
+
     private val _chargeLimit80 = MutableStateFlow(false)
     val chargeLimit80: StateFlow<Boolean> = _chargeLimit80.asStateFlow()
-
-    private val _chargePowerLimit = MutableStateFlow(false)
-    val chargePowerLimit: StateFlow<Boolean> = _chargePowerLimit.asStateFlow()
     private val hardwareLock = Mutex()
+    private var perfJob: Job? = null
+    private var fanJob: Job? = null
+    private var lightJob: Job? = null
+    private var chargePowerJob: Job? = null
+    private var chargeSeparationJob: Job? = null
+    private var airplaneJob: Job? = null
 
     private val _airplaneMode = MutableStateFlow(false)
     val airplaneMode: StateFlow<Boolean> = _airplaneMode.asStateFlow()
@@ -152,11 +165,20 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _currentSocTemp = MutableStateFlow(Float.NaN)
     val currentSocTemp: StateFlow<Float> = _currentSocTemp.asStateFlow()
 
+    private val _isDefaultHome = MutableStateFlow(false)
+    val isDefaultHome: StateFlow<Boolean> = _isDefaultHome.asStateFlow()
+
+    private val _bootAutoStartEnabled = MutableStateFlow(true)
+    val bootAutoStartEnabled: StateFlow<Boolean> = _bootAutoStartEnabled.asStateFlow()
+
+    private val _requestRoleEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val requestRoleEvent: SharedFlow<Unit> = _requestRoleEvent.asSharedFlow()
+
     // --- Config 弹窗手柄导航状态 ---
     private val _isConfigOpen = MutableStateFlow(false)
     val isConfigOpen: StateFlow<Boolean> = _isConfigOpen.asStateFlow()
 
-    private val _configSectionIndex = MutableStateFlow(0) // 0..4 左侧栏
+    private val _configSectionIndex = MutableStateFlow(0) // 0..5 左侧栏
     val configSectionIndex: StateFlow<Int> = _configSectionIndex.asStateFlow()
 
     private val _configInSubMenu = MutableStateFlow(false) // 是否进入右侧内容区
@@ -213,24 +235,30 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun loadHardwareStates() {
         viewModelScope.launch(Dispatchers.IO) {
-            hardwareLock.withLock { refreshHardwareStates() }
+            hardwareLock.withLock { refreshHardwareStates(refreshPerformance = true) }
         }
     }
 
-    private fun refreshHardwareStates() {
+    private fun refreshHardwareStates(refreshPerformance: Boolean = false) {
         // A failed read keeps the last observed value; requested values never become device state.
-        runCatching { HardwareController.getPerformanceMode(context) }.onSuccess { _performanceMode.value = it }.onFailure { _performanceMode.value = -1 }
+        if (refreshPerformance || _performanceMode.value < 0) {
+            runCatching { HardwareController.getPerformanceMode(context) }.onSuccess { _performanceMode.value = it }.onFailure { _performanceMode.value = -1 }
+        }
         runCatching { HardwareController.getFanMode(context) }.onSuccess { _fanMode.value = it }
         runCatching { HardwareController.isJoystickLightEnabled(context) }.onSuccess { _joystickLightEnabled.value = it }
         runCatching { HardwareController.getJoystickColor(context) }.onSuccess { _joystickColor.value = it.substringBefore(',') }
+        runCatching { HardwareController.isChargingSeparationEnabled(context) }.onSuccess { _chargingSeparation.value = it }
+        runCatching { HardwareController.isChargePowerLimit5V(context) }.onSuccess { _chargePowerLimit.value = it }
         runCatching { HardwareController.isChargeLimit80Enabled(context) }.onSuccess { _chargeLimit80.value = it }
-        runCatching { HardwareController.isChargePowerLimitEnabled(context) }.onSuccess { _chargePowerLimit.value = it }
         runCatching { HardwareController.isAirplaneModeOn(context) }.onSuccess { _airplaneMode.value = it }
         _autoFanControlEnabled.value = HardwareController.isAutoFanControlEnabled(context)
+        _orientationMode.value = HardwareController.getOrientationMode(context)
+        _isDefaultHome.value = HardwareController.isDefaultHome(context)
+        _bootAutoStartEnabled.value = HardwareController.isBootAutoStartEnabled(context)
         _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
     }
 
-    private fun changeHardware(action: () -> Unit) {
+    private fun changeHardware(refreshPerformance: Boolean = false, action: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             hardwareLock.withLock {
                 try {
@@ -243,7 +271,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         Toast.makeText(context, failure.message ?: "硬件设置未生效，请重试", Toast.LENGTH_LONG).show()
                     }
                 } finally {
-                    refreshHardwareStates()
+                    refreshHardwareStates(refreshPerformance)
                 }
             }
         }
@@ -334,7 +362,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 肩键 Tab 切换 (L1 / R1) ---
     fun onPrevTab() {
-        if (_isConfigOpen.value && _configInSubMenu.value && _configSectionIndex.value == 3) {
+        if (_isConfigOpen.value && _configInSubMenu.value && _configSectionIndex.value == 4) {
             val currentTabs = _tabs.value
             val tab = currentTabs.getOrNull(_configContentFocusIndex.value)
             if (tab != null && _configContentFocusIndex.value > 0) {
@@ -350,7 +378,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun onNextTab() {
-        if (_isConfigOpen.value && _configInSubMenu.value && _configSectionIndex.value == 3) {
+        if (_isConfigOpen.value && _configInSubMenu.value && _configSectionIndex.value == 4) {
             val currentTabs = _tabs.value
             val tab = currentTabs.getOrNull(_configContentFocusIndex.value)
             if (tab != null && _configContentFocusIndex.value < currentTabs.size - 1) {
@@ -419,7 +447,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                                 _configInSubMenu.value = false
                             }
                         }
-                        3 -> { // Tab 编辑
+                        4 -> { // Tab 编辑
                             if (_configTabActionIndex.value > 0) {
                                 _configTabActionIndex.value -= 1
                             } else {
@@ -427,7 +455,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             }
                         }
                         else -> {
-                            // 屏幕方向、自动风扇控制、关于等单项/展示页面直接返回左侧菜单
+                            // 屏幕方向、默认桌面与自启、自动风扇控制、关于等单项/展示页面直接返回左侧菜单
                             _configInSubMenu.value = false
                         }
                     }
@@ -479,7 +507,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             _configContentFocusIndex.value += 1
                         }
                     }
-                    3 -> { // Tab 编辑行内按钮向右切换
+                    4 -> { // Tab 编辑行内按钮向右切换
                         val currentTabs = _tabs.value
                         val tab = currentTabs.getOrNull(_configContentFocusIndex.value)
                         if (tab != null) {
@@ -489,7 +517,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             }
                         }
                     }
-                    // 屏幕方向、自动风扇控制、关于等右键不执行越界操作
+                    // 屏幕方向、默认桌面、自动风扇控制、关于等右键不执行越界操作
                 }
             }
             FocusZone.APP_ACTION_MODAL -> {}
@@ -516,7 +544,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             _configContentFocusIndex.value -= 1
                         }
                     }
-                    3 -> { // Tab 列表
+                    2 -> { // 默认桌面与自启
+                        if (_configContentFocusIndex.value > 0) {
+                            _configContentFocusIndex.value -= 1
+                        }
+                    }
+                    4 -> { // Tab 列表
                         if (_configContentFocusIndex.value > 0) {
                             _configContentFocusIndex.value -= 1
                             clampTabActionIndex()
@@ -557,7 +590,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             FocusZone.DOCK -> {}
             FocusZone.CONFIG_MODAL -> {
                 if (!_configInSubMenu.value) {
-                    if (_configSectionIndex.value < 4) {
+                    if (_configSectionIndex.value < 5) {
                         _configSectionIndex.value += 1
                     }
                 } else when (_configSectionIndex.value) {
@@ -566,10 +599,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             _configContentFocusIndex.value += 1
                         }
                     }
-                    2 -> {
+                    2 -> { // 默认桌面与自启（共2项：默认主屏幕、开机自启）
+                        if (_configContentFocusIndex.value < 1) {
+                            _configContentFocusIndex.value += 1
+                        }
+                    }
+                    3 -> {
                         // 自动风扇控制：仅可选中控制开关 (index 0)，下方为展示内容，不可被光标选中
                     }
-                    3 -> { // Tab 列表
+                    4 -> { // Tab 列表
                         if (_configContentFocusIndex.value < _tabs.value.size - 1) {
                             _configContentFocusIndex.value += 1
                             clampTabActionIndex()
@@ -743,7 +781,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun onOptions() {
         if (_focusZone.value == FocusZone.APPS) {
             openBatchManageDialog()
-        } else if (_focusZone.value == FocusZone.CONFIG_MODAL && _configInSubMenu.value && _configSectionIndex.value == 3) {
+        } else if (_focusZone.value == FocusZone.CONFIG_MODAL && _configInSubMenu.value && _configSectionIndex.value == 4) {
             val tab = _tabs.value.getOrNull(_configContentFocusIndex.value)
             if (tab != null && !tab.isDefault && tab.name != "全部应用") {
                 deleteTab(tab)
@@ -766,18 +804,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
      * 触发底部 5 大硬件状态切换 (对应 A 键或屏幕触碰点击)
      */
     private fun triggerDockAction(index: Int) {
-        changeHardware {
-            when (index) {
-                0 -> HardwareController.cyclePerformanceMode(context)
-                1 -> {
-                    // A manual choice takes ownership before any queued charging policy runs.
-                    HardwareController.setAutoFanControlEnabled(context, false)
-                    HardwareController.cycleFanMode(context)
-                }
-                2 -> HardwareController.toggleJoystickLight(context)
-                3 -> HardwareController.toggleChargeLimit80(context)
-                4 -> HardwareController.toggleAirplaneMode(context)
-            }
+        when (index) {
+            0 -> cyclePerformanceMode()
+            1 -> cycleFanMode()
+            2 -> toggleJoystickLight()
+            3 -> toggleChargePowerLimit()
+            4 -> toggleAirplaneMode()
         }
     }
 
@@ -798,10 +830,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     ?: HardwareController.ORIENTATION_LANDSCAPE
                 setOrientationMode(sel)
             }
-            2 -> { // 自动风扇控制
+            2 -> { // 默认主屏幕与开机自启
+                if (_configContentFocusIndex.value == 0) {
+                    requestDefaultHome()
+                } else {
+                    toggleBootAutoStart()
+                }
+            }
+            3 -> { // 自动风扇控制
                 toggleAutoFanControl()
             }
-            3 -> { // Tab 页编辑：执行当前光标左右选中的操作按钮
+            4 -> { // Tab 页编辑：执行当前光标左右选中的操作按钮
                 val currentTabs = _tabs.value
                 val tab = currentTabs.getOrNull(_configContentFocusIndex.value)
                 if (tab != null) {
@@ -839,6 +878,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openConfigDialog() {
+        refreshHomeAndBootStatus()
         _isConfigOpen.value = true
         _configInSubMenu.value = false
         _configSectionIndex.value = 0
@@ -861,11 +901,217 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun setOrientationMode(mode: Int) {
         _orientationMode.value = mode
+        viewModelScope.launch(Dispatchers.IO) {
+            HardwareController.setOrientationMode(context, mode)
+        }
+    }
+
+    fun toggleBootAutoStart() {
+        val next = !_bootAutoStartEnabled.value
+        _bootAutoStartEnabled.value = next
+        HardwareController.setBootAutoStartEnabled(context, next)
+    }
+
+    fun requestDefaultHome() {
+        _requestRoleEvent.tryEmit(Unit)
+    }
+
+    fun refreshHomeAndBootStatus() {
+        _isDefaultHome.value = HardwareController.isDefaultHome(context)
+        _bootAutoStartEnabled.value = HardwareController.isBootAutoStartEnabled(context)
+    }
+
+    fun cyclePerformanceMode() {
+        val current = _performanceMode.value
+        val next = if (current in 0..2) (current + 1) % 3 else HardwareController.PERF_NORMAL
+        _performanceMode.value = next
+
+        perfJob?.cancel()
+        perfJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(200)
+            hardwareLock.withLock {
+                try {
+                    HardwareController.setPerformanceMode(context, next)
+                    if (next != HardwareController.PERF_NORMAL && _fanMode.value == HardwareController.FAN_OFF) {
+                        _fanMode.value = HardwareController.FAN_SMART
+                        _autoFanControlEnabled.value = false
+                        HardwareController.setFanMode(context, HardwareController.FAN_SMART)
+                        HardwareController.setAutoFanControlEnabled(context, false)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Performance mode cycle failed", failure)
+                    runCatching { HardwareController.getPerformanceMode(context) }
+                        .onSuccess { _performanceMode.value = it }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, failure.message ?: "性能模式切换失败，请重试", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun cycleFanMode() {
+        val wasAuto = _autoFanControlEnabled.value
+        _autoFanControlEnabled.value = false
+        val targetFan = if (wasAuto) {
+            HardwareController.FAN_OFF
+        } else {
+            when (_fanMode.value) {
+                HardwareController.FAN_OFF -> HardwareController.FAN_SMART
+                HardwareController.FAN_SMART -> HardwareController.FAN_SPORT
+                else -> HardwareController.FAN_OFF
+            }
+        }
+        _fanMode.value = targetFan
+
+        fanJob?.cancel()
+        fanJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(200)
+            hardwareLock.withLock {
+                try {
+                    HardwareController.setAutoFanControlEnabled(context, false)
+                    HardwareController.setFanMode(context, targetFan)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Fan mode cycle failed", failure)
+                    _autoFanControlEnabled.value = HardwareController.isAutoFanControlEnabled(context)
+                    runCatching { HardwareController.getFanMode(context) }
+                        .onSuccess { _fanMode.value = it }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, failure.message ?: "风扇档位切换失败，请重试", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
     }
 
     fun toggleAutoFanControl() {
-        changeHardware {
-            HardwareController.setAutoFanControlEnabled(context, !HardwareController.isAutoFanControlEnabled(context))
+        val next = !_autoFanControlEnabled.value
+        _autoFanControlEnabled.value = next
+        if (next) {
+            _fanMode.value = HardwareController.FAN_OFF
+        }
+
+        fanJob?.cancel()
+        fanJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(200)
+            hardwareLock.withLock {
+                try {
+                    HardwareController.setAutoFanControlEnabled(context, next)
+                    if (next) {
+                        HardwareController.setFanMode(context, HardwareController.FAN_OFF)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Auto fan control toggle failed", failure)
+                    _autoFanControlEnabled.value = HardwareController.isAutoFanControlEnabled(context)
+                    runCatching { HardwareController.getFanMode(context) }
+                        .onSuccess { _fanMode.value = it }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, failure.message ?: "充电风扇静音切换失败，请重试", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun toggleJoystickLight() {
+        val next = !_joystickLightEnabled.value
+        _joystickLightEnabled.value = next
+
+        lightJob?.cancel()
+        lightJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(150)
+            hardwareLock.withLock {
+                try {
+                    HardwareController.setJoystickLightEnabled(context, next)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Joystick light toggle failed", failure)
+                    runCatching { HardwareController.isJoystickLightEnabled(context) }
+                        .onSuccess { _joystickLightEnabled.value = it }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, failure.message ?: "摇杆灯切换失败，请重试", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun toggleChargingSeparation() {
+        val next = !_chargingSeparation.value
+        _chargingSeparation.value = next
+
+        chargeSeparationJob?.cancel()
+        chargeSeparationJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(150)
+            hardwareLock.withLock {
+                try {
+                    HardwareController.setChargingSeparationEnabled(context, next)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Charging separation toggle failed", failure)
+                    runCatching { HardwareController.isChargingSeparationEnabled(context) }
+                        .onSuccess { _chargingSeparation.value = it }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, failure.message ?: "充电分离切换失败，请重试", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun toggleChargePowerLimit() {
+        val next = !_chargePowerLimit.value
+        _chargePowerLimit.value = next
+
+        chargePowerJob?.cancel()
+        chargePowerJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(150)
+            hardwareLock.withLock {
+                try {
+                    HardwareController.setChargePowerLimit5V(context, next)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Power limit toggle failed", failure)
+                    runCatching { HardwareController.isChargePowerLimit5V(context) }
+                        .onSuccess { _chargePowerLimit.value = it }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, failure.message ?: "充电功率档位切换失败，请重试", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun toggleAirplaneMode() {
+        val next = !_airplaneMode.value
+        _airplaneMode.value = next
+
+        airplaneJob?.cancel()
+        airplaneJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(150)
+            hardwareLock.withLock {
+                try {
+                    HardwareController.setAirplaneMode(context, next)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Airplane mode toggle failed", failure)
+                    runCatching { HardwareController.isAirplaneModeOn(context) }
+                        .onSuccess { _airplaneMode.value = it }
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, failure.message ?: "飞行模式切换失败，请重试", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
         }
     }
 
@@ -876,7 +1122,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setJoystickColor(hex: String) {
-        changeHardware { HardwareController.setJoystickColor(context, hex) }
+        _joystickColor.value = hex
+        lightJob?.cancel()
+        lightJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(150)
+            hardwareLock.withLock {
+                try {
+                    HardwareController.setJoystickColor(context, hex)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    android.util.Log.w("OdinHardware", "Joystick color set failed", failure)
+                    runCatching { HardwareController.getJoystickColor(context) }
+                        .onSuccess { _joystickColor.value = it.substringBefore(',') }
+                }
+            }
+        }
     }
 
     fun addTab(name: String, isGame: Boolean = false) {

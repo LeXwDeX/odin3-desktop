@@ -5,9 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.odin.desktop.service.fan.HardwareController
 import com.odin.desktop.ui.navigation.FocusZone
+import com.odin.desktop.ui.theme.BlueSpecial
 import com.odin.desktop.ui.theme.CyanAccent
 import com.odin.desktop.ui.theme.DarkSurface
 import com.odin.desktop.ui.theme.GreenActive
@@ -43,46 +44,69 @@ fun BottomDockBar(
     performanceMode: Int,
     fanMode: Int,
     joystickLightEnabled: Boolean,
-    chargeLimit80: Boolean,
+    chargingSeparation: Boolean,
     chargePowerLimit: Boolean,
     autoFanControlEnabled: Boolean,
     airplaneMode: Boolean,
     selectedDockIndex: Int,
     focusZone: FocusZone,
     onItemClick: (Int) -> Unit,
-    onToggleChargingFanMode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val perfLabel = when (performanceMode) {
-        HardwareController.PERF_PERFORMANCE -> "性能"
-        HardwareController.PERF_HIGH_PERFORMANCE -> "高性能"
-        HardwareController.PERF_NORMAL -> "默认"
-        else -> "未连接"
+    // 1. 性能：默认/性能/最高 【绿色/黄色/红色】按 A 循环 (安全/警告/严重)
+    val (perfLabel, perfColor) = when (performanceMode) {
+        HardwareController.PERF_NORMAL -> "默认" to GreenActive
+        HardwareController.PERF_PERFORMANCE -> "性能" to OrangeWarning
+        HardwareController.PERF_HIGH_PERFORMANCE -> "最高" to RedDanger
+        else -> "未连接" to TextDim
     }
-    val fanLabel = when (fanMode) {
-        HardwareController.FAN_OFF -> "关闭"
-        HardwareController.FAN_QUIET -> "静音"
-        HardwareController.FAN_SPORT -> "高性能"
-        HardwareController.FAN_SMART -> "智能"
-        else -> "未知"
+
+    // 2. 风扇：
+    // - 充电风扇静音开启 (按 X): 蓝色 "关闭" (特殊状态：充电静音功能开启，对应风扇关闭)
+    // - 手动常规档位 (按 A):
+    //   - 关闭: 灰色 "关闭" (灰色 关闭/OFF)
+    //   - 智能: 绿色 "智能" (绿色 安全/恒温)
+    //   - 最大: 红色 "最大" (红色 严重/极速满负荷)
+    val (fanLabel, fanColor) = if (autoFanControlEnabled) {
+        "关闭" to BlueSpecial
+    } else {
+        when (fanMode) {
+            HardwareController.FAN_OFF -> "关闭" to TextDim
+            HardwareController.FAN_SMART -> "智能" to GreenActive
+            HardwareController.FAN_SPORT -> "最大" to RedDanger
+            else -> "关闭" to TextDim
+        }
     }
+
+    // 3. 摇杆灯：开启 (绿色 - ON 是绿色) / 关闭 (灰色 - OFF 是灰色)
+    val lightLabel = if (joystickLightEnabled) "开启" else "关闭"
+    val lightColor = if (joystickLightEnabled) GreenActive else TextDim
+
+    // 4. 充电优化：按 X 启动充电分离 (红色 5V分离/9V分离 - 严重)；按 A 切换 5V 3A (绿色 - 安全) / 9V 3A (黄色 - 警告)
+    val (chargeLabel, chargeColor) = if (chargingSeparation) {
+        (if (chargePowerLimit) "5V 分离" else "9V 分离") to RedDanger
+    } else {
+        if (chargePowerLimit) "5V 3A" to GreenActive else "9V 3A" to OrangeWarning
+    }
+
+    // 5. 飞行模式：开启 (绿色 - ON 是绿色) / 关闭 (灰色 - OFF 是灰色)
+    val airplaneLabel = if (airplaneMode) "开启" else "关闭"
+    val airplaneColor = if (airplaneMode) GreenActive else TextDim
+
     val dockItems = listOf(
-        DockItemData("性能", perfLabel, "A 切换档位",
-            if (performanceMode == HardwareController.PERF_HIGH_PERFORMANCE) RedDanger
-            else if (performanceMode == HardwareController.PERF_PERFORMANCE) OrangeWarning else GreenActive),
-        DockItemData("风扇", fanLabel, "X 充电模式 ${if (autoFanControlEnabled) "开" else "关"}",
-            if (fanMode == HardwareController.FAN_OFF) TextDim else CyanAccent),
-        DockItemData("摇杆灯", if (joystickLightEnabled) "开启" else "关闭", "A 开关",
-            if (joystickLightEnabled) CyanAccent else TextDim),
-        DockItemData("充电限制", if (chargeLimit80) "80% 开" else "80% 关",
-            "5V 档 ${if (chargePowerLimit) "开" else "关"}", if (chargeLimit80) GreenActive else TextDim),
-        DockItemData("飞行模式", if (airplaneMode) "开" else "关", "A 开关",
-            if (airplaneMode) OrangeWarning else TextDim)
+        DockItemData("⚡ 性能", perfLabel, perfColor),
+        DockItemData("🌀 风扇", fanLabel, fanColor),
+        DockItemData("💡 摇杆灯", lightLabel, lightColor),
+        DockItemData("🔋 充电优化", chargeLabel, chargeColor),
+        DockItemData("✈️ 飞行模式", airplaneLabel, airplaneColor)
     )
 
     ProvideTextStyle(TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))) {
         Row(
-            modifier = modifier.fillMaxWidth().height(58.dp).padding(horizontal = 24.dp, vertical = 6.dp),
+            modifier = modifier
+                .fillMaxWidth()
+                .height(58.dp)
+                .padding(horizontal = 24.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -94,32 +118,42 @@ fun BottomDockBar(
                 val bgColor by animateColorAsState(
                     if (isFocused) CyanAccent.copy(alpha = 0.16f) else DarkSurface, label = "dock_bg"
                 )
-                Column(
-                    Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(8.dp))
-                        .background(bgColor).border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(8.dp))
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(bgColor)
+                        .border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(8.dp))
                         .focusProperties { canFocus = false }
                         .clickable(role = Role.Button) { onItemClick(index) }
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.Center
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(item.title, color = TextWhite, fontSize = 12.sp, lineHeight = 16.sp,
-                            fontWeight = FontWeight.Medium, maxLines = 1)
-                        Text(item.value, color = item.stateColor, fontSize = 12.sp, lineHeight = 16.sp,
-                            fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = item.title,
+                            color = TextWhite,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = ": ${item.value}",
+                            color = item.stateColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
-                    val subtitleModifier = if (index == 1) Modifier.fillMaxWidth()
-                        .focusProperties { canFocus = false }
-                        .clickable(role = Role.Switch, onClick = onToggleChargingFanMode)
-                    else Modifier
-                    Text(item.subtitle, color = if (index == 1 && autoFanControlEnabled) CyanAccent else TextDim,
-                        fontSize = 10.sp, lineHeight = 13.sp,
-                        modifier = subtitleModifier.padding(top = 2.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
     }
 }
 
-private data class DockItemData(val title: String, val value: String, val subtitle: String, val stateColor: Color)
+private data class DockItemData(val title: String, val value: String, val stateColor: Color)

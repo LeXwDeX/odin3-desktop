@@ -16,3 +16,5 @@ val TextDarkDim = Color(0xFF444444)
 val GreenActive = Color(0xFF00E676)
 val OrangeWarning = Color(0xFFFF9100)
 val RedDanger = Color(0xFFFF5252)
+val BlueSpecial = Color(0xFF2979FF)
+

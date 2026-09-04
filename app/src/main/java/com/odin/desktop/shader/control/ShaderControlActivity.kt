@@ -2,36 +2,60 @@ package com.odin.desktop.shader.control
 
 import android.content.Context
 import android.content.Intent
-import android.content.res.ColorStateList
-import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ColorSpace
-import android.graphics.Rect
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.StateListDrawable
 import android.os.Bundle
 import android.util.AtomicFile
-import android.view.Gravity
-import android.view.FocusFinder
 import android.view.KeyEvent
-import android.view.View
-import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.SeekBar
-import android.widget.Spinner
-import android.widget.Switch
-import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -43,8 +67,16 @@ import com.odin.desktop.shader.model.GameNativeShaderSettings
 import com.odin.desktop.shader.model.ShaderFamily
 import com.odin.desktop.shader.model.ShaderScaling
 import com.odin.desktop.shader.preview.ShaderPreviewView
+import com.odin.desktop.shader.preview.TvTestPatternGenerator
 import com.odin.desktop.shader.repository.ShaderConfigRepository
 import com.odin.desktop.shader.runtime.ShaderRuntime
+import com.odin.desktop.ui.theme.CyanAccent
+import com.odin.desktop.ui.theme.GreenActive
+import com.odin.desktop.ui.theme.OdinDesktopTheme
+import com.odin.desktop.ui.theme.OrangeWarning
+import com.odin.desktop.ui.theme.PureBlack
+import com.odin.desktop.ui.theme.TextDim
+import com.odin.desktop.ui.theme.TextWhite
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -52,72 +84,56 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Locale
 import java.io.File
+import java.util.Locale
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Compact controls for the game snapshot supplied by the Quick Settings tile. */
+/**
+ * 掌机 TVGAME 级电视画质校准与滤镜调整控制台 (TV Display Calibration OSD)。
+ * 提供 100% 实体手柄盲操体验，全屏内置广播级 SMPTE 测试图、灰度标定阶梯与特丽珑 OSD 调屏菜单。
+ */
 class ShaderControlActivity : ComponentActivity() {
+
     private val repository by lazy {
         ShaderConfigRepository(OdinDatabase.getDatabase(applicationContext).appShaderConfigDao())
     }
-    private var targetPackage: String? = null
-    private var config: AppShaderConfigEntity? = null
-    private var screenshotSettings: GameNativeShaderSettings? = null
-    private var targetLoadVersion = 0
-    private val settingsReady get() = config != null || screenshotSettings != null
-    private var automaticFamily = ShaderFamily.VULKAN
-    private var pendingWrite: Deferred<Result<Unit>>? = null
-    private var saveFailed = false
-    private var binding = false
-    private var navigating = false
-    private var controlSession = false
-    private var finishingAfterSave = false
-    private var displayedPreset = -1
-    private var showOriginal = false
-    private var originalBeforeHold: Boolean? = null
-    private var parametersBeforeHold: Boolean? = null
-    private var parametersFocusBeforeHold: View? = null
-    private var hasImage = false
-    private var imageJob: Job? = null
-    private var initialFocusPending = true
-    private var panelFocusBeforeCollapse: View? = null
-    private var confirmTarget: View? = null
-    private var editingSlider: SeekBar? = null
-    private var sliderEntryProgress = 0
-    private var choiceDialog: AlertDialog? = null
-    private val controllerControls = mutableListOf<View>()
-    private val sliderControls = mutableMapOf<SeekBar, SliderControl>()
-    private lateinit var controlRoot: ViewGroup
-    private lateinit var controllerHint: TextView
+
     private lateinit var preview: ShaderPreviewView
-    private lateinit var imageStatus: TextView
-    private lateinit var imageEmpty: TextView
-    private lateinit var replaceImage: Button
-    private lateinit var originalImage: Button
-    private lateinit var panel: View
-    private lateinit var revealPanel: Button
-    private lateinit var appName: TextView
-    private lateinit var runtimeStatus: TextView
-    private lateinit var saveStatus: TextView
-    private lateinit var enabled: Switch
-    private lateinit var presets: Spinner
-    private lateinit var more: Button
-    private lateinit var advanced: LinearLayout
-    private lateinit var sharpness: SeekBar
-    private lateinit var sharpnessHint: TextView
-    private lateinit var done: Button
-    private val editable = mutableListOf<View>()
-    private val effectBindings = mutableListOf<(GameNativeShaderSettings) -> Unit>()
-    private val presetNames = listOf("CRT", "FXAA", "Vivid", "Toon", "NTSC", "自定义")
+    private var targetPackage: String? = null
+    private var appLabel: String = "独立校准模式"
+    private var isGameTarget = false
+    private var automaticFamily = ShaderFamily.VULKAN
+
+    // 当前配置与滤镜参数
+    private var currentConfig: AppShaderConfigEntity? = null
+    private var currentEffects = GameNativeShaderSettings(family = ShaderFamily.VULKAN, enableCRT = true)
+    private var isAppFilterEnabled = false
+
+    // 状态流向 Compose 的状态变量
+    private val uiEffects = mutableStateOf(currentEffects)
+    private val uiAppFilterEnabled = mutableStateOf(false)
+    private val uiTargetName = mutableStateOf("独立校准模式")
+    private val uiIsGame = mutableStateOf(false)
+    private val uiSelectedMenuIndex = mutableIntStateOf(0)
+    private val uiIsOsdVisible = mutableStateOf(true)
+    private val uiIsBypassActive = mutableStateOf(false)
+    private val uiSelectedSignalSource = mutableIntStateOf(0) // 0: SMPTE, 1: 网格, 2: 像素, 3: 自定义截图
+    private val uiSaveStatus = mutableStateOf("已就绪")
+
+    private var saveDebounceJob: Job? = null
     private val sourceFile get() = File(filesDir, "shader_preview/source.png")
+
+    private val presetNames = listOf("CRT 特丽珑", "复古街机", "鲜艳游戏", "高清 FXAA", "纯净原画", "自定义")
+    private val signalSources = listOf("SMPTE 彩条标定", "几何对齐网格", "复古像素场景", "游戏实机截图")
+
     private val imagePicker = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
-            imageJob = lifecycleScope.launch {
-                replaceImage.isEnabled = false
-                imageStatus.text = "正在读取截图…"
+            lifecycleScope.launch {
+                uiSaveStatus.value = "正在载入截图…"
                 runCatching {
                     withContext(Dispatchers.IO) {
                         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -126,27 +142,25 @@ class ShaderControlActivity : ComponentActivity() {
                         val bitmap = contentResolver.openInputStream(uri).use {
                             BitmapFactory.decodeStream(it, null, decodeOptions()) ?: error("请选择有效截图")
                         }
+                        sourceFile.parentFile?.mkdirs()
+                        val file = AtomicFile(sourceFile)
+                        val output = file.startWrite()
                         try {
-                            sourceFile.parentFile?.mkdirs()
-                            val file = AtomicFile(sourceFile)
-                            val output = file.startWrite()
-                            try {
-                                check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) { "截图保存失败" }
-                                file.finishWrite(output)
-                            } catch (error: Throwable) {
-                                file.failWrite(output)
-                                throw error
-                            }
-                            bitmap
-                        } catch (error: Throwable) {
-                            bitmap.recycle()
-                            throw error
+                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+                            file.finishWrite(output)
+                        } catch (e: Throwable) {
+                            file.failWrite(output)
+                            throw e
                         }
+                        bitmap
                     }
-                }.onSuccess(::showImage).onFailure {
-                    imageStatus.text = "读取截图失败：${it.message.orEmpty().take(100)}"
+                }.onSuccess { bmp ->
+                    uiSelectedSignalSource.intValue = 3
+                    preview.setImage(bmp)
+                    uiSaveStatus.value = "截图载入完成"
+                }.onFailure { err ->
+                    uiSaveStatus.value = "读取截图失败：${err.message?.take(60)}"
                 }
-                replaceImage.isEnabled = true
             }
         }
     }
@@ -160,85 +174,50 @@ class ShaderControlActivity : ComponentActivity() {
             hide(WindowInsetsCompat.Type.systemBars())
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
-        buildPanel()
-        setExpanded(savedInstanceState?.getBoolean("expanded") == true)
-        showParameters(savedInstanceState?.getBoolean("panel_visible", true) != false)
+
+        preview = ShaderPreviewView(this) { msg ->
+            runOnUiThread { uiSaveStatus.value = msg }
+        }
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = handleControlBack()
-        })
-        val snapshot = if (savedInstanceState != null) savedInstanceState.getString("target_package")
-        else targetFromIntent(intent)
-        loadTarget(snapshot)
-        imageJob = lifecycleScope.launch {
-            runCatching {
-                withContext(Dispatchers.IO) {
-                    if (!sourceFile.exists()) return@withContext null
-                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    BitmapFactory.decodeFile(sourceFile.absolutePath, bounds)
-                    checkImageSize(bounds)
-                    BitmapFactory.decodeFile(sourceFile.absolutePath, decodeOptions())
+            override fun handleOnBackPressed() {
+                if (!uiIsOsdVisible.value) {
+                    uiIsOsdVisible.value = true
+                } else {
+                    finish()
                 }
-            }.onSuccess { it?.let(::showImage) }.onFailure {
-                imageStatus.text = "读取截图失败：${it.message.orEmpty().take(100)}"
+            }
+        })
+
+        val snapshot = targetFromIntent(intent)
+        loadTarget(snapshot)
+
+        setContent {
+            OdinDesktopTheme {
+                TvGameCalibrationScreen()
             }
         }
     }
 
     override fun onStart() {
         super.onStart()
-        if (!controlSession) {
-            VideoShaderEngine.beginControlSession(applicationContext)
-            controlSession = true
-        }
+        VideoShaderEngine.beginControlSession(applicationContext)
         window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
     }
 
     override fun onStop() {
-        if (controlSession) {
-            VideoShaderEngine.endControlSession(applicationContext)
-            controlSession = false
-        }
+        VideoShaderEngine.endControlSession(applicationContext)
         super.onStop()
     }
 
-    override fun onResume() { super.onResume(); preview.onResume() }
+    override fun onResume() {
+        super.onResume()
+        preview.onResume()
+    }
+
     override fun onPause() {
-        confirmTarget?.isPressed = false
-        confirmTarget = null
-        finishSliderAdjustment(cancel = false)
-        restoreHeldControls()
         preview.onPause()
         super.onPause()
-    }
-
-    override fun onDestroy() {
-        choiceDialog?.setOnDismissListener(null)
-        choiceDialog?.dismiss()
-        choiceDialog = null
-        super.onDestroy()
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (!hasFocus) restoreHeldControls()
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        choiceDialog?.dismiss()
-        finishSliderAdjustment(cancel = false)
-        restoreHeldControls()
-        afterSaved {
-            setIntent(intent)
-            loadTarget(targetFromIntent(intent))
-        }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("target_package", targetPackage)
-        outState.putBoolean("expanded", advanced.visibility == View.VISIBLE)
-        outState.putBoolean("panel_visible", parametersBeforeHold ?: (panel.visibility == View.VISIBLE))
-        super.onSaveInstanceState(outState)
     }
 
     private fun targetFromIntent(intent: Intent): String? =
@@ -248,789 +227,939 @@ class ShaderControlActivity : ComponentActivity() {
     private fun loadTarget(snapshot: String?) {
         val runtime = ShaderRuntime.resolve(applicationContext, snapshot)
         targetPackage = snapshot.takeIf { runtime.hasTarget }
-        val loadVersion = ++targetLoadVersion
-        config = null
-        screenshotSettings = null
-        pendingWrite = null
-        saveFailed = false
         automaticFamily = runtime.family
-        runtimeStatus.text = runtime.status
-        saveStatus.text = ""
-        updateEnabledState()
-        preview.setEffects(GameNativeShaderSettings(family = automaticFamily, enableCRT = false))
+
         if (targetPackage == null) {
-            appName.text = "截图调参"
-            enabled.text = "应用到游戏 · 未打开游戏"
-            runtimeStatus.text = "截图预览 · 参数独立保存"
+            appLabel = "独立校准模式"
+            isGameTarget = false
+            uiTargetName.value = "独立校准模式"
+            uiIsGame.value = false
+            uiAppFilterEnabled.value = false
             lifecycleScope.launch {
-                ControlConfigWrites.pending().await()
-                runCatching { ControlConfigWrites.loadScreenshotSettings(applicationContext) }.onSuccess { settings ->
-                    if (loadVersion != targetLoadVersion) return@onSuccess
-                    screenshotSettings = settings
-                    bindConfig()
-                    updateEnabledState()
-                }.onFailure {
-                    if (loadVersion == targetLoadVersion) saveStatus.text = "读取预览参数失败：${it.message.orEmpty().take(100)}"
-                }
+                val loaded = ControlConfigWrites.loadScreenshotSettings(applicationContext)
+                applySettings(loaded)
             }
-            return
-        }
-        val target = targetPackage ?: return
-        enabled.text = "应用到游戏"
-        appName.text = runCatching {
-            packageManager.getApplicationLabel(packageManager.getApplicationInfo(target, 0)).toString()
-        }.getOrDefault(target)
-        lifecycleScope.launch {
-            // A recreated panel must not read an older row while its previous instance is saving.
-            ControlConfigWrites.pending().await()
-            runCatching { repository.getConfig(target) }.onSuccess { stored ->
-                if (loadVersion != targetLoadVersion) return@onSuccess
-                config = stored ?: AppShaderConfigEntity.defaultFor(target).copy(isEnabled = false)
-                bindConfig()
-                updateEnabledState()
-            }.onFailure {
-                if (loadVersion == targetLoadVersion) saveStatus.text = "读取设置失败：${it.message.orEmpty().take(100)}"
-            }
-        }
-    }
-
-    private fun buildPanel() {
-        val root = FrameLayout(this).apply { setBackgroundColor(android.graphics.Color.BLACK) }
-        controlRoot = root
-        preview = ShaderPreviewView(this) { message -> runOnUiThread { imageStatus.text = message } }
-        preview.isFocusable = false
-        preview.isFocusableInTouchMode = false
-        root.addView(preview, FrameLayout.LayoutParams(-1, -1))
-        imageEmpty = label("更换一张无滤镜截图，在画面上直接调整效果。\n按住 X 对比原图，按住 Y 隐藏参数。", 17f).apply {
-            gravity = Gravity.CENTER
-            setPadding(dp(24), dp(24), dp(24), dp(24))
-        }
-        root.addView(imageEmpty, FrameLayout.LayoutParams(-1, -1))
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(10))
-            background = GradientDrawable().apply {
-                setColor(SURFACE)
-                cornerRadius = dp(16).toFloat()
-            }
-        }
-        content.addView(LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            addView(label("Shader 滤镜", 19f), LinearLayout.LayoutParams(0, -2, 1f))
-            addView(Button(this@ShaderControlActivity).apply {
-                text = "收起"
-                textSize = 12f
-                isAllCaps = false
-                setOnClickListener { showParameters(false) }
-            }, LinearLayout.LayoutParams(dp(66), dp(40)))
-        })
-        appName = label("正在读取当前应用…", 14f).also {
-            it.setTextColor(SECONDARY)
-            it.setPadding(0, dp(5), 0, dp(10))
-            content.addView(it)
-        }
-        enabled = toggle("应用到游戏") { value ->
-            if (!binding) config?.let { save(it.copy(isEnabled = value).withEffects(effectiveSettings())) }
-        }.also { content.addView(it, rowParams()) }
-        presets = spinner(presetNames) { index ->
-            if (!binding && settingsReady && index != displayedPreset) {
-                if (index == presetNames.lastIndex) {
-                    displayedPreset = index
-                    setExpanded(true)
-                }
-                else editEffects { preset(index, automaticFamily) }
-            }
-        }
-        content.addView(labeledRow("效果", presets))
-        more = Button(this).apply {
-            isAllCaps = false
-            textSize = 13f
-            setOnClickListener { setExpanded(advanced.visibility != View.VISIBLE) }
-        }.also { editable += it; content.addView(it, rowParams()) }
-        advanced = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        buildAdvanced()
-        content.addView(advanced)
-        runtimeStatus = label("", 12f).also {
-            it.setTextColor(SECONDARY)
-            it.setPadding(0, dp(8), 0, dp(8))
-            content.addView(it)
-        }
-        val imageButtons = LinearLayout(this)
-        replaceImage = Button(this).apply {
-            text = "更换截图"
-            textSize = 13f
-            isAllCaps = false
-            setOnClickListener { imagePicker.launch("image/*") }
-        }
-        imageButtons.addView(replaceImage, LinearLayout.LayoutParams(0, dp(44), 1f))
-        originalImage = Button(this).apply {
-            text = "显示原图"
-            textSize = 13f
-            isAllCaps = false
-            isEnabled = false
-            setOnClickListener { toggleOriginal() }
-        }
-        imageButtons.addView(originalImage, LinearLayout.LayoutParams(0, dp(44), 1f))
-        content.addView(imageButtons)
-        imageStatus = label("选择已关闭滤镜的游戏截图。按住 X 原图 · 按住 Y 隐藏参数 · L1/R1 切换滤镜", 11f).also {
-            it.setTextColor(SECONDARY)
-            content.addView(it)
-        }
-        done = Button(this).apply {
-            text = "完成"
-            isAllCaps = false
-            setOnClickListener { finish() }
-        }
-        content.addView(done, rowParams())
-        saveStatus = label("", 12f).also {
-            it.setTextColor(SECONDARY)
-            it.minHeight = dp(20)
-            it.setOnClickListener { if (saveFailed) retrySave() }
-            content.addView(it)
-        }
-        panel = object : ScrollView(this) {
-            override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-                // Leave room for the persistent controller hint below the scrollable controls.
-                val screenHeight = resources.displayMetrics.heightPixels
-                val limit = minOf((screenHeight * 0.90f).toInt(), (screenHeight - dp(104)).coerceAtLeast(dp(120)))
-                val available = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED) limit
-                else minOf(limit, MeasureSpec.getSize(heightMeasureSpec))
-                super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(available, MeasureSpec.AT_MOST))
-            }
-        }.apply {
-            isFillViewport = false
-            clipToPadding = false
-            isFocusable = false
-            addView(content)
-        }
-        root.addView(panel, FrameLayout.LayoutParams(minOf(dp(350), (resources.displayMetrics.widthPixels * 0.9f).toInt()), -2, Gravity.TOP or Gravity.END).apply {
-            setMargins(dp(12), dp(12), dp(12), dp(12))
-        })
-        revealPanel = Button(this).apply {
-            text = "调节"
-            isAllCaps = false
-            setOnClickListener { showParameters(true) }
-        }
-        root.addView(revealPanel, FrameLayout.LayoutParams(dp(82), dp(44), Gravity.TOP or Gravity.END).apply {
-            setMargins(dp(12), dp(12), dp(12), dp(12))
-        })
-        controllerHint = label("", 12f).apply {
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-            background = GradientDrawable().apply { setColor(SURFACE); cornerRadius = dp(10).toFloat() }
-        }
-        root.addView(controllerHint, FrameLayout.LayoutParams(minOf(dp(350), (resources.displayMetrics.widthPixels * 0.9f).toInt()), -2,
-            Gravity.BOTTOM or Gravity.END).apply { setMargins(dp(12), dp(12), dp(12), dp(12)) })
-        registerControllerControls(root)
-        saveStatus.isFocusable = false
-        saveStatus.isFocusableInTouchMode = false
-        setContentView(root)
-        updateControllerHint()
-    }
-
-    private fun buildAdvanced() {
-        var scalingModes = emptyList<ShaderScaling>()
-        val scaling = spinner(emptyList()) { index ->
-            if (!binding) scalingModes.getOrNull(index)?.let { selected -> editEffects { it.copy(scaling = selected) } }
-        }
-        advanced.addView(labeledRow("缩放", scaling))
-        effectBindings += { settings ->
-            val available = settings.availableScalingModes
-            if (scalingModes != available) {
-                scalingModes = available
-                scaling.adapter = optionAdapter(available.map { scalingLabel(it) })
-            }
-            scaling.setSelection(available.indexOf(settings.scaling))
-        }
-        val toggles = listOf(
-            effectToggle("CRT", { it.enableCRT }) { s, value -> s.copy(enableCRT = value) },
-            effectToggle("FXAA", { it.enableFXAA }) { s, value -> s.copy(enableFXAA = value) },
-            effectToggle("Vivid", { it.enableVivid }) { s, value -> s.copy(enableVivid = value) },
-            effectToggle("Toon", { it.enableToon }) { s, value -> s.copy(enableToon = value) },
-            effectToggle("NTSC", { it.enableNTSC }) { s, value -> s.copy(enableNTSC = value) }
-        )
-        toggles.chunked(2).forEach { pair ->
-            advanced.addView(LinearLayout(this).apply {
-                pair.forEach { addView(it, LinearLayout.LayoutParams(0, dp(44), 1f)) }
-            })
-        }
-        slider("亮度", -100f, 100f, 1f, { it.brightness }) { s, value -> s.copy(brightness = value) }
-        slider("对比度", -100f, 100f, 1f, { it.contrast }) { s, value -> s.copy(contrast = value) }
-        slider("Gamma", 0.5f, 2.5f, 0.05f, { it.gamma }) { s, value -> s.copy(gamma = value) }
-        sharpness = slider("FSR 锐度", 1f, 5f, 1f, { it.fsrSharpnessLevel.toFloat() }) { s, value -> s.copy(fsrSharpnessLevel = value.roundToInt()) }
-        sharpnessHint = label("", 12f).also {
-            it.setTextColor(SECONDARY)
-            it.setPadding(0, 0, 0, dp(6))
-            advanced.addView(it)
-        }
-    }
-
-    private fun effectiveSettings(): GameNativeShaderSettings =
-        (config?.effects ?: screenshotSettings ?: GameNativeShaderSettings()).copy(family = automaticFamily).normalized()
-
-    private fun editEffects(change: (GameNativeShaderSettings) -> GameNativeShaderSettings) {
-        if (!settingsReady) return
-        val effects = change(effectiveSettings()).copy(family = automaticFamily).normalized()
-        if (effects == effectiveSettings()) return
-        val current = config
-        if (current != null) save(current.withEffects(effects)) else saveScreenshotSettings(effects)
-        bindConfig()
-    }
-
-    private fun bindConfig() {
-        if (!settingsReady) return
-        binding = true
-        try {
-            enabled.isChecked = config?.isEnabled == true
-            val effects = effectiveSettings()
-            val matching = (0 until presetNames.lastIndex).firstOrNull { preset(it, automaticFamily) == effects }
-            displayedPreset = matching ?: presetNames.lastIndex
-            presets.setSelection(displayedPreset)
-            effectBindings.forEach { it(effects) }
-            updateSharpnessAvailability()
-            preview.setEffects(effects)
-        } finally {
-            binding = false
-        }
-    }
-
-    private fun save(value: AppShaderConfigEntity) {
-        config = value
-        trackWrite(ControlConfigWrites.save(applicationContext, value))
-    }
-
-    private fun saveScreenshotSettings(value: GameNativeShaderSettings) {
-        screenshotSettings = value
-        trackWrite(ControlConfigWrites.saveScreenshotSettings(applicationContext, value))
-    }
-
-    private fun retrySave() {
-        val game = config
-        if (game != null) save(game) else screenshotSettings?.let(::saveScreenshotSettings)
-    }
-
-    private fun trackWrite(write: Deferred<Result<Unit>>) {
-        saveFailed = false
-        saveStatus.setTextColor(SECONDARY)
-        saveStatus.text = "正在保存…"
-        pendingWrite = write
-        lifecycleScope.launch {
-            val result = write.await()
-            if (pendingWrite === write) showSaveResult(result)
-        }
-    }
-
-    private fun showSaveResult(result: Result<Unit>) {
-        saveFailed = result.isFailure
-        saveStatus.setTextColor(if (saveFailed) 0xffffa6a6.toInt() else SECONDARY)
-        saveStatus.text = if (saveFailed) "保存失败，点此重试：${result.exceptionOrNull()?.message.orEmpty().take(90)}"
-        else if (config == null) "预览参数已保存" else "已保存"
-        saveStatus.isFocusable = saveFailed
-        saveStatus.isFocusableInTouchMode = saveFailed
-        ensureControlFocus()
-    }
-
-    private fun afterSaved(action: () -> Unit) {
-        if (navigating) return
-        if (saveFailed) retrySave()
-        navigating = true
-        updateEnabledState()
-        val write = pendingWrite
-        val imagePending = imageJob
-        lifecycleScope.launch {
-            val result = write?.await() ?: Result.success(Unit)
-            imagePending?.join()
-            navigating = false
-            updateEnabledState()
-            if (result.isSuccess) action() else showSaveResult(result)
-        }
-    }
-
-    override fun finish() {
-        if (finishingAfterSave || !::saveStatus.isInitialized) {
-            super.finish()
-        } else afterSaved {
-            finishingAfterSave = true
-            finish()
-        }
-    }
-
-    private fun updateEnabledState() {
-        editable.forEach { it.isEnabled = settingsReady && !navigating }
-        updateSharpnessAvailability()
-        if (::enabled.isInitialized) enabled.isEnabled = config != null && !navigating
-        if (::done.isInitialized) done.isEnabled = !navigating
-        if (::controlRoot.isInitialized) controlRoot.post {
-            if (settingsReady && initialFocusPending) {
-                initialFocusPending = false
-                focusFirstControl()
-            } else ensureControlFocus()
-        }
-    }
-
-    private fun updateSharpnessAvailability() {
-        val effects = effectiveSettings()
-        val usesDls = effects.family == ShaderFamily.VULKAN && effects.scaling == ShaderScaling.DLS
-        val usesSharpness = usesDls || effects.scaling == ShaderScaling.FSR || effects.scaling == ShaderScaling.FSR_ASPECT
-        val overriddenByFxaa = effects.family == ShaderFamily.VULKAN && effects.enableFXAA
-        sharpness.isEnabled = settingsReady && !navigating && usesSharpness && !overriddenByFxaa
-        sharpnessHint.text = when {
-            !usesSharpness -> "选择 FSR 缩放后生效"
-            overriddenByFxaa -> "FXAA 已开启，会覆盖锐度效果"
-            usesDls -> "当前用于 DLS：调节锐化、对比度和饱和度"
-            else -> "调节 FSR 缩放的锐化强度"
-        }
-    }
-
-    private fun setExpanded(expanded: Boolean) {
-        val changed = (advanced.visibility == View.VISIBLE) != expanded
-        advanced.visibility = if (expanded) View.VISIBLE else View.GONE
-        more.text = if (expanded) "收起参数 ▴" else "更多参数 ▾"
-        updateControllerHint()
-        if (changed && ::controlRoot.isInitialized) advanced.post {
-            if (expanded && advanced.visibility == View.VISIBLE && panel.visibility == View.VISIBLE) {
-                controllerControls.firstOrNull { it.isEnabled && it.isShown && isInside(it, advanced) }?.requestFocus()
-            } else if (!expanded && panel.visibility == View.VISIBLE) more.requestFocus()
-        }
-    }
-
-    private fun showParameters(visible: Boolean) {
-        if (!visible && panel.visibility == View.VISIBLE) panelFocusBeforeCollapse = currentFocus
-        panel.visibility = if (visible) View.VISIBLE else View.GONE
-        revealPanel.visibility = if (visible) View.GONE else View.VISIBLE
-        if (visible) {
-            val previous = panelFocusBeforeCollapse
-            if (previous != null && previous.isShown && previous.isEnabled) previous.requestFocus() else focusFirstControl()
-        } else revealPanel.requestFocus()
-        updateControllerHint()
-    }
-
-    private fun showImage(bitmap: Bitmap) {
-        hasImage = true
-        imageEmpty.visibility = View.GONE
-        originalImage.isEnabled = true
-        imageStatus.text = "${bitmap.width} × ${bitmap.height} · 按住 X 原图 · 按住 Y 隐藏参数 · L1/R1 切换滤镜"
-        preview.setImage(bitmap)
-        updateOriginalPreview()
-    }
-
-    private fun toggleOriginal() {
-        if (!hasImage || originalBeforeHold != null) return
-        showOriginal = !showOriginal
-        updateOriginalPreview()
-    }
-
-    private fun updateOriginalPreview() {
-        preview.showOriginal(showOriginal)
-        originalImage.text = if (showOriginal) "显示滤镜" else "显示原图"
-    }
-
-    private fun holdOriginal() {
-        if (!hasImage || originalBeforeHold != null) return
-        originalBeforeHold = showOriginal
-        showOriginal = true
-        updateOriginalPreview()
-    }
-
-    private fun releaseOriginal() {
-        val previous = originalBeforeHold ?: return
-        originalBeforeHold = null
-        showOriginal = previous
-        updateOriginalPreview()
-    }
-
-    private fun holdParameters() {
-        if (!::panel.isInitialized || parametersBeforeHold != null) return
-        parametersBeforeHold = panel.visibility == View.VISIBLE
-        parametersFocusBeforeHold = currentFocus
-        showParameters(false)
-        revealPanel.visibility = View.GONE
-    }
-
-    private fun releaseParameters() {
-        val previous = parametersBeforeHold ?: return
-        val previousFocus = parametersFocusBeforeHold
-        parametersBeforeHold = null
-        parametersFocusBeforeHold = null
-        showParameters(previous)
-        if (previousFocus?.isAttachedToWindow == true && previousFocus.isShown) {
-            previousFocus.requestFocus()
-        }
-    }
-
-    private fun restoreHeldControls() {
-        choiceDialog?.window?.decorView?.alpha = 1f
-        releaseOriginal()
-        releaseParameters()
-    }
-
-    private fun selectAdjacentPreset(direction: Int) {
-        if (!settingsReady || navigating) return
-        val current = displayedPreset.takeIf { it in presetNames.indices } ?: 0
-        val next = (current + direction + presetNames.size) % presetNames.size
-        if (next == presetNames.lastIndex) {
-            displayedPreset = next
-            presets.setSelection(next)
-            setExpanded(true)
         } else {
-            editEffects { preset(next, automaticFamily) }
-            bindConfig()
-        }
-    }
+            val target = targetPackage!!
+            isGameTarget = true
+            appLabel = runCatching {
+                packageManager.getApplicationLabel(packageManager.getApplicationInfo(target, 0)).toString()
+            }.getOrDefault(target)
+            uiTargetName.value = appLabel
+            uiIsGame.value = true
 
-    private fun effectToggle(label: String, read: (GameNativeShaderSettings) -> Boolean,
-        change: (GameNativeShaderSettings, Boolean) -> GameNativeShaderSettings): Switch {
-        val control = toggle(label) { value -> if (!binding) editEffects { change(it, value) } }
-        effectBindings += { control.isChecked = read(it) }
-        return control
-    }
-
-    private fun slider(label: String, minimum: Float, maximum: Float, step: Float,
-        read: (GameNativeShaderSettings) -> Float,
-        change: (GameNativeShaderSettings, Float) -> GameNativeShaderSettings): SeekBar {
-        val text = this.label(label, 13f)
-        val seek = SeekBar(this).apply {
-            max = ((maximum - minimum) / step).roundToInt()
-            keyProgressIncrement = 1
-            progressTintList = ColorStateList.valueOf(ACCENT)
-            thumbTintList = ColorStateList.valueOf(ACCENT)
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (fromUser && !binding) editEffects { change(it, minimum + progress * step) }
-                }
-                override fun onStartTrackingTouch(seekBar: SeekBar) {
-                    finishSliderAdjustment(cancel = false)
-                    seekBar.requestFocus()
-                }
-                override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
-            })
-        }
-        sliderControls[seek] = SliderControl(label) { progress ->
-            editEffects { change(it, minimum + progress.coerceIn(0, seek.max) * step) }
-        }
-        editable += seek
-        advanced.addView(LinearLayout(this).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            addView(text, LinearLayout.LayoutParams(dp(116), -2))
-            addView(seek, LinearLayout.LayoutParams(0, dp(42), 1f))
-        })
-        effectBindings += { settings ->
-            val value = read(settings)
-            seek.progress = ((value - minimum) / step).roundToInt()
-            val number = if (step < 1f) String.format(Locale.getDefault(), "%.2f", value) else value.roundToInt().toString()
-            text.text = "$label  $number"
-            seek.contentDescription = "$label $number"
-        }
-        return seek
-    }
-
-    private fun toggle(text: String, changed: (Boolean) -> Unit): Switch = Switch(this).apply {
-        this.text = text
-        textSize = 14f
-        setTextColor(FOREGROUND)
-        setPadding(0, 0, dp(10), 0)
-        setOnCheckedChangeListener { _, value -> changed(value) }
-        editable += this
-    }
-
-    private fun spinner(options: List<String>, selected: (Int) -> Unit): Spinner = object : Spinner(this, Spinner.MODE_DIALOG) {
-        override fun performClick(): Boolean {
-            if (!isEnabled) return false
-            showChoiceDialog(this)
-            return true
-        }
-    }.apply {
-        adapter = optionAdapter(options)
-        minimumHeight = dp(44)
-        onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (parent?.selectedItemPosition == position) selected(position)
+            lifecycleScope.launch {
+                val stored = runCatching { repository.getConfig(target) }.getOrNull()
+                val active = stored ?: AppShaderConfigEntity.defaultFor(target).copy(isEnabled = false)
+                currentConfig = active
+                isAppFilterEnabled = active.isEnabled
+                uiAppFilterEnabled.value = isAppFilterEnabled
+                applySettings(active.effects)
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
-        editable += this
+
+        // 加载默认初始背景画面
+        loadSignalSource(uiSelectedSignalSource.intValue)
     }
 
-    private fun optionAdapter(options: List<String>) = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, options) {
-        init { setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
-            super.getView(position, convertView, parent).also { (it as TextView).setTextColor(FOREGROUND) }
-        override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View =
-            super.getDropDownView(position, convertView, parent).also {
-                (it as TextView).setTextColor(FOREGROUND)
-                it.minimumHeight = dp(44)
-            }
-    }
-
-    private fun labeledRow(title: String, control: View) = LinearLayout(this).apply {
-        gravity = Gravity.CENTER_VERTICAL
-        control.contentDescription = title
-        addView(label(title, 14f), LinearLayout.LayoutParams(dp(68), -2))
-        addView(control, LinearLayout.LayoutParams(0, dp(46), 1f))
-    }
-
-    private fun label(text: String, size: Float) = TextView(this).apply {
-        this.text = text
-        textSize = size
-        setTextColor(FOREGROUND)
-    }
-
-    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(44))
-    private fun dp(value: Int) = (value * resources.displayMetrics.density).roundToInt()
-
-    private data class SliderControl(val label: String, val applyProgress: (Int) -> Unit)
-
-    private fun registerControllerControls(view: View) {
-        if (view is Button || view is Switch || view is Spinner || view is SeekBar || view === saveStatus) {
-            controllerControls += view
-            view.isFocusable = true
-            view.isFocusableInTouchMode = true
-            view.foreground = StateListDrawable().apply {
-                fun outline(color: Int) = GradientDrawable().apply {
-                    setColor(0x168dbbff)
-                    setStroke(dp(2), color)
-                    cornerRadius = dp(7).toFloat()
-                }
-                addState(intArrayOf(android.R.attr.state_activated), outline(0xffffd180.toInt()))
-                addState(intArrayOf(android.R.attr.state_focused), outline(ACCENT))
-                addState(intArrayOf(android.R.attr.state_pressed), outline(ACCENT))
-                addState(intArrayOf(), GradientDrawable().apply { setColor(android.graphics.Color.TRANSPARENT) })
-            }
-            view.onFocusChangeListener = View.OnFocusChangeListener { focused, hasFocus ->
-                if (hasFocus) {
-                    if (editingSlider != null && editingSlider !== focused && parametersBeforeHold == null) {
-                        finishSliderAdjustment(cancel = false, restoreFocus = false)
-                    }
-                    focused.post {
-                        if (focused.isShown) focused.requestRectangleOnScreen(Rect(0, 0, focused.width, focused.height), false)
+    private fun loadSignalSource(sourceIndex: Int) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val bitmap = when (sourceIndex) {
+                0 -> TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.SMPTE_COLOR_BARS)
+                1 -> TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.CROSSHATCH_GRID)
+                2 -> TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.RETRO_PIXEL_SCENE)
+                3 -> {
+                    if (sourceFile.exists()) {
+                        runCatching { BitmapFactory.decodeFile(sourceFile.absolutePath, decodeOptions()) }.getOrNull()
+                            ?: TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.SMPTE_COLOR_BARS)
+                    } else {
+                        TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.SMPTE_COLOR_BARS)
                     }
                 }
-                updateControllerHint()
+                else -> TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.SMPTE_COLOR_BARS)
             }
-        } else if (view is ViewGroup) {
-            for (index in 0 until view.childCount) registerControllerControls(view.getChildAt(index))
-        }
-    }
-
-    private fun isInside(view: View, ancestor: ViewGroup): Boolean {
-        var current: View? = view
-        while (current != null) {
-            if (current === ancestor) return true
-            current = current.parent as? View
-        }
-        return false
-    }
-
-    private fun availableControls(): List<View> = controllerControls.filter { it.isShown && it.isEnabled && it.isFocusable }
-
-    private fun focusFirstControl() {
-        if (!::panel.isInitialized || parametersBeforeHold != null || choiceDialog != null) return
-        if (panel.visibility != View.VISIBLE) {
-            revealPanel.requestFocus()
-            return
-        }
-        val available = availableControls()
-        (listOf(enabled, presets, more, replaceImage).firstOrNull { it in available }
-            ?: available.firstOrNull())?.requestFocus()
-    }
-
-    private fun ensureControlFocus() {
-        if (!::controlRoot.isInitialized || parametersBeforeHold != null || choiceDialog != null) return
-        if (currentFocus !in availableControls()) focusFirstControl()
-    }
-
-    private fun moveControllerFocus(direction: Int) {
-        val available = availableControls()
-        val focused = currentFocus
-        if (focused !in available) {
-            focusFirstControl()
-            return
-        }
-        val next = FocusFinder.getInstance().findNextFocus(controlRoot, focused, direction)
-            ?.takeIf { it in available }
-            ?: if (direction == View.FOCUS_UP || direction == View.FOCUS_DOWN) {
-                available.getOrNull(available.indexOf(focused) + if (direction == View.FOCUS_DOWN) 1 else -1)
-            } else null
-        next?.requestFocus()
-    }
-
-    private fun startSliderAdjustment(seek: SeekBar) {
-        if (!seek.isEnabled || sliderControls[seek] == null) return
-        editingSlider = seek
-        sliderEntryProgress = seek.progress
-        seek.isActivated = true
-        updateControllerHint()
-    }
-
-    private fun finishSliderAdjustment(cancel: Boolean, restoreFocus: Boolean = true) {
-        val seek = editingSlider ?: return
-        editingSlider = null
-        seek.isActivated = false
-        if (cancel) sliderControls[seek]?.applyProgress?.invoke(sliderEntryProgress)
-        if (restoreFocus && seek.isShown && seek.isEnabled) seek.requestFocus()
-        updateControllerHint()
-    }
-
-    private fun updateControllerHint() {
-        if (!::controllerHint.isInitialized) return
-        controllerHint.visibility = if (panel.visibility == View.VISIBLE && parametersBeforeHold == null) View.VISIBLE else View.GONE
-        val editing = editingSlider?.let { sliderControls[it] }
-        val focusedSlider = (currentFocus as? SeekBar)?.let { sliderControls[it] }
-        controllerHint.text = when {
-            editing != null -> "${editing.label}调节中 · ←→ 调整\nA 确认 · B 取消并恢复"
-            focusedSlider != null -> "${focusedSlider.label} · A 进入调节 · ↑↓ 移动\n按住 X 原图 · 按住 Y 隐藏参数"
-            advanced.visibility == View.VISIBLE -> "方向键移动 · A 确认 · B 收起参数\n按住 X 原图 · 按住 Y 隐藏参数"
-            else -> "方向键移动 · A 确认 · B 返回\nL1/R1 切换效果 · 按住 X 原图 / Y 隐藏"
-        }
-    }
-
-    private fun handleControlBack() {
-        when {
-            choiceDialog != null -> choiceDialog?.dismiss()
-            editingSlider != null -> finishSliderAdjustment(cancel = true)
-            panel.visibility == View.VISIBLE && advanced.visibility == View.VISIBLE -> setExpanded(false)
-            panel.visibility == View.VISIBLE -> showParameters(false)
-            else -> finish()
-        }
-    }
-
-    private fun showChoiceDialog(control: Spinner) {
-        if (choiceDialog != null || !control.isEnabled) return
-        finishSliderAdjustment(cancel = false)
-        val choices = (0 until control.adapter.count).map { control.adapter.getItem(it).toString() }.toTypedArray()
-        if (choices.isEmpty()) return
-        val dialog = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("${control.contentDescription ?: "选择"} · A 确认 / B 取消")
-            .setSingleChoiceItems(choices, control.selectedItemPosition) { popup, which ->
-                control.setSelection(which)
-                popup.dismiss()
-            }
-            .setNegativeButton("取消 (B)") { popup, _ -> popup.dismiss() }
-            .create()
-        choiceDialog = dialog
-        dialog.setOnShowListener {
-            dialog.listView.selector = GradientDrawable().apply {
-                setColor(0x338dbbff)
-                setStroke(dp(2), ACCENT)
-                cornerRadius = dp(6).toFloat()
-            }
-            dialog.listView.requestFocus()
-            dialog.listView.setSelection(control.selectedItemPosition.coerceAtLeast(0))
-        }
-        dialog.setOnDismissListener {
-            if (choiceDialog === dialog) choiceDialog = null
-            if (control.isShown && control.isEnabled) control.requestFocus() else ensureControlFocus()
-        }
-        // The popup has its own window, so controller keys must be handled here too.
-        dialog.setOnKeyListener { _, key, event ->
-            when {
-                handleHeldKey(event) -> true
-                parametersBeforeHold != null -> true
-                key == KeyEvent.KEYCODE_BUTTON_B || key == KeyEvent.KEYCODE_BACK || key == KeyEvent.KEYCODE_ESCAPE -> {
-                    if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) dialog.dismiss()
-                    true
-                }
-                key == KeyEvent.KEYCODE_BUTTON_L1 || key == KeyEvent.KEYCODE_BUTTON_R1 -> true
-                isConfirmKey(key) -> {
-                    if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
-                        val list = dialog.listView
-                        if (list.hasFocus()) {
-                            val position = list.selectedItemPosition.takeIf { it >= 0 } ?: list.checkedItemPosition
-                            if (position in choices.indices) {
-                                control.setSelection(position)
-                                dialog.dismiss()
-                            }
-                        } else dialog.currentFocus?.performClick()
-                    }
-                    true
-                }
-                else -> false
+            withContext(Dispatchers.Main) {
+                preview.setImage(bitmap)
             }
         }
-        dialog.show()
     }
 
-    private fun isConfirmKey(key: Int): Boolean = key == KeyEvent.KEYCODE_BUTTON_A || key == KeyEvent.KEYCODE_DPAD_CENTER ||
-        key == KeyEvent.KEYCODE_ENTER || key == KeyEvent.KEYCODE_NUMPAD_ENTER
+    private fun applySettings(settings: GameNativeShaderSettings) {
+        val normalized = settings.copy(family = automaticFamily).normalized()
+        currentEffects = normalized
+        uiEffects.value = normalized
+        preview.setEffects(normalized)
+    }
 
-    private fun handleHeldKey(event: KeyEvent): Boolean {
+    private fun updateEffectsAndSave(transform: (GameNativeShaderSettings) -> GameNativeShaderSettings) {
+        val newSettings = transform(currentEffects).copy(family = automaticFamily).normalized()
+        currentEffects = newSettings
+        uiEffects.value = newSettings
+        preview.setEffects(newSettings)
+
+        // 防抖保存
+        saveDebounceJob?.cancel()
+        saveDebounceJob = lifecycleScope.launch(Dispatchers.IO) {
+            delay(250)
+            val game = targetPackage
+            if (game != null) {
+                val updated = (currentConfig ?: AppShaderConfigEntity.defaultFor(game))
+                    .copy(isEnabled = isAppFilterEnabled)
+                    .withEffects(newSettings)
+                currentConfig = updated
+                ControlConfigWrites.save(applicationContext, updated).await()
+            } else {
+                ControlConfigWrites.saveScreenshotSettings(applicationContext, newSettings).await()
+            }
+            withContext(Dispatchers.Main) {
+                uiSaveStatus.value = "已自动保存"
+            }
+        }
+    }
+
+    private fun toggleAppFilter() {
+        if (!isGameTarget) return
+        val next = !isAppFilterEnabled
+        isAppFilterEnabled = next
+        uiAppFilterEnabled.value = next
+
+        saveDebounceJob?.cancel()
+        saveDebounceJob = lifecycleScope.launch(Dispatchers.IO) {
+            val game = targetPackage ?: return@launch
+            val updated = (currentConfig ?: AppShaderConfigEntity.defaultFor(game))
+                .copy(isEnabled = next)
+                .withEffects(currentEffects)
+            currentConfig = updated
+            ControlConfigWrites.save(applicationContext, updated).await()
+            withContext(Dispatchers.Main) {
+                uiSaveStatus.value = if (next) "已应用到游戏" else "已从游戏停用"
+            }
+        }
+    }
+
+    private fun selectPreset(index: Int) {
+        val base = GameNativeShaderSettings(family = automaticFamily, enableCRT = false, enableNTSC = false)
+        val selected = when (index) {
+            0 -> base.copy(enableCRT = true, scaling = ShaderScaling.NONE, brightness = 0f, contrast = 10f, gamma = 1.0f)
+            1 -> base.copy(enableCRT = true, enableVivid = true, brightness = 5f, contrast = 15f, gamma = 0.95f)
+            2 -> base.copy(enableVivid = true, enableCRT = false, brightness = 0f, contrast = 10f, gamma = 1.0f)
+            3 -> base.copy(enableFXAA = true, enableCRT = false, brightness = 0f, contrast = 0f, gamma = 1.0f)
+            4 -> base.copy(enableCRT = false, enableFXAA = false, enableVivid = false, enableToon = false, enableNTSC = false, brightness = 0f, contrast = 0f, gamma = 1.0f)
+            else -> currentEffects
+        }
+        updateEffectsAndSave { selected }
+    }
+
+    private fun getPresetIndex(effects: GameNativeShaderSettings): Int {
+        val base = GameNativeShaderSettings(family = effects.family, enableCRT = false, enableNTSC = false)
+        for (i in 0..4) {
+            val p = when (i) {
+                0 -> base.copy(enableCRT = true, scaling = ShaderScaling.NONE, brightness = 0f, contrast = 10f, gamma = 1.0f)
+                1 -> base.copy(enableCRT = true, enableVivid = true, brightness = 5f, contrast = 15f, gamma = 0.95f)
+                2 -> base.copy(enableVivid = true, enableCRT = false, brightness = 0f, contrast = 10f, gamma = 1.0f)
+                3 -> base.copy(enableFXAA = true, enableCRT = false, brightness = 0f, contrast = 0f, gamma = 1.0f)
+                4 -> base.copy(enableCRT = false, enableFXAA = false, enableVivid = false, enableToon = false, enableNTSC = false, brightness = 0f, contrast = 0f, gamma = 1.0f)
+                else -> null
+            }
+            if (p != null &&
+                p.enableCRT == effects.enableCRT &&
+                p.enableVivid == effects.enableVivid &&
+                p.enableFXAA == effects.enableFXAA &&
+                p.enableToon == effects.enableToon &&
+                abs(p.brightness - effects.brightness) < 0.05f &&
+                abs(p.contrast - effects.contrast) < 0.05f &&
+                abs(p.gamma - effects.gamma) < 0.05f
+            ) {
+                return i
+            }
+        }
+        return 5 // 自定义
+    }
+
+    /**
+     * 手柄按键分发：D-Pad 上下选条目、左右即时微调数值、L1/R1 切换预设、X 按住对比、Y 隐藏菜单、A 切换/确认、B 退出。
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // X 键：按住对比原画，松开恢复
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_X) {
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) holdOriginal()
-            else if (event.action == KeyEvent.ACTION_UP) releaseOriginal()
-            return true
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                preview.showOriginal(true)
+                uiIsBypassActive.value = true
+                return true
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                preview.showOriginal(false)
+                uiIsBypassActive.value = false
+                return true
+            }
         }
+
+        // Y 键：切换 OSD 菜单显示/隐藏
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_Y) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                holdParameters()
-                choiceDialog?.window?.decorView?.alpha = 0f
-            } else if (event.action == KeyEvent.ACTION_UP) {
-                choiceDialog?.window?.decorView?.alpha = 1f
-                releaseParameters()
+                uiIsOsdVisible.value = !uiIsOsdVisible.value
+                return true
             }
-            return true
         }
-        return false
-    }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (handleHeldKey(event)) return true
-        if (parametersBeforeHold != null) return true
-        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1 || event.keyCode == KeyEvent.KEYCODE_BUTTON_R1) {
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 && editingSlider == null &&
-                choiceDialog == null && panel.visibility == View.VISIBLE && advanced.visibility != View.VISIBLE
-            ) {
-                selectAdjacentPreset(if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1) -1 else 1)
+        // B 键：如果 OSD 隐藏则唤醒，否则退出
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_B || event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                if (!uiIsOsdVisible.value) {
+                    uiIsOsdVisible.value = true
+                } else {
+                    finish()
+                }
+                return true
             }
-            return true
         }
-        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_B || event.keyCode == KeyEvent.KEYCODE_ESCAPE) {
-            if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) handleControlBack()
-            return true
-        }
-        if (isConfirmKey(event.keyCode)) {
+
+        // L1 / R1：快捷轮播切换预设
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1 || event.keyCode == KeyEvent.KEYCODE_BUTTON_R1) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                ensureControlFocus()
-                confirmTarget = currentFocus?.takeIf { it in availableControls() }
-                confirmTarget?.isPressed = true
-            } else if (event.action == KeyEvent.ACTION_UP) {
-                val target = confirmTarget
-                confirmTarget = null
-                target?.isPressed = false
-                if (!event.isCanceled && target != null && target === currentFocus && target.isEnabled && target.isShown) {
-                    if (editingSlider != null) finishSliderAdjustment(cancel = false)
-                    else if (target is SeekBar) startSliderAdjustment(target)
-                    else target.performClick()
+                val currentPreset = getPresetIndex(uiEffects.value)
+                val next = if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1) {
+                    (currentPreset - 1 + 6) % 6
+                } else {
+                    (currentPreset + 1) % 6
+                }
+                selectPreset(next)
+                return true
+            }
+        }
+
+        // 仅在 OSD 显示时处理导航和微调
+        if (uiIsOsdVisible.value && event.action == KeyEvent.ACTION_DOWN) {
+            val totalMenuItems = 10
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    uiSelectedMenuIndex.intValue = (uiSelectedMenuIndex.intValue - 1 + totalMenuItems) % totalMenuItems
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    uiSelectedMenuIndex.intValue = (uiSelectedMenuIndex.intValue + 1) % totalMenuItems
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    adjustCurrentItem(delta = -1)
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    adjustCurrentItem(delta = 1)
+                    return true
+                }
+                KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                    confirmCurrentItem()
+                    return true
                 }
             }
-            return true
         }
-        val direction = when (event.keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> View.FOCUS_UP
-            KeyEvent.KEYCODE_DPAD_DOWN -> View.FOCUS_DOWN
-            KeyEvent.KEYCODE_DPAD_LEFT -> View.FOCUS_LEFT
-            KeyEvent.KEYCODE_DPAD_RIGHT -> View.FOCUS_RIGHT
-            else -> null
-        }
-        if (direction != null) {
-            if (event.action == KeyEvent.ACTION_DOWN) {
-                val seek = editingSlider
-                if (seek != null) {
-                    if (direction == View.FOCUS_LEFT || direction == View.FOCUS_RIGHT) {
-                        val progress = (seek.progress + if (direction == View.FOCUS_RIGHT) 1 else -1).coerceIn(0, seek.max)
-                        sliderControls[seek]?.applyProgress?.invoke(progress)
-                    }
-                } else moveControllerFocus(direction)
-            }
-            return true
-        }
+
         return super.dispatchKeyEvent(event)
+    }
+
+    private fun adjustCurrentItem(delta: Int) {
+        when (uiSelectedMenuIndex.intValue) {
+            0 -> { // 预设轮播 (0..4)
+                val cur = getPresetIndex(uiEffects.value)
+                val next = (cur + delta + 5) % 5
+                selectPreset(next)
+            }
+            1 -> { // 对比度 (-100% ~ 100%, 步长 2%)
+                updateEffectsAndSave { it.copy(contrast = (it.contrast + delta * 2f).coerceIn(-100f, 100f)) }
+            }
+            2 -> { // 亮度 (-100% ~ 100%, 步长 2%)
+                updateEffectsAndSave { it.copy(brightness = (it.brightness + delta * 2f).coerceIn(-100f, 100f)) }
+            }
+            3 -> { // Gamma (0.50 ~ 2.50, 步长 0.05)
+                updateEffectsAndSave { it.copy(gamma = (it.gamma + delta * 0.05f).coerceIn(0.5f, 2.5f)) }
+            }
+            4 -> { // CRT 扫描线 (开关)
+                updateEffectsAndSave { it.copy(enableCRT = !it.enableCRT) }
+            }
+            5 -> { // FSR 锐度 (1 ~ 5 档)
+                updateEffectsAndSave { it.copy(fsrSharpnessLevel = (it.fsrSharpnessLevel + delta).coerceIn(1, 5)) }
+            }
+            6 -> { // Vivid 鲜艳增强
+                updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
+            }
+            7 -> { // FXAA 平滑抗锯齿
+                updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
+            }
+            8 -> { // 信号源切换
+                val next = (uiSelectedSignalSource.intValue + delta + signalSources.size) % signalSources.size
+                uiSelectedSignalSource.intValue = next
+                loadSignalSource(next)
+            }
+            9 -> { // 应用到游戏
+                toggleAppFilter()
+            }
+        }
+    }
+
+    private fun confirmCurrentItem() {
+        when (uiSelectedMenuIndex.intValue) {
+            4 -> updateEffectsAndSave { it.copy(enableCRT = !it.enableCRT) }
+            6 -> updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
+            7 -> updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
+            8 -> {
+                // 如果当前选中的是自定义截图，按 A 弹出文件选择器
+                if (uiSelectedSignalSource.intValue == 3) {
+                    imagePicker.launch("image/*")
+                } else {
+                    adjustCurrentItem(delta = 1)
+                }
+            }
+            9 -> toggleAppFilter()
+            else -> adjustCurrentItem(delta = 1)
+        }
+    }
+
+    // --- Compose 界面绘制 ---
+
+    @Composable
+    private fun TvGameCalibrationScreen() {
+        val effects by uiEffects
+        val selectedIndex by uiSelectedMenuIndex
+        val isOsdVisible by uiIsOsdVisible
+        val isBypassActive by uiIsBypassActive
+        val targetName by uiTargetName
+        val isGame by uiIsGame
+        val appFilterEnabled by uiAppFilterEnabled
+        val currentPresetIndex = getPresetIndex(effects)
+        val signalSourceIndex by uiSelectedSignalSource
+        val saveStatus by uiSaveStatus
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(PureBlack)
+        ) {
+            // 1. 全屏底图：ShaderPreviewView GPU 渲染
+            AndroidView(
+                factory = { preview },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // 2. 左上角：复古电视信号指示器 (TV SIGNAL WATERMARK)
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 24.dp, top = 20.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0xCC0A0E17))
+                    .border(1.dp, Color(0xFF223044), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (isBypassActive) OrangeWarning else GreenActive)
+                )
+                Text(
+                    text = "CH-1 · AV-1 SCART · 1080P @ 60Hz",
+                    color = Color(0xFFC0D2E8),
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "• ${signalSources[signalSourceIndex]}",
+                    color = CyanAccent,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            // 3. 原画对比浮水印 (按住 X 键时闪烁显示)
+            if (isBypassActive) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xD9FF9800))
+                        .padding(horizontal = 24.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        text = "⚡ BYPASS · RAW SOURCE (原画对比中)",
+                        color = PureBlack,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
+
+            // 4. 右侧悬浮：经典 Sony Trinitron / PVM 监视器风格 TV OSD 调屏菜单
+            AnimatedVisibility(
+                visible = isOsdVisible,
+                enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
+                exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .padding(top = 12.dp, bottom = 64.dp, end = 24.dp)
+            ) {
+                TvOsdMenuPanel(
+                    selectedIndex = selectedIndex,
+                    effects = effects,
+                    currentPresetIndex = currentPresetIndex,
+                    signalSourceIndex = signalSourceIndex,
+                    targetName = targetName,
+                    isGame = isGame,
+                    appFilterEnabled = appFilterEnabled,
+                    saveStatus = saveStatus,
+                    onItemClick = { index ->
+                        uiSelectedMenuIndex.intValue = index
+                        confirmCurrentItem()
+                    },
+                    onItemAdjust = { index, delta ->
+                        uiSelectedMenuIndex.intValue = index
+                        adjustCurrentItem(delta)
+                    }
+                )
+            }
+
+            // 5. 底部手柄导航指引 HUD (极具主机仪式感)
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = 24.dp, bottom = 14.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xD9090D14))
+                    .border(1.dp, Color(0xFF1B2433), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                LegendChip("D-Pad ↑↓", "选择条目")
+                LegendChip("D-Pad ←→", "微调数值")
+                LegendChip("L1 / R1", "切换预设")
+                LegendChip("X", "按住原画对比", highlight = isBypassActive)
+                LegendChip("Y", if (isOsdVisible) "隐藏菜单" else "显示菜单")
+                LegendChip("B", "保存退出")
+            }
+        }
+    }
+
+    @Composable
+    private fun TvOsdMenuPanel(
+        selectedIndex: Int,
+        effects: GameNativeShaderSettings,
+        currentPresetIndex: Int,
+        signalSourceIndex: Int,
+        targetName: String,
+        isGame: Boolean,
+        appFilterEnabled: Boolean,
+        saveStatus: String,
+        onItemClick: (Int) -> Unit,
+        onItemAdjust: (Int, Int) -> Unit
+    ) {
+        val listState = rememberLazyListState()
+
+        LaunchedEffect(selectedIndex) {
+            listState.animateScrollToItem(selectedIndex.coerceAtLeast(0))
+        }
+
+        Column(
+            modifier = Modifier
+                .width(430.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xF00A0F18))
+                .border(1.5.dp, Color(0xFF1E2D44), RoundedCornerShape(12.dp))
+                .padding(horizontal = 18.dp, vertical = 12.dp)
+        ) {
+            // OSD 顶部标题与目标应用
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(text = "📺", fontSize = 16.sp)
+                    Text(
+                        text = "TV DISPLAY CALIBRATION",
+                        color = Color(0xFF00E5FF),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+                Text(
+                    text = saveStatus,
+                    color = Color(0xFF8B9CB2),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            Text(
+                text = "目标: $targetName",
+                color = Color(0xFFA6B7CE),
+                fontSize = 11.sp,
+                modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
+            )
+
+            // 经典 TV 标定灰阶对比基准块 (Calibration Scope)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFF070A10))
+                    .border(1.dp, Color(0xFF192230), RoundedCornerShape(8.dp))
+                    .padding(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "灰阶标定基准",
+                        color = Color(0xFF8899AC),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    )
+                    Text(
+                        text = "至左侧隐约可见·右侧清晰",
+                        color = Color(0xFF5E7188),
+                        fontSize = 10.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // 暗部隐约可见 (4% 黑)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(Color(0xFF0C0C0C)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "04% 隐约", color = Color(0xFF444444), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                    // 基准中灰 (50% 灰)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(Color(0xFF7F7F7F)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "50% 基准", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                    // 亮部清晰可见 (96% 白)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(Color(0xFFF2F2F2)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "96% 清晰", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 可滚动的 OSD 参数调节条目列表 (支持手柄上下移动选择、左右直接微调)
+            LazyColumn(
+                state = listState,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = PaddingValues(bottom = 6.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                // 0. 图像预设 (PICTURE PRESET)
+                item {
+                    OsdRow(
+                        title = "图像预设",
+                        valueText = "◄ ${presetNames.getOrElse(currentPresetIndex) { "自定义" }} ►",
+                        isSelected = selectedIndex == 0,
+                        valueColor = CyanAccent,
+                        onClick = { onItemClick(0) },
+                        onLeft = { onItemAdjust(0, -1) },
+                        onRight = { onItemAdjust(0, 1) }
+                    )
+                }
+
+                // 1. 对比度
+                item {
+                    OsdSliderRow(
+                        title = "画面对比度",
+                        value = effects.contrast.roundToInt(),
+                        min = -100,
+                        max = 100,
+                        unit = "%",
+                        isSelected = selectedIndex == 1,
+                        onClick = { onItemClick(1) },
+                        onLeft = { onItemAdjust(1, -1) },
+                        onRight = { onItemAdjust(1, 1) }
+                    )
+                }
+
+                // 2. 亮度
+                item {
+                    OsdSliderRow(
+                        title = "画面亮度",
+                        value = effects.brightness.roundToInt(),
+                        min = -100,
+                        max = 100,
+                        unit = "%",
+                        isSelected = selectedIndex == 2,
+                        onClick = { onItemClick(2) },
+                        onLeft = { onItemAdjust(2, -1) },
+                        onRight = { onItemAdjust(2, 1) }
+                    )
+                }
+
+                // 3. 色彩伽马 (Gamma)
+                item {
+                    OsdSliderRowFloat(
+                        title = "色彩伽马",
+                        value = effects.gamma,
+                        min = 0.5f,
+                        max = 2.5f,
+                        isSelected = selectedIndex == 3,
+                        onClick = { onItemClick(3) },
+                        onLeft = { onItemAdjust(3, -1) },
+                        onRight = { onItemAdjust(3, 1) }
+                    )
+                }
+
+                // 4. CRT 显像管扫描线
+                item {
+                    OsdToggleRow(
+                        title = "CRT 显像管扫描线",
+                        enabled = effects.enableCRT,
+                        isSelected = selectedIndex == 4,
+                        onClick = { onItemClick(4) }
+                    )
+                }
+
+                // 5. FSR 锐度级别
+                item {
+                    OsdSliderRow(
+                        title = "FSR 锐度级别",
+                        value = effects.fsrSharpnessLevel,
+                        min = 1,
+                        max = 5,
+                        unit = "档",
+                        isSelected = selectedIndex == 5,
+                        onClick = { onItemClick(5) },
+                        onLeft = { onItemAdjust(5, -1) },
+                        onRight = { onItemAdjust(5, 1) }
+                    )
+                }
+
+                // 6. 鲜艳增强 (VIVID)
+                item {
+                    OsdToggleRow(
+                        title = "Vivid 鲜艳色彩增强",
+                        enabled = effects.enableVivid,
+                        isSelected = selectedIndex == 6,
+                        onClick = { onItemClick(6) }
+                    )
+                }
+
+                // 7. FXAA 平滑抗锯齿
+                item {
+                    OsdToggleRow(
+                        title = "FXAA 平滑抗锯齿",
+                        enabled = effects.enableFXAA,
+                        isSelected = selectedIndex == 7,
+                        onClick = { onItemClick(7) }
+                    )
+                }
+
+                // 8. 测试信号源切换
+                item {
+                    OsdRow(
+                        title = "测试信号源",
+                        valueText = "◄ ${signalSources[signalSourceIndex]} ►",
+                        isSelected = selectedIndex == 8,
+                        valueColor = OrangeWarning,
+                        onClick = { onItemClick(8) },
+                        onLeft = { onItemAdjust(8, -1) },
+                        onRight = { onItemAdjust(8, 1) }
+                    )
+                }
+
+                // 9. 应用到当前游戏
+                item {
+                    OsdToggleRow(
+                        title = if (isGame) "应用到当前游戏" else "应用到游戏 (未检测到运行中游戏)",
+                        enabled = appFilterEnabled && isGame,
+                        isSelected = selectedIndex == 9,
+                        onClick = { onItemClick(9) }
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun OsdRow(
+        title: String,
+        valueText: String,
+        isSelected: Boolean,
+        valueColor: Color = CyanAccent,
+        onClick: () -> Unit,
+        onLeft: () -> Unit,
+        onRight: () -> Unit
+    ) {
+        val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
+        val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(bg)
+                .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(6.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onClick() }
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (isSelected) {
+                    Text(text = "►", color = CyanAccent, fontSize = 11.sp)
+                }
+                Text(
+                    text = title,
+                    color = if (isSelected) TextWhite else Color(0xFFB0C0D4),
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+            Text(
+                text = valueText,
+                color = valueColor,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+        }
+    }
+
+    @Composable
+    private fun OsdSliderRow(
+        title: String,
+        value: Int,
+        min: Int,
+        max: Int,
+        unit: String,
+        isSelected: Boolean,
+        onClick: () -> Unit,
+        onLeft: () -> Unit,
+        onRight: () -> Unit
+    ) {
+        val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
+        val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
+        val sign = if (value > 0 && unit == "%") "+" else ""
+        val ratio = ((value - min).toFloat() / (max - min)).coerceIn(0f, 1f)
+        val barCount = 10
+        val filled = (ratio * barCount).roundToInt()
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(bg)
+                .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(6.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onClick() }
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (isSelected) {
+                    Text(text = "►", color = CyanAccent, fontSize = 11.sp)
+                }
+                Text(
+                    text = title,
+                    color = if (isSelected) TextWhite else Color(0xFFB0C0D4),
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // 点阵/段落刻度条
+                val barStr = "◄ " + "▮".repeat(filled) + "▯".repeat(barCount - filled) + " ►"
+                Text(
+                    text = barStr,
+                    color = if (isSelected) CyanAccent else Color(0xFF5A708C),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+                Text(
+                    text = "$sign$value$unit",
+                    color = if (value != 0) CyanAccent else TextDim,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+    }
+
+    @Composable
+    private fun OsdSliderRowFloat(
+        title: String,
+        value: Float,
+        min: Float,
+        max: Float,
+        isSelected: Boolean,
+        onClick: () -> Unit,
+        onLeft: () -> Unit,
+        onRight: () -> Unit
+    ) {
+        val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
+        val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
+        val ratio = ((value - min) / (max - min)).coerceIn(0f, 1f)
+        val barCount = 10
+        val filled = (ratio * barCount).roundToInt()
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(bg)
+                .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(6.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onClick() }
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (isSelected) {
+                    Text(text = "►", color = CyanAccent, fontSize = 11.sp)
+                }
+                Text(
+                    text = title,
+                    color = if (isSelected) TextWhite else Color(0xFFB0C0D4),
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                val barStr = "◄ " + "▮".repeat(filled) + "▯".repeat(barCount - filled) + " ►"
+                Text(
+                    text = barStr,
+                    color = if (isSelected) CyanAccent else Color(0xFF5A708C),
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace
+                )
+                Text(
+                    text = String.format(Locale.US, "%.2f", value),
+                    color = CyanAccent,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+    }
+
+    @Composable
+    private fun OsdToggleRow(
+        title: String,
+        enabled: Boolean,
+        isSelected: Boolean,
+        onClick: () -> Unit
+    ) {
+        val bg = if (isSelected) Color(0x3300E5FF) else Color(0xFF0F1522)
+        val border = if (isSelected) CyanAccent else Color(0xFF1B2434)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(6.dp))
+                .background(bg)
+                .border(if (isSelected) 1.5.dp else 1.dp, border, RoundedCornerShape(6.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onClick() }
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (isSelected) {
+                    Text(text = "►", color = CyanAccent, fontSize = 11.sp)
+                }
+                Text(
+                    text = title,
+                    color = if (isSelected) TextWhite else Color(0xFFB0C0D4),
+                    fontSize = 13.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+            Text(
+                text = if (enabled) "[ ● 开启 ]" else "[ ○ 关闭 ]",
+                color = if (enabled) GreenActive else TextDim,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace
+            )
+        }
+    }
+
+    @Composable
+    private fun LegendChip(button: String, label: String, highlight: Boolean = false) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (highlight) OrangeWarning else Color(0xFF243248))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = button,
+                    color = if (highlight) PureBlack else Color(0xFFD4E2F5),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+            Text(
+                text = label,
+                color = Color(0xFFA6B7CE),
+                fontSize = 11.sp
+            )
+        }
     }
 
     companion object {
         const val EXTRA_PREVIEW_ONLY = "preview_only"
-        private const val SURFACE = 0xff171d27.toInt()
-        private const val FOREGROUND = 0xffedf2f8.toInt()
-        private const val SECONDARY = 0xffa7b3c3.toInt()
-        private const val ACCENT = 0xff8dbbff.toInt()
 
         private fun decodeOptions() = BitmapFactory.Options().apply {
             inPreferredConfig = Bitmap.Config.ARGB_8888
@@ -1041,42 +1170,15 @@ class ShaderControlActivity : ComponentActivity() {
             require(bounds.outWidth > 0 && bounds.outHeight > 0) { "请选择有效截图" }
             require(bounds.outWidth.toLong() * bounds.outHeight <= 32_000_000L) { "截图过大" }
         }
-
-        private fun preset(index: Int, family: ShaderFamily): GameNativeShaderSettings {
-            val base = GameNativeShaderSettings(family = family, enableCRT = false)
-            return when (index) {
-                0 -> base.copy(enableCRT = true)
-                1 -> base.copy(enableFXAA = true)
-                2 -> base.copy(enableVivid = true)
-                3 -> base.copy(enableToon = true)
-                4 -> base.copy(enableNTSC = true)
-                else -> base
-            }
-        }
-
-        private fun scalingLabel(mode: ShaderScaling): String = when (mode) {
-            ShaderScaling.NONE -> "无"
-            ShaderScaling.NEAREST -> "最近邻 · 保持比例"
-            ShaderScaling.LINEAR -> "双线性 · 保持比例"
-            ShaderScaling.FILL -> "填满 · 裁剪边缘"
-            ShaderScaling.STRETCH -> "拉伸"
-            ShaderScaling.FSR -> "FSR"
-            ShaderScaling.FSR_ASPECT -> "FSR · 保持比例"
-            ShaderScaling.DLS -> "DLS"
-            ShaderScaling.NATURAL -> "Natural"
-        }
     }
 }
 
-/** The application-owned queue outlives a panel that is closed or recreated during a Room write. */
+/** 异步持久化配置队列 */
 private object ControlConfigWrites {
     private const val SCREENSHOT_PREFERENCES = "shader_screenshot_preview"
     private const val SCREENSHOT_EFFECTS = "effects_json"
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var tail: Deferred<Result<Unit>> = CompletableDeferred(Result.success(Unit))
-
-    @Synchronized
-    fun pending(): Deferred<Result<Unit>> = tail
 
     @Synchronized
     fun save(context: Context, value: AppShaderConfigEntity): Deferred<Result<Unit>> {

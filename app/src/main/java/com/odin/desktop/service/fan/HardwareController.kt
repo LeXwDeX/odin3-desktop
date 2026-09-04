@@ -1,9 +1,12 @@
 package com.odin.desktop.service.fan
 
 import android.app.Activity
+import android.app.role.RoleManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.Settings
 import com.odin.desktop.hardware.HardwareBridgeClient
 import com.odin.desktop.hardware.HardwareControlException
@@ -32,13 +35,16 @@ object HardwareController {
     const val KEY_JOYSTICK_HANDLE_LIGHT_ENABLED = "joystick_handle_light_enabled"
     const val KEY_JOYSTICK_COLOR = "joystick_led_light_picker_color"
 
-    // 4. 充电限制 80% (0 / 1)
+    // 4. 充电限制与充电分离
     const val KEY_CHARGE_LIMIT_80 = "percent_80_charge_limit"
     const val KEY_CHARGE_POWER_LIMIT = "charging_limit_power_limit"
+    const val KEY_CHARGING_SEPARATION = "is_charging_separation"
 
     // 5. 屏幕方向模式 (仅保留固定横屏与传感器横屏)
     const val ORIENTATION_LANDSCAPE = 0
     const val ORIENTATION_SENSOR_LANDSCAPE = 1
+    const val KEY_ORIENTATION_MODE = "orientation_mode"
+    const val SYSTEM_KEY_FORCE_LANDSCAPE = "force_landscape"
 
     // 6. 自动风扇调度配置
     const val PREFS_NAME = "odin_desktop_prefs"
@@ -163,17 +169,19 @@ object HardwareController {
         }
     }
 
-    fun toggleJoystickLight(context: Context): Boolean {
-        val next = !isJoystickLightEnabled(context)
-        val value = if (next) "1,1" else "0,0"
+    fun setJoystickLightEnabled(context: Context, enabled: Boolean): Boolean {
+        val value = if (enabled) "1,1" else "0,0"
         val reply = HardwareBridgeClient.request(context, "LIGHTS\t$value")
         if (reply != listOf("LIGHTS", value) ||
             systemValue(context, KEY_JOYSTICK_LIGHT_ENABLED) != value ||
             systemValue(context, KEY_JOYSTICK_HANDLE_LIGHT_ENABLED) != value) {
             throw HardwareControlException("摇杆灯状态读回不一致，请刷新状态。")
         }
-        return next
+        return enabled
     }
+
+    fun toggleJoystickLight(context: Context): Boolean =
+        setJoystickLightEnabled(context, !isJoystickLightEnabled(context))
 
     fun getJoystickColor(context: Context): String =
         systemValue(context, KEY_JOYSTICK_COLOR) ?: "#ff00e5ff,#ff00e5ff"
@@ -187,6 +195,31 @@ object HardwareController {
 
     fun isChargeLimit80Enabled(context: Context): Boolean = systemValue(context, KEY_CHARGE_LIMIT_80) == "1"
     fun isChargePowerLimitEnabled(context: Context): Boolean = systemValue(context, KEY_CHARGE_POWER_LIMIT) == "1"
+    fun isChargePowerLimit5V(context: Context): Boolean = isChargePowerLimitEnabled(context)
+
+    fun setChargePowerLimit5V(context: Context, enabled: Boolean): Boolean {
+        val value = if (enabled) "1" else "0"
+        setSystem(context, KEY_CHARGE_POWER_LIMIT, value)
+        return enabled
+    }
+
+    fun toggleChargePowerLimit(context: Context): Boolean {
+        val next = !isChargePowerLimit5V(context)
+        return setChargePowerLimit5V(context, next)
+    }
+
+    fun isChargingSeparationEnabled(context: Context): Boolean = systemValue(context, KEY_CHARGING_SEPARATION) == "1"
+
+    fun setChargingSeparationEnabled(context: Context, enabled: Boolean): Boolean {
+        val value = if (enabled) "1" else "0"
+        setSystem(context, KEY_CHARGING_SEPARATION, value)
+        return enabled
+    }
+
+    fun toggleChargingSeparation(context: Context): Boolean {
+        val next = !isChargingSeparationEnabled(context)
+        return setChargingSeparationEnabled(context, next)
+    }
 
     fun toggleChargeLimit80(context: Context): Boolean {
         val next = !(isChargeLimit80Enabled(context) && isChargePowerLimitEnabled(context))
@@ -208,23 +241,134 @@ object HardwareController {
         }
     }
 
-    fun toggleAirplaneMode(context: Context): Boolean {
-        val next = !isAirplaneModeOn(context)
+    fun setAirplaneMode(context: Context, enabled: Boolean): Boolean {
         try {
-            check(Settings.Global.putInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, if (next) 1 else 0))
-            context.sendBroadcast(Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED).putExtra("state", next))
+            check(Settings.Global.putInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, if (enabled) 1 else 0))
+            try {
+                context.sendBroadcast(Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED).putExtra("state", enabled))
+            } catch (_: Exception) {}
         } catch (error: Exception) {
             throw HardwareControlException("飞行模式切换失败，请刷新状态。", error)
         }
-        if (isAirplaneModeOn(context) != next) throw HardwareControlException("飞行模式读回不一致。")
-        return next
+        if (isAirplaneModeOn(context) != enabled) throw HardwareControlException("飞行模式读回不一致。")
+        return enabled
     }
 
-    // --- 屏幕方向规则 ---
+    fun toggleAirplaneMode(context: Context): Boolean =
+        setAirplaneMode(context, !isAirplaneModeOn(context))
+
+    // --- 屏幕方向规则 (支持固定横屏与传感器横屏，并对全局其他应用生效) ---
+    fun getOrientationMode(context: Context): Int {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getInt(KEY_ORIENTATION_MODE, ORIENTATION_LANDSCAPE)
+    }
+
+    fun setOrientationMode(context: Context, mode: Int) {
+        // 保存偏好设置
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_ORIENTATION_MODE, mode)
+            .apply()
+
+        // 1. 系统级强制横屏开关（触发 com.odin.settings OEM 服务生成全局顶层横屏浮层，拦截并纠正所有第三方应用方向）
+        runCatching {
+            Settings.System.putInt(
+                context.contentResolver,
+                SYSTEM_KEY_FORCE_LANDSCAPE,
+                if (mode == ORIENTATION_LANDSCAPE) 1 else 0
+            )
+        }
+
+        // 2. 系统重力感应与屏幕旋转设置 (ACCELEROMETER_ROTATION 与 USER_ROTATION)
+        runCatching {
+            if (mode == ORIENTATION_LANDSCAPE) {
+                // 固定横屏：关闭重力感应自动翻转，并固定为默认横屏 (Surface.ROTATION_90 即 1)
+                Settings.System.putInt(
+                    context.contentResolver,
+                    Settings.System.ACCELEROMETER_ROTATION,
+                    0
+                )
+                Settings.System.putInt(
+                    context.contentResolver,
+                    Settings.System.USER_ROTATION,
+                    1
+                )
+            } else {
+                // 传感器横屏：开启重力传感器自适应旋转
+                Settings.System.putInt(
+                    context.contentResolver,
+                    Settings.System.ACCELEROMETER_ROTATION,
+                    1
+                )
+            }
+        }
+    }
+
     fun applyOrientation(activity: Activity, mode: Int) {
+        setOrientationMode(activity, mode)
         activity.requestedOrientation = when (mode) {
             ORIENTATION_SENSOR_LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             else -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
+    }
+
+    // --- 启动项与默认桌面设置 ---
+    const val KEY_BOOT_AUTO_START = "boot_auto_start_enabled"
+
+    fun isBootAutoStartEnabled(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_BOOT_AUTO_START, true)
+    }
+
+    fun setBootAutoStartEnabled(context: Context, enabled: Boolean) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_BOOT_AUTO_START, enabled)
+            .apply()
+    }
+
+    fun isDefaultHome(context: Context): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = context.getSystemService(RoleManager::class.java)
+            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                return roleManager.isRoleHeld(RoleManager.ROLE_HOME)
+            }
+        }
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val resolveInfo = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
+        return resolveInfo?.activityInfo?.packageName == context.packageName
+    }
+
+    fun requestDefaultHomeRole(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = context.getSystemService(RoleManager::class.java)
+            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                if (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+                    if (context !is Activity) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(intent)
+                    return
+                }
+            }
+        }
+        try {
+            val intent = Intent(Settings.ACTION_HOME_SETTINGS).apply {
+                if (context !is Activity) {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS).apply {
+                    if (context !is Activity) {
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                }
+                context.startActivity(intent)
+            } catch (_: Exception) {}
         }
     }
 }

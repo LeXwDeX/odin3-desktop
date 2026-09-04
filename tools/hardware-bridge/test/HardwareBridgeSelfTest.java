@@ -33,6 +33,10 @@ public final class HardwareBridgeSelfTest {
         equal("OK\tCHARGE\t1", bridge.execute("CHARGE\t1"));
         equal("1", store.values.get(OdinHardwareBridge.CHARGE));
         equal("1", store.values.get(OdinHardwareBridge.POWER));
+        equal("OK\tis_charging_separation\t1", bridge.execute("SET\tis_charging_separation\t1"));
+        equal("1", store.values.get(OdinHardwareBridge.CHARGING_SEPARATION));
+        equal("OK\tcharging_limit_power_limit\t0", bridge.execute("SET\tcharging_limit_power_limit\t0"));
+        equal("0", store.values.get(OdinHardwareBridge.POWER));
         equal("OK\tLIGHTS\t1,1", bridge.execute("LIGHTS\t1,1"));
         equal("1,1", store.values.get(OdinHardwareBridge.LIGHT));
         equal("1,1", store.values.get(OdinHardwareBridge.HANDLE_LIGHT));
@@ -170,7 +174,7 @@ public final class HardwareBridgeSelfTest {
         int writes;
         MemoryStore() {
             for (String name : Arrays.asList(OdinHardwareBridge.PERFORMANCE, OdinHardwareBridge.FAN,
-                    OdinHardwareBridge.CHARGE, OdinHardwareBridge.POWER)) values.put(name, "0");
+                    OdinHardwareBridge.CHARGE, OdinHardwareBridge.POWER, OdinHardwareBridge.CHARGING_SEPARATION)) values.put(name, "0");
             values.put(OdinHardwareBridge.LIGHT, "0,0");
             values.put(OdinHardwareBridge.HANDLE_LIGHT, "0,0");
         }

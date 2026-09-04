@@ -22,6 +22,7 @@ public final class OdinHardwareBridge {
     static final String COLOR = "joystick_led_light_picker_color";
     static final String CHARGE = "percent_80_charge_limit";
     static final String POWER = "charging_limit_power_limit";
+    static final String CHARGING_SEPARATION = "is_charging_separation";
     private final byte[] key;
     private final Store store;
     private final Object transaction = new Object();
@@ -147,7 +148,7 @@ public final class OdinHardwareBridge {
                 if (!oldProperty.matches("[012]")) throw new IOException("Invalid existing mode");
             }
             started = true;
-            for (Map.Entry<String, String> entry : changes.entrySet()) store.put(entry.getKey(), entry.getValue());
+            store.putAll(changes);
             if (property != null) {
                 propertyAttempted = true;
                 store.property(property);
@@ -183,7 +184,7 @@ public final class OdinHardwareBridge {
         if (PERFORMANCE.equals(name)) return value.matches("[012]");
         if (FAN.equals(name)) return value.matches("[045]");
         if (LIGHT.equals(name) || HANDLE_LIGHT.equals(name)) return value.matches("(?:0,0|1,1)");
-        if (CHARGE.equals(name) || POWER.equals(name)) return value.matches("[01]");
+        if (CHARGE.equals(name) || POWER.equals(name) || CHARGING_SEPARATION.equals(name)) return value.matches("[01]");
         if (COLOR.equals(name)) return value.matches("#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?,#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?");
         return false;
     }
@@ -197,6 +198,11 @@ public final class OdinHardwareBridge {
     interface Store {
         String get(String key) throws Exception;
         void put(String key, String value) throws Exception;
+        default void putAll(Map<String, String> entries) throws Exception {
+            for (Map.Entry<String, String> entry : entries.entrySet()) {
+                put(entry.getKey(), entry.getValue());
+            }
+        }
         String property() throws Exception;
         void property(String value) throws Exception;
     }
@@ -209,6 +215,24 @@ public final class OdinHardwareBridge {
         public void put(String key, String value) throws Exception {
             if (value == null) run("/system/bin/cmd", "settings", "--user", "0", "delete", "system", key);
             else run("/system/bin/cmd", "settings", "--user", "0", "put", "system", key, value);
+        }
+        public void putAll(Map<String, String> entries) throws Exception {
+            if (entries.isEmpty()) return;
+            if (entries.size() == 1) {
+                Map.Entry<String, String> single = entries.entrySet().iterator().next();
+                put(single.getKey(), single.getValue());
+                return;
+            }
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, String> entry : entries.entrySet()) {
+                if (sb.length() > 0) sb.append("; ");
+                if (entry.getValue() == null) {
+                    sb.append("cmd settings --user 0 delete system ").append(entry.getKey());
+                } else {
+                    sb.append("cmd settings --user 0 put system ").append(entry.getKey()).append(" ").append(entry.getValue());
+                }
+            }
+            run("/system/bin/sh", "-c", sb.toString());
         }
         public String property() throws Exception { return run("/system/bin/getprop", PROPERTY); }
         public void property(String value) throws Exception { run("/system/bin/setprop", PROPERTY, value); }

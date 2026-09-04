@@ -57,12 +57,14 @@ fun LauncherScreen(
     val fanMode by viewModel.fanMode.collectAsState()
     val joystickLightEnabled by viewModel.joystickLightEnabled.collectAsState()
     val joystickColor by viewModel.joystickColor.collectAsState()
-    val chargeLimit80 by viewModel.chargeLimit80.collectAsState()
+    val chargingSeparation by viewModel.chargingSeparation.collectAsState()
     val chargePowerLimit by viewModel.chargePowerLimit.collectAsState()
     val airplaneMode by viewModel.airplaneMode.collectAsState()
     val orientationMode by viewModel.orientationMode.collectAsState()
     val autoFanControlEnabled by viewModel.autoFanControlEnabled.collectAsState()
     val currentSocTemp by viewModel.currentSocTemp.collectAsState()
+    val isDefaultHome by viewModel.isDefaultHome.collectAsState()
+    val bootAutoStartEnabled by viewModel.bootAutoStartEnabled.collectAsState()
 
     val isConfigOpen by viewModel.isConfigOpen.collectAsState()
     val configSectionIndex by viewModel.configSectionIndex.collectAsState()
@@ -228,10 +230,9 @@ fun LauncherScreen(
                 performanceMode = performanceMode,
                 fanMode = fanMode,
                 joystickLightEnabled = joystickLightEnabled,
-                chargeLimit80 = chargeLimit80,
+                chargingSeparation = chargingSeparation,
                 chargePowerLimit = chargePowerLimit,
                 autoFanControlEnabled = autoFanControlEnabled,
-                onToggleChargingFanMode = viewModel::toggleAutoFanControl,
                 airplaneMode = airplaneMode,
                 selectedDockIndex = selectedDockIndex,
                 focusZone = focusZone,
@@ -252,10 +253,14 @@ fun LauncherScreen(
         onSectionClick = { index -> viewModel.setConfigSection(index) },
         currentJoystickColor = joystickColor,
         currentOrientation = orientationMode,
+        isDefaultHome = isDefaultHome,
+        bootAutoStartEnabled = bootAutoStartEnabled,
         autoFanControlEnabled = autoFanControlEnabled,
         socTemp = currentSocTemp,
         onColorSelect = { hex -> viewModel.setJoystickColor(hex) },
         onOrientationSelect = { mode -> viewModel.setOrientationMode(mode) },
+        onRequestDefaultHome = { viewModel.requestDefaultHome() },
+        onToggleBootAutoStart = { viewModel.toggleBootAutoStart() },
         onToggleAutoFan = { viewModel.toggleAutoFanControl() },
         tabs = tabs,
         tabActionFocusIndex = configTabActionIndex,

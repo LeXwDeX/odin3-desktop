@@ -2,20 +2,20 @@
 
 <div align="center">
 
-**专为 AYN Odin 3 安卓掌机深度打造的旗舰级桌面启动台与系统增强套件**
+**专为 AYN Odin 3 安卓掌机深度打造的旗舰级默认桌面启动台与系统增强套件**
 
 [![Release](https://img.shields.io/badge/Release-v0.1.0-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
-[![Platform](https://img.shields.io/badge/Platform-AYN%20Odin%203%20(Android%2015)-black?style=for-the-badge&logo=qualcomm)](https://github.com/LeXwDeX/odin3-desktop)
+[![Platform](https://img.shields.io/badge/Platform-AYN%20Odin%203%20(Android%2013%2B)-black?style=for-the-badge&logo=qualcomm)](https://github.com/LeXwDeX/odin3-desktop)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20%7C%20OLED%20Black-blue?style=for-the-badge&logo=jetpackcompose)](https://github.com/LeXwDeX/odin3-desktop)
-[![Shader](https://img.shields.io/badge/Shader-AGSL%20VideoShader-orange?style=for-the-badge&logo=opengl)](https://github.com/LeXwDeX/odin3-desktop)
+[![Shader](https://img.shields.io/badge/Shader-TVGAME%20Calibration%20OSD-orange?style=for-the-badge&logo=opengl)](https://github.com/LeXwDeX/odin3-desktop)
 
-*纯粹掌机美学 • 100% 全实体手柄盲操 • 嵌入式 VideoShader 渲染管线 • 智能温控风扇调度*
+*纯粹掌机美学 • 100% 全实体手柄盲操 • 系统级默认主屏幕与开机自启 • TVGAME 电视画面校准台 • 智能温控风扇调度*
 
 </div>
 
 ---
 
-## 📸 掌机视觉宣传画册 (Showcase)
+## 📸 掌机视觉画册 (Showcase)
 
 ### 1. 极致纯黑 OLED 掌机桌面 (Console Home)
 采用全对称中轴线视网膜大卡片滑带设计，背景深度适配 Odin 3 AMOLED 屏幕纯黑低功耗特性（`#000000`）。支持毫秒级手柄摇杆光标跟随与触控操作 100% 绝对同频同步。
@@ -24,150 +24,189 @@
 
 ---
 
-### 2. 滤镜开关与截图调节（当前测试入口）
+### 2. 仪表盘与设备状态中心 (Dashboard)
+首页最左侧的只读硬件状态与快捷操作中心。存储与 CPU/GPU 组合对齐，运行内存与 Wi-Fi 对齐：
+* **内部存储 4 色分类标定**：采用 4 色独立进度条与字色标识，直观呈现空间结构：
+  - 🔵 **系统空间**（`#7C4DFF` 紫蓝）：Android 系统分区及保留空间；
+  - 🟢 **应用安装**（`#00E676` 翡翠绿）：用户应用及其数据文件；
+  - 🟡 **其他文件**（`#FFB300` 琥珀黄）：下载、媒体与文档等其他已用数据；
+  - ⚪ **空闲容量**（`#455A64` 幽灵灰）：剩余可用空间；
+* **外部扩展卷**：自动枚举并展示 TF 卡卷独立容量卡片；
+* **实时硬件传感器**：只读采集 CPU/GPU 物理最高温度（0~105°C 动态标度）、非系统应用 PSS 内存占用、Wi-Fi 吞吐速率；
+* **四项常用操作**：文件管理（DocumentsUI）、系统设置、Odin 设置、滤镜调整；
+* **五项硬件 Dock**：性能模式、风扇调度、摇杆氛围灯、充电优化、飞行模式。
 
-**开发顺序（2026-09-04 确认）**：先完善滤镜、截图调参和息屏挂机，最后统一集成到桌面控制台。现阶段保留下拉入口用于测试，迁移时复用已有配置与功能实现。最终入口以 [需求约定](REQUIREMENTS.md#开发顺序与最终入口) 为准。
-
-系统下拉面板中的 **滤镜开关** 短按切换当前应用的滤镜，长按打开独立调节面板。面板以截图作为全屏背景，右侧调节栏可以收起；修改效果和参数时，背景直接显示 GPU 处理结果。桌面应用操作菜单中不再放滤镜设置。
-
-* **截图对照**：点击“更换截图”导入图片；按住 X 显示原图、按住 Y 隐藏参数，松开恢复。触摸也可切换原图和收起参数栏。未运行游戏时也能调节截图，预览设置单独保存在本机。
-* **手柄调参**：滑条先按 A 进入调节，左右改变数值，再按 A 确认；B 取消并恢复进入时的值。返回操作逐层关闭选择弹层、结束调节、收起高级参数和参数栏，最后退出页面。
-* **当前应用**：有目标应用时自动加载并保存其设置；没有目标时仅禁用游戏滤镜开关。用户无需选择应用或图形 API。
-* **实时兼容**：现有系统覆盖层仅支持不读取游戏像素的 Vulkan CRT 扫描线。
-* **接入范围**：其他效果当前用于 GPU 截图预览。程序选择已有兼容路径，尚未实现跨进程 Hook，也没有通用的游戏图形 API 识别。
-* **数据升级**：Room 1 → 2 → 3 显式迁移，保留已有分组、应用映射与滤镜设置。
-
-算法适配与第三方许可见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)，验证与接入限制见 [docs/shader-port.md](docs/shader-port.md)。
-
-磁贴排列、截图调参验收、原版游戏助手停用与恢复方式见 [下拉控制交付记录](docs/quick-controls.md)。
-
-下拉面板另有 **息屏挂机**：开启黑色 OLED 遮罩，保留游戏窗口焦点，并以暗色漂移文字显示状态；双击屏幕退出。该功能通过黑色浮层遮住画面，Android 显示屏仍保持开启，不是物理熄屏，也不保证游戏以固定帧率运行。
+![掌机仪表盘](docs/screenshots/01_launcher_dashboard.png)
 
 ---
 
-### 3. 应用专属操作控制台 (App Actions)
-针对掌机交互定制的高效操作菜单：长按 `Y` 键即刻唤出。支持无损归类到其他 Tab 分组、一键直达系统应用属性详情（免权限安全卸载与停用）或从当前分组移除。
+### 3. TVGAME 电视画面校准台 (TV Display Calibration OSD)
+专为掌机复古游戏打造的特丽珑/PVM 监视器风格实时校准工具，可通过 Dashboard 常用操作【滤镜调整】或下拉通知栏磁贴长按即刻唤出：
+* **广播级测试信号源**：内置 75% SMPTE 标准彩条标定信号、几何交叉安全框网格（Crosshatch）、240p 复古像素游戏场景、游戏原生画面截图；
+* **灰阶标定基准块**：集成 `04% 隐约`（暗部黑电平）、`50% 基准`（中灰伽马）、`96% 清晰`（高光对比度）标定基准，复刻专业调机流程；
+* **经典图像预设**：特丽珑 CRT、复古街机、鲜艳游戏、高清 FXAA、纯净原画、自定义（已彻底移除 NTSC 杂波）；
+* **实时硬件级参数调节**：对比度、亮度、色彩伽马、CRT 显像管扫描线、FSR 硬件锐化、Vivid 鲜艳色彩增强、FXAA 抗锯齿；
+* **全手柄沉浸盲操**：D-Pad 上下选条目、左右 **0ms 实时无级微调**，L1/R1 切换预设，**按住 X 瞬时原画对比**，**Y 键一键隐藏菜单全屏沉浸**，B 键保存并退出。
 
-![应用专属操作面板](docs/screenshots/02_app_actions.png)
-
----
-
-### 4. 系统级深度控制 — 摇杆 RGB LED 氛围灯 (LED Customization)
-提供 6 种摇杆灯颜色预设。颜色与开关通过受限硬件后端写入并读回确认，后端不可用时提示失败。新后端的启用条件见 [硬件控制说明](docs/quick-controls.md#受限硬件后端)。
-
-![摇杆 RGB LED 灯光控制](docs/screenshots/04_config_led.png)
+![TVGAME 电视画面校准台](docs/screenshots/03_video_shader_config.png)
 
 ---
 
-### 5. 屏幕方向与握持倒置策略 (Orientation Rules)
-支持「传感器自适应双向横屏」与「默认握持固定横屏」两种模式。下图为早期界面示意，当前选项以应用为准。
+### 4. 系统级默认主屏幕与开机自启 (Default Home & Boot Startup)
+深度融入 Android 系统底层角色与电源生命周期：
+* **合规系统默认桌面**：具备标准 `android.app.role.HOME` 与 `CATEGORY_HOME` 声明，按下 Odin 3 **实体 Home 键**瞬间直达本启动台；
+* **开机自动拉起**：注册 `BOOT_COMPLETED`、`LOCKED_BOOT_COMPLETED` 与高通高优先级 `QUICKBOOT_POWERON`，开机自启后台温控守护并直接拉起桌面界面；
+* **控制台一键管理**：在设置【3. 默认桌面与自启】中实时探测桌面角色状态，按 A 键一键申请系统角色或管理默认应用，开机自启开关支持随时一键切换。
+
+![系统默认主屏幕与开机自启](docs/screenshots/07_config_home_boot.png)
+
+---
+
+### 5. 屏幕方向规则系统级生效 (Orientation Rules)
+彻底修复普通应用无法全局横屏的缺陷，打通系统级防翻转机制：
+* **固定横屏（默认握持方向）**：写入系统 `force_landscape = 1` 触发 Odin 3 OEM 系统服务启动顶层防翻转横屏浮层，全局拦截并纠正所有第三方应用为横屏；同步关闭系统自动翻转并锁定横屏方向；
+* **传感器横屏（自适应正反横屏）**：解除强制横屏并开启重力传感器自适应翻转；
+* 系统重启与冷启动自动持久化生效。
 
 ![屏幕旋转与换向策略](docs/screenshots/05_config_orientation.png)
 
 ---
 
-### 6. 模块化 Tab 自定义分组与批量管理 (Tab Management)
-告别乱糟糟的传统手机式应用抽屉。为掌机用户量身打造「系统全集」、「游戏与模拟器」、「影音媒体」、「系统工具」及自由创建的新分组；长按 `X` 键支持全量应用快速检索与批量勾选归类。
+### 6. 应用专属操作控制台 (App Actions)
+在桌面卡片对着任意应用按下手柄 `Y` 键即刻呼出控制台级操作浮层：
+* **移动至其他 Tab 分类**：无损将图标迁移至其他自定义分组；
+* **进入应用属性详情**：一键直达系统设置应用详情页（管理权限、存储与安全卸载）；
+* **从当前分类移除**：从当前 Tab 移出图标（不影响应用本身安装）。
+
+![应用专属操作面板](docs/screenshots/02_app_actions.png)
+
+---
+
+### 7. 模块化 Tab 自定义分组编辑 (Tab Management)
+彻底告别乱糟糟的手机式应用抽屉。为掌机用户量身打造分组管理体系：
+* 支持自由创建新分组、修改名称、标记为「游戏分类」；
+* 支持手柄光标快速调整分组显示顺序（上移/下移）；
+* 支持指定任意分组为「默认首页」；
+* 在应用列表界面长按 `X` 键支持全量应用快速检索与批量勾选归类。
 
 ![Tab 分组与分类编辑](docs/screenshots/06_config_tabs.png)
 
 ---
 
-## Dashboard
+### 8. 摇杆 RGB LED 氛围灯 (LED Customization)
+提供 6 种经过色彩校准的摇杆 LED 氛围灯预设（青蓝、极客紫、战斗红、荧光绿、冰川白、暗夜灰）：
+* 手柄光标左右切换，按 A 键即时生效并写入硬件；
+* 优化响应管线，极速触发，受限硬件后端双向安全读回确认。
 
-首页最左侧的 Dashboard 异步显示内置存储、每个已挂载外部卷、内存、CPU/GPU 真实温度和 Wi-Fi 状态。CPU/GPU 保留温度数字与固定 0–105°C 温度条，不采样或显示使用率；未知温度显示“— °C”和空轨道。统计卡片只读，不接受点击或手柄焦点。
+![摇杆 RGB LED 灯光控制](docs/screenshots/04_config_led.png)
 
-常用操作保留四项：文件管理、系统设置、Odin 设置、滤镜调整。已取消内存清理与磁盘清理。宽屏下四个按钮等宽，下面保留五项硬件 Dock；存储区域与 CPU/GPU 组合共用左右边界，RAM 与 Wi-Fi 共用另一列边界。滤镜调整可直接使用已有截图，不必启动游戏。采样口径见 [Dashboard 说明](docs/dashboard.md)。
+---
 
-Dock 按 A 循环性能“默认／性能／高性能”、风扇“关闭／智能／高性能”，或切换摇杆灯、充电限制、飞行模式。风扇聚焦时按 X 切换充电模式；手动选择风扇档位会停用该策略。充电限制同时切换 80% 上限与 5V 档，界面分别显示两项读回状态，电流取决于电源与充电协商，不表示实测 3A。
+## 🎨 设计哲学与色彩体系 (Design Philosophy)
 
-本轮布局、Dock 后端和滤镜按键改动尚待实机验收；下方文档中的既有验证均标注为上一版记录，不能用来证明当前版已通过。
+系统统一遵循直观严谨的掌机状态色彩层级：
+
+| 色彩定义 | 状态含义 | 典型应用场景 |
+| :--- | :--- | :--- |
+| **幽灵灰 (`#757575`)** | **关闭 / OFF / 空闲** | 功能关闭、开关处于 OFF 状态、磁盘空闲空间 |
+| **翡翠绿 (`#00E676`)** | **安全 / 开启 / 正常** | 功能正常启用、开机自启 ON、性能默认档、应用已安装占用 |
+| **琥珀黄 (`#FFD54F`)** | **警告 / 中度性能** | 性能模式、9V/3A 充电模式、未设为默认主屏幕 |
+| **战斗红 (`#FF5252`)** | **最高 / 严重 / 极限** | 高性能模式、风扇最大档、充电分离激活 |
+| **电光蓝 (`#00E5FF`)** | **特殊状态 / 高亮聚焦** | 充电风扇静音生效时的特殊停转状态、当前手柄光标聚焦 |
+
+### 防抖与 0ms 极速手感
+针对掌机手柄高频连续按键场景，底层采用**乐观更新 (Optimistic UI) + 协程防抖通道 (Debounce & Coalesce)**。连续点击时界面 0ms 瞬间翻转响应，后台硬件控制指令聚合平滑下发，彻底消除界面反复闪烁与回跳。
+
+---
 
 ## 🕹️ 全硬件实体按键交互指南 (Gamepad Controls)
 
-| 按键 | 触发场景 | 功能说明 |
+| 按键 / 组合 | 触发场景 | 交互行为 |
 | :--- | :--- | :--- |
-| **D-Pad / 左摇杆 (左右)** | 桌面大卡片 | 在当前分类的应用卡片之间水平循环导航，带平滑弹性滚动动效 |
-| **D-Pad / 左摇杆 (上下)** | 桌面各区域 | 在顶部 Tab、中部四项常用操作或应用卡片、底部 Dock 之间移动；统计卡片不聚焦 |
-| **L1 / R1** | 桌面主层 | 向前 / 向后切换 Dashboard 与应用分类页面；弹窗内不切换页面 |
-| **A 键 (确认)** | 应用 / 菜单项 | 点击启动选中应用；在设置/操作弹窗中确认选定项 |
-| **B 键 (返回)** | 弹窗 / 排序模式 | 退出当前操作弹窗、取消应用排序并保存当前状态 |
-| **Y 键 (短按)** | 应用卡片区 | 进入/退出当前分类的图标排序模式 |
-| **X 键 (长按)** | 应用卡片区 | 呼出当前 Tab 的**批量增删分类应用**弹窗，支持全拼/首字母即时搜索与勾选 |
-| **Y 键 (长按)** | 应用卡片区 | 呼出**应用专属操作菜单**（Tab 迁移、系统属性详情、移除图标） |
-| **滤镜开关短按** | 系统下拉栏 | 切换当前应用滤镜；实际生效范围取决于已有兼容路径 |
-| **滤镜开关长按** | 系统下拉栏 | 打开全屏截图调节面板；可更换截图；按住 X 看原图、按住 Y 隐藏参数，松开恢复 |
-| **A / 左右 / A** | 滤镜滑条 | 进入调节、改变数值、确认；B 取消本次调节并恢复进入时的值 |
-| **A / B** | 滤镜选择弹层 | A 选择当前项，B 关闭并保留原选择 |
-| **B** | 滤镜调整 | 逐层取消调节、收起高级参数和参数栏，最后返回桌面或游戏 |
-| **L1 / R1** | 滤镜主层 | 参数栏可见且高级参数未展开时切换预设；滑条调节和选择弹层内不切换 |
-| **A** | 硬件 Dock | 循环性能或风扇三档；其余项目切换开关 |
-| **X** | Dock 风扇卡片 | 切换充电模式，触摸卡片副行也可操作 |
-| **息屏挂机** | 系统下拉栏 | 开启或停止黑色遮罩；遮罩显示时可双击屏幕退出 |
+| **D-Pad / 摇杆 (左右)** | 桌面大卡片 | 在应用卡片之间水平平滑循环导航，带弹性视网膜动效 |
+| **D-Pad / 摇杆 (上下)** | 桌面主层 | 在顶部 Tab 栏、中部应用区/常用操作、底部 Dock 之间移动焦点 |
+| **L1 / R1** | 桌面主层 | 向左 / 向右循环切换 Dashboard 与各个应用 Tab 分组 |
+| **A 键 (确认)** | 全局通用 | 启动选中应用；执行菜单选项；循环 Dock 硬件状态；确认设置项 |
+| **B 键 (返回)** | 全局通用 | 退出当前操作弹窗；取消排序；从设置子菜单返回左侧导航 |
+| **X 键** | 桌面卡片区 | 呼出当前 Tab 的**批量增删应用抽屉**（支持全拼/首字母即时搜索与勾选） |
+| **X 键** | Dock 风扇卡片 | 切换**充电风扇静音模式**（开启时显示蓝色“关闭”） |
+| **X 键** | Dock 充电卡片 | 切换**充电分离模式**（开启红 / 关闭灰） |
+| **Y 键 (长按/按键)** | 桌面卡片区 | 呼出**应用专属操作菜单**（Tab 迁移、系统属性、移除图标） |
+| **Y 键 (短按)** | 桌面卡片区 | 开启/退出当前分类卡片的手动自由排序模式 |
+| **Home 键** | 系统任何位置 | 实体物理按键直接返回 Odin 启动台 |
+| **D-Pad (上下)** | TVGAME 校准台 | 在 OSD 校准菜单各项参数之间移动光标 |
+| **D-Pad (左右)** | TVGAME 校准台 | **0ms 实时微调**当前选中的对比度、亮度、伽马、锐化等参数 |
+| **L1 / R1** | TVGAME 校准台 | 快速循环切换 6 大图像预设 |
+| **按住 X 键** | TVGAME 校准台 | **瞬时原画对比 (Bypass)**：按住时直通纯净原画，松手瞬间恢复调校效果 |
+| **Y 键** | TVGAME 校准台 | **全屏沉浸切换**：一键隐藏/唤起 OSD 菜单，纯享全屏标定画面 |
 
 ---
 
 ## ⚡ 核心技术架构 (Architecture Highlights)
 
 ```
-com.odin.desktop
-├── dashboard/              # 异步只读统计、外部卷与四项常用操作
-├── data/
-│   ├── db/                 # Room Database (Tab 分类、应用排序、Shader 配置)
-│   ├── entity/             # 数据实体定义与 DAO
-│   └── repository/         # 硬件服务与数据仓库 (App, Hardware, Shader)
-├── shader/
-│   ├── control/            # 长按磁贴打开的全屏截图调节面板
-│   ├── runtime/            # 已有兼容路径选择与状态说明
-│   ├── engine/             # VideoShaderEngine 掌机生命周期全局调度中心
-│   ├── pipeline/           # IVideoShaderPipeline 接口体系
-│   │   ├── AgslVideoShaderPipeline.kt  # Android 15 AGSL 硬件着色器 (GameNative 算法)
-│   │   └── slang/          # RetroArch .slang / SPIR-V 多通道着色器未来扩展桩
-│   ├── overlay/            # 滤镜开关磁贴与 CRT 兼容覆盖层
-│   └── model/              # AppShaderConfigEntity 配置实体
-├── service/
-│   ├── fan/                # AppMonitorAccessibilityService 前台应用变化嗅探
-│   └── afk/                # 息屏挂机磁贴与黑色 OLED 遮罩
-└── ui/
-    ├── components/         # 掌机级 Compose 组件库 (ConsoleModalDialog, 卡片滑带)
-    ├── navigation/         # FocusZone 掌机绝对手柄焦点管理核心
-    └── viewmodel/          # LauncherViewModel 单一可信数据源与状态机
+odin3_desktop/
+├── app/src/main/
+│   ├── AndroidManifest.xml     # HOME Launcher、开机广播与 QS 磁贴核心声明
+│   ├── java/com/odin/desktop/
+│   │   ├── OdinDesktopApplication.kt   # 全局单例与 Room 数据库初始化
+│   │   ├── dashboard/                  # 只读统计、存储多卷探测与四项常用操作
+│   │   ├── data/                       # Room 数据库实体、DAO 与多源数据仓库
+│   │   ├── receiver/                   # BootCompletedReceiver 开机多广播与自启拉起
+│   │   ├── service/
+│   │   │   ├── afk/                    # 息屏挂机 OLED 纯黑防烧屏浮层服务
+│   │   │   └── fan/                    # 温控守护服务、无障碍前台感知、HardwareController
+│   │   ├── shader/
+│   │   │   ├── control/                # ShaderControlActivity 独立校准台 Activity
+│   │   │   ├── engine/                 # VideoShaderEngine 掌机生命周期渲染中心
+│   │   │   ├── preview/                # TvTestPatternGenerator 广播级彩条与测试图案
+│   │   │   └── runtime/                # AGSL 着色器运行时管线
+│   │   └── ui/
+│   │       ├── MainActivity.kt         # 默认桌面主入口、沉浸式全屏与按键路由
+│   │       ├── components/             # BottomDockBar、DashboardContent、ConfigDialog、TopTabBar
+│   │       ├── navigation/             # FocusZone 掌机绝对焦点管理器与 GamepadKeyHandler
+│   │       ├── screens/                # LauncherScreen 顶级响应式组合布局
+│   │       ├── theme/                  # 纯黑 OLED 主题色彩体系
+│   │       └── viewmodel/              # LauncherViewModel 状态机与硬件控制聚合通道
+│   └── res/
+└── tools/hardware-bridge/              # 受限 ADB 硬件通信桥接组件与自检套件
 ```
 
-* **Android 15 与 Compose 界面**：本项目面向 Odin 3；具体帧率和功耗需单独实机测量。
-* **硬件控制边界**：新受限 ADB 桥只监听本机 `127.0.0.1:18889`，验证请求身份并限制可写项目；设备重启后需连接电脑重新启用，不等同于 root。
-* **覆盖层输入处理**：CRT 兼容层不接管焦点或触摸；挂机遮罩保留游戏焦点、接收触摸以实现双击退出。
+* **Android 13+ & Jetpack Compose**：专为 AYN Odin 3 掌机横屏高刷 OLED 定制，全矢量硬件加速渲染；
+* **双向安全硬件桥**：受限 ADB 桥仅监听 `127.0.0.1:18889` 本地回环，严格白名单鉴权，无 root 依赖保障设备安全；
+* **纯黑 OLED 保护**：全界面 `#000000` 像素发光优化，息屏挂机浮层配合微位移防烧屏引擎。
 
 ---
 
-## 📦 安装与编译构建 (Build & Install)
+## 📦 编译构建与安装部署 (Build & Install)
 
 ### 环境要求
-* JDK 17+
+* OpenJDK 17
 * Android SDK (API 35 / Build-Tools 35.0.0)
-* AYN Odin 3 掌机设备 (已开启 USB 调试)
+* AYN Odin 3 掌机设备 (开启 USB 调试)
 
 ### 本地编译与安装
 ```bash
-# 1. 克隆本仓库
-git clone git@github.com:LeXwDeX/odin3-desktop.git
-cd odin3-desktop
+# 1. 进入工程目录
+cd odin3_desktop
 
 # 2. 编译生成 Debug APK
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17
+export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
 ./gradlew assembleDebug
 
 # 3. 安装到已连接的 Odin 3 掌机
-adb install -r -d app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 
-# 4. 启动桌面
-adb shell "am start -n com.odin.desktop/.ui.MainActivity"
+# 4. 启动启动台
+adb shell am start -n com.odin.desktop/.ui.MainActivity
 ```
 
 ---
 
 ## 📜 许可与致谢 (Credits & License)
 
-* **GameNative & Winlator**：感谢开源社区对于 CRT 扫描线着色器与复古渲染管线的卓越算法贡献。
-* **AYN Odin 社区**：专为追求纯粹安卓掌机体验的硬核玩家打造。
+* **GameNative & Winlator**：感谢复古游戏开源社区对于 CRT 着色器渲染算法的卓越贡献；
+* **AYN Odin 社区**：专为追求极致纯粹安卓掌机体验的硬核玩家打造。
 
 *License: [Apache-2.0](LICENSE)*

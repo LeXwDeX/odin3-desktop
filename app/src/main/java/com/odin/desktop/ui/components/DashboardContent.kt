@@ -63,7 +63,12 @@ import com.odin.desktop.ui.theme.TextDim
 import com.odin.desktop.ui.theme.TextWhite
 import java.util.Locale
 
-private val StorageColors = listOf(Color(0xFF758CA7), CyanAccent, Color(0xFF527B86), Color(0xFF26343A))
+private val StorageColors = listOf(
+    Color(0xFF6C96FF), // 系统: 蓝色
+    CyanAccent,        // 应用: 青色
+    Color(0xFFFFB454), // 其他: 橙色
+    Color(0xFF8E99A4)  // 空闲: 灰色
+)
 
 /** Dashboard selection belongs to the launcher; this view only paints it and handles touch. */
 @Composable
@@ -213,7 +218,7 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
             SegmentedBar(categories.map { it!!.toFloat() / total!!.toFloat() }, StorageColors)
         } else {
             // Only total/free are known yet: show aggregate use, never invent category proportions.
-            UsageBar(if (used != null && total != null) used.toFloat() / total else null, Color(0xFF527B86))
+            UsageBar(if (used != null && total != null) used.toFloat() / total else null, Color(0xFF6C96FF))
         }
         val categoryNames = listOf("系统", "应用", "其他", "空闲")
         if (compact) {
@@ -222,8 +227,11 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         indices.forEach { index ->
                             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                                Text(categoryNames[index], color = TextDim, fontSize = 10.sp, lineHeight = 14.sp)
-                                Text(formatBytes(categories[index]), color = TextWhite, fontSize = 10.sp, lineHeight = 14.sp,
+                                Canvas(Modifier.size(5.dp)) { drawCircle(StorageColors[index]) }
+                                Spacer(Modifier.width(3.dp))
+                                Text(categoryNames[index], color = StorageColors[index], fontSize = 10.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium)
+                                Text(formatBytes(categories[index]), color = StorageColors[index], fontSize = 10.sp, lineHeight = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier.weight(1f).padding(start = 3.dp),
                                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -239,9 +247,10 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Canvas(Modifier.size(5.dp)) { drawCircle(StorageColors[index]) }
                             Spacer(Modifier.width(4.dp))
-                            Text(title, color = TextDim, fontSize = 10.sp, lineHeight = 12.sp)
+                            Text(title, color = StorageColors[index], fontSize = 10.sp, lineHeight = 12.sp, fontWeight = FontWeight.Medium)
                         }
-                        Text(formatBytes(categories[index]), color = TextWhite, fontSize = 11.sp, lineHeight = 14.sp,
+                        Text(formatBytes(categories[index]), color = StorageColors[index], fontSize = 11.sp, lineHeight = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }

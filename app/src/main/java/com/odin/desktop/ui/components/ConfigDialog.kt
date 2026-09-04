@@ -63,10 +63,14 @@ fun ConfigDialog(
     onSectionClick: (Int) -> Unit,
     currentJoystickColor: String,
     currentOrientation: Int,
+    isDefaultHome: Boolean = false,
+    bootAutoStartEnabled: Boolean = true,
     autoFanControlEnabled: Boolean,
     socTemp: Float,
     onColorSelect: (String) -> Unit,
     onOrientationSelect: (Int) -> Unit,
+    onRequestDefaultHome: () -> Unit = {},
+    onToggleBootAutoStart: () -> Unit = {},
     onToggleAutoFan: () -> Unit,
     tabs: List<TabEntity>,
     tabActionFocusIndex: Int = 0,
@@ -79,7 +83,14 @@ fun ConfigDialog(
 ) {
     if (!isOpen) return
 
-    val sections = listOf("1. 摇杆灯颜色", "2. 屏幕方向规则", "3. 自动风扇控制", "4. Tab 页编辑", "5. 关于")
+    val sections = listOf(
+        "1. 摇杆灯颜色",
+        "2. 屏幕方向规则",
+        "3. 默认桌面与自启",
+        "4. 自动风扇控制",
+        "5. Tab 页编辑",
+        "6. 关于"
+    )
 
     // 同一 Window 内的原生全屏遮罩，确保 D-Pad、A、B 键位事件完全直通
     Box(
@@ -184,9 +195,10 @@ fun ConfigDialog(
                     when (selectedSection) {
                         0 -> ColorSection(currentJoystickColor, inSubMenu, subFocusIndex, onColorSelect)
                         1 -> OrientationSection(currentOrientation, inSubMenu, subFocusIndex, onOrientationSelect)
-                        2 -> AutoFanSection(autoFanControlEnabled, socTemp, inSubMenu, subFocusIndex, onToggleAutoFan)
-                        3 -> TabEditSection(tabs, inSubMenu, subFocusIndex, tabActionFocusIndex, onAddTab, onRenameTab, onDeleteTab, onMoveTabUp, onMoveTabDown, onSetDefaultTab)
-                        4 -> AboutSection()
+                        2 -> DefaultHomeAndBootSection(isDefaultHome, bootAutoStartEnabled, inSubMenu, subFocusIndex, onRequestDefaultHome, onToggleBootAutoStart)
+                        3 -> AutoFanSection(autoFanControlEnabled, socTemp, inSubMenu, subFocusIndex, onToggleAutoFan)
+                        4 -> TabEditSection(tabs, inSubMenu, subFocusIndex, tabActionFocusIndex, onAddTab, onRenameTab, onDeleteTab, onMoveTabUp, onMoveTabDown, onSetDefaultTab)
+                        5 -> AboutSection()
                     }
                 }
             }
@@ -305,6 +317,172 @@ private fun OrientationSection(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DefaultHomeAndBootSection(
+    isDefaultHome: Boolean,
+    bootAutoStartEnabled: Boolean,
+    inSubMenu: Boolean,
+    subFocusIndex: Int,
+    onRequestDefaultHome: () -> Unit,
+    onToggleBootAutoStart: () -> Unit
+) {
+    Column {
+        Text("系统默认主屏幕与开机自启：", color = TextWhite, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text("注册为掌机专属系统主屏幕与开机自动启动项，打造纯粹掌机一体化体验。", color = TextDim, fontSize = 12.sp)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 项 1: 设为系统默认桌面
+        val isHomeFocused = inSubMenu && (subFocusIndex % 2 == 0)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (isHomeFocused) CyanAccent.copy(alpha = 0.20f) else CardBackground)
+                .border(
+                    width = if (isHomeFocused) 2.dp else 1.dp,
+                    color = if (isHomeFocused) CyanAccent else CardBorder,
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .clickable { onRequestDefaultHome() }
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = "系统默认主屏幕 (Home)",
+                            color = if (isHomeFocused) CyanAccent else TextWhite,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(if (isDefaultHome) GreenActive.copy(alpha = 0.15f) else OrangeWarning.copy(alpha = 0.15f))
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isDefaultHome) GreenActive else OrangeWarning,
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = if (isDefaultHome) "✓ 已设为默认" else "未设为默认",
+                                color = if (isDefaultHome) GreenActive else OrangeWarning,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = if (isDefaultHome) "已接管实体 Home 键与系统主屏幕角色。按 Home 键直接回到 Odin 启动台。"
+                               else "尚未设为系统默认桌面。点击或按 A 键调起系统授权弹窗，一键接管主屏幕角色。",
+                        color = TextDim,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (isHomeFocused) CyanAccent else DarkSurface)
+                        .border(1.dp, if (isHomeFocused) CyanAccent else CardBorder, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = if (isDefaultHome) "管理桌面设置 (A)" else "立即设为默认 (A)",
+                        color = if (isHomeFocused) PureBlack else (if (isDefaultHome) TextWhite else CyanAccent),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // 项 2: 开机自动启动桌面
+        val isBootFocused = inSubMenu && (subFocusIndex % 2 == 1)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (isBootFocused) CyanAccent.copy(alpha = 0.20f) else CardBackground)
+                .border(
+                    width = if (isBootFocused) 2.dp else 1.dp,
+                    color = if (isBootFocused) CyanAccent else CardBorder,
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .clickable { onToggleBootAutoStart() }
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = "开机自启 Odin 桌面",
+                            color = if (isBootFocused) CyanAccent else TextWhite,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(if (bootAutoStartEnabled) GreenActive.copy(alpha = 0.15f) else TextDim.copy(alpha = 0.15f))
+                                .border(
+                                    width = 1.dp,
+                                    color = if (bootAutoStartEnabled) GreenActive else TextDim.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = if (bootAutoStartEnabled) "ON 已开启" else "OFF 已关闭",
+                                color = if (bootAutoStartEnabled) GreenActive else TextDim,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = if (bootAutoStartEnabled) "设备开机后自动拉起 Odin 启动台与温控守护后台，无需手动查找应用启动。"
+                               else "开机时不主动拉起桌面界面，仅在被系统或用户显式调用时启动。",
+                        color = TextDim,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (isBootFocused) CyanAccent else DarkSurface)
+                        .border(1.dp, if (isBootFocused) CyanAccent else CardBorder, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = if (bootAutoStartEnabled) "关闭自启 (A)" else "开启自启 (A)",
+                        color = if (isBootFocused) PureBlack else TextWhite,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -658,6 +836,7 @@ private fun AboutSection() {
             text = "专为 AYN Odin 3 打造的极简高效掌机专属桌面与系统增强系统。\n" +
                     "• 纯黑 OLED 省电与防烧屏优化\n" +
                     "• 实体手柄全键位盲操适配\n" +
+                    "• 系统级默认主屏幕与开机自启\n" +
                     "• 充电风扇智能调度\n\n" +
                     "开源与技术组件致谢：\n" +
                     "- Android Jetpack & Compose\n" +
