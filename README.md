@@ -9,7 +9,7 @@
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20%7C%20OLED%20Black-blue?style=for-the-badge&logo=jetpackcompose)](https://github.com/LeXwDeX/odin3-desktop)
 [![Shader](https://img.shields.io/badge/Shader-TVGAME%20Calibration%20OSD-orange?style=for-the-badge&logo=opengl)](https://github.com/LeXwDeX/odin3-desktop)
 
-*纯粹掌机美学 • 100% 全实体手柄盲操 • 系统级默认主屏幕与开机自启 • TVGAME 电视画面校准台 • 智能温控风扇调度*
+*纯粹掌机美学 • 100% 全实体手柄盲操 • 系统默认主屏幕 • TVGAME 电视画面校准台 • 智能温控风扇调度*
 
 </div>
 
@@ -58,13 +58,14 @@
 
 ---
 
-### 4. 系统级默认主屏幕与开机自启 (Default Home & Boot Startup)
-深度融入 Android 系统底层角色与电源生命周期：
-* **合规系统默认桌面**：具备标准 `android.app.role.HOME` 与 `CATEGORY_HOME` 声明，按下 Odin 3 **实体 Home 键**瞬间直达本启动台；
-* **开机自动拉起**：注册 `BOOT_COMPLETED`、`LOCKED_BOOT_COMPLETED` 与高通高优先级 `QUICKBOOT_POWERON`，开机自启后台温控守护并直接拉起桌面界面；
-* **控制台一键管理**：在设置【3. 默认桌面与自启】中实时探测桌面角色状态，按 A 键一键申请系统角色或管理默认应用，开机自启开关支持随时一键切换。
+### 4. 系统默认主屏幕 (Default Home)
+由用户在 Android 的系统选择窗口中决定默认桌面。
 
-![系统默认主屏幕与开机自启](docs/screenshots/07_config_home_boot.png)
+* **标准桌面注册**：声明 `MAIN` / `HOME` / `DEFAULT`，通过 `android.app.role.HOME` 请求默认桌面角色。选择 Odin Desktop 后，开机及按 Home 时由系统进入本桌面。
+* **尊重默认选择**：选择原厂或其他桌面时，开机广播不会主动拉起 Odin Desktop。旧版“开机自启”偏好已停止读取，后台温控服务的开机恢复保留。
+* **系统选择入口**：在设置【3. 默认桌面】中点击卡片或按 A，打开系统角色选择窗口；已经是默认桌面时可进入系统设置更换。取消选择保持原桌面。
+
+![系统默认主屏幕设置](docs/screenshots/07_config_home_boot.png)
 
 ---
 
@@ -115,7 +116,7 @@
 | 色彩定义 | 状态含义 | 典型应用场景 |
 | :--- | :--- | :--- |
 | **幽灵灰 (`#757575`)** | **关闭 / OFF / 空闲** | 功能关闭、开关处于 OFF 状态、磁盘空闲空间 |
-| **翡翠绿 (`#00E676`)** | **安全 / 开启 / 正常** | 功能正常启用、开机自启 ON、性能默认档、应用已安装占用 |
+| **翡翠绿 (`#00E676`)** | **安全 / 开启 / 正常** | 功能正常启用、已设为默认桌面、性能默认档、应用已安装占用 |
 | **琥珀黄 (`#FFD54F`)** | **警告 / 中度性能** | 性能模式、9V/3A 充电模式、未设为默认主屏幕 |
 | **战斗红 (`#FF5252`)** | **最高 / 严重 / 极限** | 高性能模式、风扇最大档、充电分离激活 |
 | **电光蓝 (`#00E5FF`)** | **特殊状态 / 高亮聚焦** | 充电风扇静音生效时的特殊停转状态、当前手柄光标聚焦 |
@@ -139,7 +140,7 @@
 | **X 键** | Dock 充电卡片 | 切换**充电分离模式**（开启红 / 关闭灰） |
 | **Y 键 (长按/按键)** | 桌面卡片区 | 呼出**应用专属操作菜单**（Tab 迁移、系统属性、移除图标） |
 | **Y 键 (短按)** | 桌面卡片区 | 开启/退出当前分类卡片的手动自由排序模式 |
-| **Home 键** | 系统任何位置 | 实体物理按键直接返回 Odin 启动台 |
+| **Home 键** | 系统任何位置 | 返回系统选定的默认桌面 |
 | **D-Pad (上下)** | TVGAME 校准台 | 在 OSD 校准菜单各项参数之间移动光标 |
 | **D-Pad (左右)** | TVGAME 校准台 | **0ms 实时微调**当前选中的对比度、亮度、伽马、锐化等参数 |
 | **L1 / R1** | TVGAME 校准台 | 快速循环切换 6 大图像预设 |
@@ -158,7 +159,7 @@ odin3_desktop/
 │   │   ├── OdinDesktopApplication.kt   # 全局单例与 Room 数据库初始化
 │   │   ├── dashboard/                  # 只读统计、存储多卷探测与四项常用操作
 │   │   ├── data/                       # Room 数据库实体、DAO 与多源数据仓库
-│   │   ├── receiver/                   # BootCompletedReceiver 开机多广播与自启拉起
+│   │   ├── receiver/                   # 开机恢复温控服务，不启动桌面界面
 │   │   ├── service/
 │   │   │   ├── afk/                    # 息屏挂机 OLED 纯黑防烧屏浮层服务
 │   │   │   └── fan/                    # 温控守护服务、无障碍前台感知、HardwareController

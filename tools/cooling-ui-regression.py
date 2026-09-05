@@ -65,7 +65,7 @@ fields = ("_performanceMode", "_fanMode", "_autoFanControlEnabled", "hardwareLoc
           "coolingJob", "coolingIntentPending", "coolingIntentRevision", "pendingCoolingActions",
           "_joystickLightEnabled", "_joystickColor", "_chargingSeparation", "_chargePowerLimit",
           "_chargeLimit80", "_airplaneMode", "_orientationMode", "_isDefaultHome",
-          "_bootAutoStartEnabled", "_currentSocTemp", "lightJob", "colorJob")
+          "_currentSocTemp", "lightJob", "colorJob")
 declarations = []
 for name in fields:
     match = re.search(rf"^    (?:@Volatile )?private (?:val|var) {name}\b[^\n]*", source, re.M)

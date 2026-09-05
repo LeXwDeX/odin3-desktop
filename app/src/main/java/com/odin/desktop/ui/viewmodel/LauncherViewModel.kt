@@ -457,11 +457,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             _configContentFocusIndex.value -= 1
                         }
                     }
-                    2 -> { // 默认桌面与自启
-                        if (_configContentFocusIndex.value > 0) {
-                            _configContentFocusIndex.value -= 1
-                        }
-                    }
+                    2 -> { _configContentFocusIndex.value = 0 }
                     4 -> { // Tab 列表
                         if (_configContentFocusIndex.value > 0) {
                             _configContentFocusIndex.value -= 1
@@ -515,11 +511,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             _configContentFocusIndex.value += 1
                         }
                     }
-                    2 -> { // 默认桌面与自启（共2项：默认主屏幕、开机自启）
-                        if (_configContentFocusIndex.value < 1) {
-                            _configContentFocusIndex.value += 1
-                        }
-                    }
+                    2 -> { _configContentFocusIndex.value = 0 }
                     3 -> {
                         // 自动风扇控制：仅可选中控制开关 (index 0)，下方为展示内容，不可被光标选中
                     }
@@ -749,13 +741,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     ?: HardwareController.ORIENTATION_LANDSCAPE
                 hardware.setOrientationMode(sel)
             }
-            2 -> { // 默认主屏幕与开机自启
-                if (_configContentFocusIndex.value == 0) {
-                    hardware.requestDefaultHome()
-                } else {
-                    hardware.toggleBootAutoStart()
-                }
-            }
+            2 -> hardware.requestDefaultHome()
             3 -> { // 自动风扇控制
                 hardware.toggleAutoFanControl()
             }
@@ -799,7 +785,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun openConfigDialog() {
         refreshAppLanguage()
-        hardware.refreshHomeAndBootStatus()
+        hardware.refreshHomeStatus()
         _isConfigOpen.value = true
         _configInSubMenu.value = false
         _configSectionIndex.value = 0

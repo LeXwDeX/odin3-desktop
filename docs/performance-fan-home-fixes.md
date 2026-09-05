@@ -1,4 +1,27 @@
-# 性能、风扇与 Home/返回键修复（2026-09-04）
+# 性能、风扇与 Home/返回键修复记录
+
+## 2026-09-06：默认桌面注册与升级验证
+
+对应 [Issue #1](https://github.com/LeXwDeX/odin3-desktop/issues/1)。开机接收器已删除主动启动 MainActivity 的分支，三个既有开机广播仅尝试恢复温控服务。设置页面和手柄导航移除了独立的开机自启开关；旧 `boot_auto_start_enabled` 偏好不再读取。
+
+实机另发现默认桌面按钮曾立即返回：系统日志为 `RequestRoleActivity: Package name cannot be null or empty: null`。原实现通过普通 `startActivity` 发起 HOME 角色请求，系统无法取得结果调用方。现在由 MainActivity 注册 `ActivityResultContracts.StartActivityForResult`，发起请求并在返回时刷新角色状态；已持有角色时保留系统默认应用设置入口。[Android RoleManager 文档](https://developer.android.com/reference/android/app/role/RoleManager#createRequestRoleIntent(java.lang.String)) 要求按 Activity Result 方式发起此请求。
+
+本次用原调试 keystore 构建并保留数据覆盖安装，未卸载应用或清空数据。首次覆盖安装前后核对私有目录中的 48 个文件，内容全部一致。安装前的数据库、偏好、文件及 no_backup 目录备份在本机忽略目录 `.android-local/device-analysis/home-fix-data-before-20260906.tar`；旧 APK 为同目录的 `desktop-before-home-fix.apk`。这些原始材料和签名私钥不提交。
+
+Odin3 / Android 15 实机结果：
+
+- 冷启动能进入桌面，设置页可正常操作，自启开关已移除。
+- 点击默认桌面卡片能显示 PermissionController 的系统选择窗口；取消后角色仍为原厂 `com.odin.odinlauncher`。
+- 原厂桌面被选为默认时正常重启：HOME 角色与 Intent 解析均为原厂桌面，重启日志中没有本应用 MainActivity 启动记录。
+- 在系统窗口中选择 Odin 启动台后，HOME 角色和 Intent 解析均为 `com.odin.desktop/.ui.MainActivity`；按 Home 正常进入桌面。
+- 再次正常重启后，由 `MAIN` / `HOME` Intent 进入 Odin 启动台，界面已绘制且可打开设置，没有复现 Logo 卡死。
+- 验收结束后，通过应用的“管理桌面设置”进入系统页面，恢复原厂启动器为默认桌面；HOME 角色及实际前台均已核对。
+
+本地验证：Debug 构建、`tools/home-back-regression.py`、`tools/cooling-ui-regression.py` 通过。Home 回归新增了真实 BootCompletedReceiver 的三种广播、旧自启偏好为 true、温控服务启动异常及无关广播场景，确保没有 Activity 启动；同时检查角色选择返回时刷新状态，保留原有 100 次 HOME/BACK 重放。
+
+上述结果覆盖默认桌面注册和本次重启场景；[Issue #2](https://github.com/LeXwDeX/odin3-desktop/issues/2) 的原始 Logo 卡死根因尚未确定，继续保留跟踪。性能、风扇仍显示未连接/未读取，[Issue #3](https://github.com/LeXwDeX/odin3-desktop/issues/3) 的无电脑硬件控制要求未解决。本次没有启动临时 ADB 硬件桥。
+
+## 2026-09-04：交接背景
 
 本次继续处理 Antigravity 留下的未提交修改，保留其他应用管理、滤镜与配置变更。目标设备通过 ADB 重新确认：Odin3，Android 15，序列号 `a782c9a1`。
 

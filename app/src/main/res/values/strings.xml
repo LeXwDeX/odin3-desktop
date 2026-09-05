@@ -228,8 +228,8 @@
     <string name="text_choose_a_target_tab_for_value">"Choose a target tab for “%1$s”:"</string>
     <string name="text_games_and_emulators" formatted="false">"Games and emulators"</string>
     <string name="text_general_category" formatted="false">"General category"</string>
-    <string name="text_default_home_and_startup" formatted="false">"Default home and startup:"</string>
-    <string name="text_use_odin_desktop_as_the_system_home" formatted="false">"Use Odin Desktop as the system home screen and optionally launch it at startup."</string>
+    <string name="text_default_home_and_startup" formatted="false">"Default home:"</string>
+    <string name="text_use_odin_desktop_as_the_system_home" formatted="false">"Choose your home app in system settings. Android opens the selected home at boot and when you press Home. This app will not open itself."</string>
     <string name="text_default_home_screen" formatted="false">"Default home screen"</string>
     <string name="text_set_as_default" formatted="false">"✓ Set as default"</string>
     <string name="text_not_the_default" formatted="false">"Not the default"</string>
@@ -283,7 +283,7 @@
     <string name="text_active" formatted="false">"✓ Active"</string>
     <string name="text_1_stick_light_color" formatted="false">"1. Stick light color"</string>
     <string name="text_2_screen_orientation" formatted="false">"2. Screen orientation"</string>
-    <string name="text_3_home_and_startup" formatted="false">"3. Home and startup"</string>
+    <string name="text_3_home_and_startup" formatted="false">"3. Default home"</string>
     <string name="text_4_automatic_fan" formatted="false">"4. Automatic fan"</string>
     <string name="text_5_edit_tabs" formatted="false">"5. Edit tabs"</string>
     <string name="text_b_or_tap_the_background_to_return" formatted="false">"B or tap the background to return"</string>
@@ -322,7 +322,7 @@
     <string name="text_a_desktop_and_system_controls_for_ayn" formatted="false">"A desktop and system controls for AYN Odin 3.\n"</string>
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• OLED black background and burn-in protection\n"</string>
     <string name="text_full_gamepad_navigation_n" formatted="false">"• Full gamepad navigation\n"</string>
-    <string name="text_default_home_and_startup_integration_n" formatted="false">"• Default home and startup integration\n"</string>
+    <string name="text_default_home_and_startup_integration_n" formatted="false">"• System default home registration\n"</string>
     <string name="text_charging_fan_control_n_n" formatted="false">"• Charging fan control\n\n"</string>
     <string name="text_open_source_acknowledgements_n" formatted="false">"Open-source acknowledgements:\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"Up/Down: select • A: confirm • B: back"</string>

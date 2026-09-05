@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -28,6 +29,11 @@ import com.odin.desktop.ui.viewmodel.LauncherViewModel
 class MainActivity : AppCompatActivity() {
 
     private val viewModel: LauncherViewModel by viewModels()
+    private val defaultHomeRequest = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        viewModel.hardware.refreshHomeStatus()
+    }
 
     private val packageReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
@@ -73,7 +79,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.hardware.requestRoleEvent.collect {
-                    HardwareController.requestDefaultHomeRole(this@MainActivity)
+                    HardwareController.requestDefaultHomeRole(this@MainActivity) { intent ->
+                        defaultHomeRequest.launch(intent)
+                    }
                 }
             }
         }

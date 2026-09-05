@@ -62,7 +62,6 @@ fun LauncherScreen(
     val autoFanControlEnabled by viewModel.hardware.autoFanControlEnabled.collectAsState()
     val currentSocTemp by viewModel.hardware.currentSocTemp.collectAsState()
     val isDefaultHome by viewModel.hardware.isDefaultHome.collectAsState()
-    val bootAutoStartEnabled by viewModel.hardware.bootAutoStartEnabled.collectAsState()
 
     val isConfigOpen by viewModel.isConfigOpen.collectAsState()
     val configSectionIndex by viewModel.configSectionIndex.collectAsState()
@@ -255,13 +254,11 @@ fun LauncherScreen(
         currentLanguage = appLanguage,
         onLanguageSelect = viewModel::setAppLanguage,
         isDefaultHome = isDefaultHome,
-        bootAutoStartEnabled = bootAutoStartEnabled,
         autoFanControlEnabled = autoFanControlEnabled,
         socTemp = currentSocTemp,
         onColorSelect = { hex -> viewModel.hardware.setJoystickColor(hex) },
         onOrientationSelect = { mode -> viewModel.hardware.setOrientationMode(mode) },
         onRequestDefaultHome = { viewModel.hardware.requestDefaultHome() },
-        onToggleBootAutoStart = { viewModel.hardware.toggleBootAutoStart() },
         onToggleAutoFan = { viewModel.hardware.toggleAutoFanControl() },
         tabs = tabs,
         tabActionFocusIndex = configTabActionIndex,

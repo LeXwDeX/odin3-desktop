@@ -228,8 +228,8 @@
     <string name="text_choose_a_target_tab_for_value">"请选择要将 \"%1$s\" 移动到的目标 Tab："</string>
     <string name="text_games_and_emulators" formatted="false">"游戏模拟器分类"</string>
     <string name="text_general_category" formatted="false">"常规分类"</string>
-    <string name="text_default_home_and_startup" formatted="false">"系统默认主屏幕与开机自启："</string>
-    <string name="text_use_odin_desktop_as_the_system_home" formatted="false">"注册为掌机专属系统主屏幕与开机自动启动项，打造纯粹掌机一体化体验。"</string>
+    <string name="text_default_home_and_startup" formatted="false">"系统默认桌面："</string>
+    <string name="text_use_odin_desktop_as_the_system_home" formatted="false">"请在系统设置中选择默认桌面。开机及按 Home 时由系统启动所选桌面，应用不会自行抢占前台。"</string>
     <string name="text_default_home_screen" formatted="false">"系统默认主屏幕 (Home)"</string>
     <string name="text_set_as_default" formatted="false">"✓ 已设为默认"</string>
     <string name="text_not_the_default" formatted="false">"未设为默认"</string>
@@ -283,7 +283,7 @@
     <string name="text_active" formatted="false">"✓ 当前生效"</string>
     <string name="text_1_stick_light_color" formatted="false">"1. 摇杆灯颜色"</string>
     <string name="text_2_screen_orientation" formatted="false">"2. 屏幕方向规则"</string>
-    <string name="text_3_home_and_startup" formatted="false">"3. 默认桌面与自启"</string>
+    <string name="text_3_home_and_startup" formatted="false">"3. 默认桌面"</string>
     <string name="text_4_automatic_fan" formatted="false">"4. 自动风扇控制"</string>
     <string name="text_5_edit_tabs" formatted="false">"5. Tab 页编辑"</string>
     <string name="text_b_or_tap_the_background_to_return" formatted="false">"【B 键 / 点击空白返回桌面】"</string>
@@ -322,7 +322,7 @@
     <string name="text_a_desktop_and_system_controls_for_ayn" formatted="false">"专为 AYN Odin 3 打造的极简高效掌机专属桌面与系统增强系统。\n"</string>
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• 纯黑 OLED 省电与防烧屏优化\n"</string>
     <string name="text_full_gamepad_navigation_n" formatted="false">"• 实体手柄全键位盲操适配\n"</string>
-    <string name="text_default_home_and_startup_integration_n" formatted="false">"• 系统级默认主屏幕与开机自启\n"</string>
+    <string name="text_default_home_and_startup_integration_n" formatted="false">"• 系统默认桌面注册\n"</string>
     <string name="text_charging_fan_control_n_n" formatted="false">"• 充电风扇智能调度\n\n"</string>
     <string name="text_open_source_acknowledgements_n" formatted="false">"开源与技术组件致谢：\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"【上下键选择 • A 键确认 • B 键返回】"</string>

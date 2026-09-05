@@ -40,6 +40,7 @@ tools/android python3 tools/hardware-bridge/build.py --sdk .android-local/sdk --
 - 项目应用调试已获准唤醒设备、切换前台和操作应用，无需逐步重复确认；用户当前明确的暂停或限制优先。
 - 操作前运行 `adb devices` 重新确认目标，后续命令使用已确认的序列号，不沿用文档中的历史设备编号。
 - 覆盖安装保留应用数据。签名不匹配时安全迁移原调试 keystore，不通过卸载或清数据绕过；私钥不进入 Git。
+- 使用 `tools/android` 构建时，调试签名位于 `.android-local/android-user/debug.keystore`。从原编译电脑取得 keystore 后，先用本地 JDK 的 `keytool -list -v` 查看证书，再与掌机已安装 APK 的 `apksigner verify --print-certs` 结果核对；匹配后备份并替换项目内密钥，再构建与覆盖安装。不要只替换 `~/.android/debug.keystore`：项目包装器设置了独立的 `ANDROID_USER_HOME`。
 - 覆盖设备配置前备份确切目标文件，交付时说明备份位置；Root、刷机、分区变更、恢复出厂设置需要针对具体操作另行授权并约定恢复方案。
 - 设备未连接时完成本地工作，明确记录尚未安装、尚未实机验证的项目。构建或替身回归通过不代表设备行为已验收。
 - 性能与风扇验收同时核对界面和设备读回；OEM 异步响应、PWM 与实际转速的证据边界见 [修复记录](performance-fan-home-fixes.md) 和 [桥接说明](../tools/hardware-bridge/README.md)。

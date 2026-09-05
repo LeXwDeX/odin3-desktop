@@ -377,21 +377,7 @@ object HardwareController {
         }
     }
 
-    // --- 启动项与默认桌面设置 ---
-    const val KEY_BOOT_AUTO_START = "boot_auto_start_enabled"
-
-    fun isBootAutoStartEnabled(context: Context): Boolean {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_BOOT_AUTO_START, true)
-    }
-
-    fun setBootAutoStartEnabled(context: Context, enabled: Boolean) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(KEY_BOOT_AUTO_START, enabled)
-            .apply()
-    }
-
+    // --- 系统默认桌面设置（旧版自启偏好不再读取） ---
     fun isDefaultHome(context: Context): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = context.getSystemService(RoleManager::class.java)
@@ -404,16 +390,15 @@ object HardwareController {
         return resolveInfo?.activityInfo?.packageName == context.packageName
     }
 
-    fun requestDefaultHomeRole(context: Context) {
+    fun requestDefaultHomeRole(context: Context, launchRoleRequest: (Intent) -> Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roleManager = context.getSystemService(RoleManager::class.java)
             if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
                 if (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
                     val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
-                    if (context !is Activity) {
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
+                    // RequestRoleActivity obtains the caller from the result contract.
+                    // A plain startActivity leaves callingPackage null and closes the dialog.
+                    launchRoleRequest(intent)
                     return
                 }
             }

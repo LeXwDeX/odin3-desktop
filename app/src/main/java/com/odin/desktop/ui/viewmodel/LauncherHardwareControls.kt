@@ -92,9 +92,6 @@ class LauncherHardwareControls(
     private val _isDefaultHome = MutableStateFlow(false)
     val isDefaultHome: StateFlow<Boolean> = _isDefaultHome.asStateFlow()
 
-    private val _bootAutoStartEnabled = MutableStateFlow(true)
-    val bootAutoStartEnabled: StateFlow<Boolean> = _bootAutoStartEnabled.asStateFlow()
-
     private val _requestRoleEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val requestRoleEvent: SharedFlow<Unit> = _requestRoleEvent.asSharedFlow()
 
@@ -158,7 +155,6 @@ class LauncherHardwareControls(
         runCatching { HardwareController.isAirplaneModeOn(context) }.onSuccess { _airplaneMode.value = it }
         _orientationMode.value = HardwareController.getOrientationMode(context)
         _isDefaultHome.value = HardwareController.isDefaultHome(context)
-        _bootAutoStartEnabled.value = HardwareController.isBootAutoStartEnabled(context)
         _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
     }
 
@@ -188,19 +184,12 @@ class LauncherHardwareControls(
         }
     }
 
-    fun toggleBootAutoStart() {
-        val next = !_bootAutoStartEnabled.value
-        _bootAutoStartEnabled.value = next
-        HardwareController.setBootAutoStartEnabled(context, next)
-    }
-
     fun requestDefaultHome() {
         _requestRoleEvent.tryEmit(Unit)
     }
 
-    fun refreshHomeAndBootStatus() {
+    fun refreshHomeStatus() {
         _isDefaultHome.value = HardwareController.isDefaultHome(context)
-        _bootAutoStartEnabled.value = HardwareController.isBootAutoStartEnabled(context)
     }
 
     private fun enqueueCoolingAction(kind: String, action: () -> Unit) {

@@ -229,8 +229,8 @@
     <string name="text_choose_a_target_tab_for_value">"「%1$s」の移動先タブを選択："</string>
     <string name="text_games_and_emulators" formatted="false">"ゲーム・エミュレーター"</string>
     <string name="text_general_category" formatted="false">"一般カテゴリ"</string>
-    <string name="text_default_home_and_startup" formatted="false">"デフォルトのホームと起動："</string>
-    <string name="text_use_odin_desktop_as_the_system_home" formatted="false">"Odin Desktopをホーム画面に設定し、端末起動時の自動起動を選択できます。"</string>
+    <string name="text_default_home_and_startup" formatted="false">"デフォルトのホーム："</string>
+    <string name="text_use_odin_desktop_as_the_system_home" formatted="false">"システム設定でホームアプリを選択してください。起動時やHomeキー操作時はシステムが選択したホームを開きます。"</string>
     <string name="text_default_home_screen" formatted="false">"デフォルトのホーム画面"</string>
     <string name="text_set_as_default" formatted="false">"✓ デフォルトに設定済み"</string>
     <string name="text_not_the_default" formatted="false">"デフォルト未設定"</string>
@@ -284,7 +284,7 @@
     <string name="text_active" formatted="false">"✓ 選択中"</string>
     <string name="text_1_stick_light_color" formatted="false">"1. スティックライト"</string>
     <string name="text_2_screen_orientation" formatted="false">"2. 画面の向き"</string>
-    <string name="text_3_home_and_startup" formatted="false">"3. ホームと起動"</string>
+    <string name="text_3_home_and_startup" formatted="false">"3. デフォルトホーム"</string>
     <string name="text_4_automatic_fan" formatted="false">"4. 自動ファン制御"</string>
     <string name="text_5_edit_tabs" formatted="false">"5. タブの編集"</string>
     <string name="text_b_or_tap_the_background_to_return" formatted="false">"Bまたは背景をタップして戻る"</string>
@@ -323,7 +323,7 @@
     <string name="text_a_desktop_and_system_controls_for_ayn" formatted="false">"AYN Odin 3向けのデスクトップとシステム操作。\n"</string>
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• OLED向けの黒背景と焼き付き防止\n"</string>
     <string name="text_full_gamepad_navigation_n" formatted="false">"• 全画面でゲームパッド操作に対応\n"</string>
-    <string name="text_default_home_and_startup_integration_n" formatted="false">"• デフォルトホームと自動起動の連携\n"</string>
+    <string name="text_default_home_and_startup_integration_n" formatted="false">"• システムのデフォルトホーム\n"</string>
     <string name="text_charging_fan_control_n_n" formatted="false">"• 充電中のファン制御\n\n"</string>
     <string name="text_open_source_acknowledgements_n" formatted="false">"オープンソースへの謝辞：\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"上下：選択・A：決定・B：戻る"</string>

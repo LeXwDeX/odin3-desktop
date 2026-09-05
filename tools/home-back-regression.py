@@ -38,14 +38,29 @@ stubs = {
 open class Context {
     val packageName = "com.odin.desktop"
     val contentResolver = Any()
+    var activityStarts = 0
+    var serviceStarts = 0
+    var failServiceStart = false
     fun registerReceiver(receiver: BroadcastReceiver, filter: IntentFilter) {}
     fun unregisterReceiver(receiver: BroadcastReceiver) {}
-    fun startForegroundService(intent: Intent) {}
-    fun startService(intent: Intent) {}
+    fun startActivity(intent: Intent) { activityStarts++ }
+    fun startForegroundService(intent: Intent) { startService(intent) }
+    fun startService(intent: Intent) {
+        serviceStarts++
+        if (failServiceStart) throw IllegalStateException("Simulated service start restriction")
+    }
 }
 abstract class BroadcastReceiver { abstract fun onReceive(context: Context?, intent: Intent?) }
 class Intent(context: Context? = null, cls: Class<*>? = null) {
-    companion object { const val ACTION_PACKAGE_ADDED = "added"; const val ACTION_PACKAGE_REMOVED = "removed"; const val ACTION_PACKAGE_REPLACED = "replaced" }
+    var action: String? = null
+    fun addFlags(flags: Int) = this
+    companion object {
+        const val ACTION_PACKAGE_ADDED = "added"; const val ACTION_PACKAGE_REMOVED = "removed"; const val ACTION_PACKAGE_REPLACED = "replaced"
+        const val ACTION_BOOT_COMPLETED = "android.intent.action.BOOT_COMPLETED"
+        const val ACTION_LOCKED_BOOT_COMPLETED = "android.intent.action.LOCKED_BOOT_COMPLETED"
+        const val FLAG_ACTIVITY_NEW_TASK = 0x10000000
+        const val FLAG_ACTIVITY_RESET_TASK_IF_NEEDED = 0x00200000
+    }
 }
 class IntentFilter { fun addAction(action: String) {}; fun addDataScheme(scheme: String) {} }
 ''',
@@ -73,6 +88,11 @@ object Settings { object Secure {
     "activity": '''package androidx.activity
 import com.odin.desktop.ui.viewmodel.LauncherViewModel
 open class ComponentActivity: android.content.Context() {
+    var resultCallback: ((Any) -> Unit)? = null
+    fun registerForActivityResult(contract: androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult, callback: (Any) -> Unit): androidx.activity.result.ActivityResultLauncher {
+        resultCallback = callback
+        return androidx.activity.result.ActivityResultLauncher()
+    }
     val window = android.view.Window()
     val onBackPressedDispatcher = OnBackPressedDispatcher()
     var defaultKeyDispatches = 0
@@ -94,6 +114,12 @@ class OnBackPressedDispatcher {
 fun OnBackPressedDispatcher.addCallback(owner: ComponentActivity, enabled: Boolean = true, block: OnBackPressedCallback.() -> Unit) {
     addCallback(owner, object: OnBackPressedCallback(enabled) { override fun handleOnBackPressed() { block() } })
 }
+''',
+    "result": '''package androidx.activity.result
+class ActivityResultLauncher { fun launch(intent: android.content.Intent) {} }
+''',
+    "contract": '''package androidx.activity.result.contract
+object ActivityResultContracts { class StartActivityForResult }
 ''',
     "compose": '''package androidx.activity.compose
 fun androidx.activity.ComponentActivity.setContent(content: () -> Unit) {}
@@ -120,7 +146,9 @@ class WindowInsetsControllerCompat(window: android.view.Window, decorView: Any) 
 object HardwareController {
     fun getOrientationMode(context: android.content.Context) = 0
     fun applyOrientation(context: android.content.Context, mode: Int) {}
-    fun requestDefaultHomeRole(context: android.content.Context) {}
+    fun requestDefaultHomeRole(context: android.content.Context, launch: (android.content.Intent) -> Unit) {}
+    // An upgrade from the old default-enabled startup preference must be safe.
+    fun isBootAutoStartEnabled(context: android.content.Context) = true
 }
 class AppMonitorAccessibilityService { companion object { const val isRunning = true } }
 class FanWatchdogService
@@ -153,6 +181,8 @@ class LauncherViewModel {
     val dashboardActions = Flow()
     val requestRoleEvent = Flow()
     var scans = 0; var hardwareLoads = 0; var visibilityChanges = 0; var visible = false
+    var homeStatusRefreshes = 0
+    fun refreshHomeStatus() { homeStatusRefreshes++ }
     var backCalls = 0; var modalOpen = false
     fun refreshAppLanguage() {}
     fun scanInstalledApps() { scans++ }
@@ -167,11 +197,30 @@ import android.view.KeyEvent
 import com.odin.desktop.ui.viewmodel.LauncherViewModel
 
 fun main() {
+    val receiver = com.odin.desktop.receiver.BootCompletedReceiver()
+    val bootContext = android.content.Context()
+    val bootActions = listOf(android.content.Intent.ACTION_BOOT_COMPLETED,
+        android.content.Intent.ACTION_LOCKED_BOOT_COMPLETED, "android.intent.action.QUICKBOOT_POWERON")
+    for (failService in listOf(false, true)) {
+        bootContext.failServiceStart = failService
+        for (action in bootActions) {
+            receiver.onReceive(bootContext, android.content.Intent().apply { this.action = action })
+            check(bootContext.activityStarts == 0) { "Boot must never launch UI, including legacy startup-enabled installs" }
+        }
+    }
+    check(bootContext.serviceStarts == 6) { "Boot must preserve cooling service startup attempts" }
+    receiver.onReceive(bootContext, android.content.Intent().apply { action = "unrelated" })
+    receiver.onReceive(bootContext, null)
+    receiver.onReceive(null, android.content.Intent())
+    check(bootContext.serviceStarts == 6 && bootContext.activityStarts == 0)
+    println("PASS: three boot broadcasts never start UI, including legacy enabled preference and service failures")
     val activity = MainActivity()
     activity.onCreate(null)
     activity.onStart()
     activity.onResume()
     val vm = LauncherViewModel.instance
+    activity.resultCallback?.invoke(Any()) ?: error("HOME request must register an Activity Result contract")
+    check(vm.homeStatusRefreshes == 1) { "Returning from HOME selection must refresh role state" }
     val initialScans = vm.scans
     val initialHardware = vm.hardwareLoads
     val initialVisibility = vm.visibilityChanges
@@ -224,7 +273,8 @@ fun main() {
 }
 with tempfile.TemporaryDirectory(prefix="odin-home-back-") as folder:
     folder = Path(folder)
-    sources = [main, gamepad, ROOT / "app/src/main/java/com/odin/desktop/ui/navigation/FocusZone.kt"]
+    sources = [main, gamepad, ROOT / "app/src/main/java/com/odin/desktop/ui/navigation/FocusZone.kt",
+               ROOT / "app/src/main/java/com/odin/desktop/receiver/BootCompletedReceiver.kt"]
     for name, source in stubs.items():
         path = folder / f"{name}.kt"
         path.write_text(source)

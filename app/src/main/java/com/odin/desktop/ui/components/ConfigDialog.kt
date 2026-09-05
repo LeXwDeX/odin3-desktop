@@ -54,13 +54,11 @@ fun ConfigDialog(
     currentLanguage: AppLanguage,
     onLanguageSelect: (AppLanguage) -> Unit,
     isDefaultHome: Boolean = false,
-    bootAutoStartEnabled: Boolean = true,
     autoFanControlEnabled: Boolean,
     socTemp: Float,
     onColorSelect: (String) -> Unit,
     onOrientationSelect: (Int) -> Unit,
     onRequestDefaultHome: () -> Unit = {},
-    onToggleBootAutoStart: () -> Unit = {},
     onToggleAutoFan: () -> Unit,
     tabs: List<TabEntity>,
     tabActionFocusIndex: Int = 0,
@@ -194,7 +192,7 @@ fun ConfigDialog(
                     when (selectedSection) {
                         0 -> ColorSection(currentJoystickColor, inSubMenu, subFocusIndex, onColorSelect)
                         1 -> OrientationSection(currentOrientation, inSubMenu, subFocusIndex, onOrientationSelect)
-                        2 -> DefaultHomeAndBootSection(isDefaultHome, bootAutoStartEnabled, inSubMenu, subFocusIndex, onRequestDefaultHome, onToggleBootAutoStart)
+                        2 -> DefaultHomeAndBootSection(isDefaultHome, inSubMenu, onRequestDefaultHome)
                         3 -> AutoFanSection(autoFanControlEnabled, socTemp, inSubMenu, subFocusIndex, onToggleAutoFan)
                         4 -> TabEditSection(tabs, inSubMenu, subFocusIndex, tabActionFocusIndex, onAddTab, onRenameTab, onDeleteTab, onMoveTabUp, onMoveTabDown, onSetDefaultTab)
                         5 -> LanguageSection(currentLanguage, inSubMenu, subFocusIndex, onLanguageSelect)
