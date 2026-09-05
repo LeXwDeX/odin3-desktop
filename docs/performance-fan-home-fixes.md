@@ -20,7 +20,7 @@ python3 tools/fan-state-completion-regression.py
 python3 tools/hardware-bridge/build.py --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME"
 ```
 
-需要 Python 3 和完整 JDK 17，无额外 Python 包。三个 Kotlin 方法回归脚本依赖首次 Gradle 构建生成的 `~/.gradle/caches/modules-2/files-2.1`，目前不读取自定义 `GRADLE_USER_HOME`。协调器测试无需 Gradle 缓存。APK、桥接构建产物、`local.properties`、签名私钥、设备配对令牌和 `/tmp` 原始调试材料均不在 Git 中。
+需要 Python 3 和完整 JDK 17，无额外 Python 包。三个 Kotlin 方法回归脚本依赖首次 Gradle 构建生成的缓存，支持 `GRADLE_USER_HOME`，未设置时使用 `~/.gradle`。项目内环境可通过 `tools/android python3 tools/…` 运行，见[开发说明](development.md)。协调器测试无需 Gradle 缓存。APK、桥接构建产物、`local.properties`、签名私钥、设备配对令牌和 `/tmp` 原始调试材料均不在 Git 中。
 
 设备重新连接后先运行 `adb devices` 确认目标，再覆盖安装新 APK、按硬件桥 README 启动/核验桥接，完成本文“设备断开时的交付边界”中的三项实机验收。新机器的默认 debug 签名可能不同；需要安全迁移原调试 keystore 才能保留数据覆盖安装，不将私钥提交到 Git，也不通过卸载/清数据绕过签名不匹配。
 

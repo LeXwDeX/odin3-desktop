@@ -15,7 +15,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-CACHE = Path.home() / ".gradle/caches/modules-2/files-2.1"
+CACHE = Path(os.environ.get("GRADLE_USER_HOME", Path.home() / ".gradle")) / "caches/modules-2/files-2.1"
 SOURCE = ROOT / "app/src/main/java/com/odin/desktop/ui/viewmodel/LauncherHardwareControls.kt"
 parser = argparse.ArgumentParser(description=__doc__)
 variants = parser.add_mutually_exclusive_group()

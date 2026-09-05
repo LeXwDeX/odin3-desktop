@@ -2,6 +2,25 @@
 
 ## 构建与本地验证
 
+Apple Silicon Mac 可直接使用项目内环境，无需 Homebrew 或 Android Studio：
+
+```sh
+python3 tools/setup-android.py
+# 同时配置本项目的 Google 官方 android-cli skill：
+python3 tools/setup-android.py --install-skill
+tools/android java -version
+tools/android adb devices -l
+tools/android ./gradlew :app:assembleDebug
+tools/android python3 tools/fan-policy/test.py
+tools/android python3 tools/hardware-bridge/build.py --sdk .android-local/sdk --java-home .android-local/jdk/Contents/Home
+```
+
+初始化脚本下载并校验固定版本的 Azul JDK 17 和 Google Command-line Tools，再通过 SDK Manager 安装 SDK 35、Build-Tools 34.0.0（当前 AGP 默认）/35.0.0（桥接构建）与 Platform-Tools；首次安装按提示接受 SDK 许可。脚本可重复运行。`tools/android` 是项目环境包装器，后面接要执行的命令；如需调用 Google Android CLI，使用 `tools/android android --help`。所有命令从仓库根目录执行。
+
+工具、SDK 用户配置、Gradle 依赖缓存和设备分析材料保存在已忽略的 `.android-local/`，不修改系统 Java、shell 配置或已有 `local.properties`。ADB 服务可能使用本机 `~/.android` 的 USB 授权密钥；已有密钥不迁移、不提交。Gradle 生成的签名密钥也不提交。首次联网和 USB 操作在受限终端中可能需要执行授权。其他操作系统按下面的手动方式准备工具链。
+
+官方 Android CLI skill 位于 [android/skills](https://github.com/android/skills/tree/main/devtools/android-cli)。本项目用 `tools/android android skills add android-cli --agent=codex --project=.` 安装项目级 skill；`android init` 默认会为检测到的多个代理安装用户级 skill。本机首次探查时也执行了该默认初始化，在 Codex、Copilot、OpenCode 用户目录留下了官方 skill。CLI 和 skill 是开发工具，不会解决应用运行时的硬件权限或桥接生命周期问题。CLI 从 Google 官方 `latest` 下载，初始化不会自动升级已安装版本；显式升级使用 `tools/android android update`。
+
 使用完整 JDK 17、Android SDK platform `android-35` 和 build-tools `35.0.0`。将 `JAVA_HOME` 指向 JDK，将 `ANDROID_HOME` 或本地 `local.properties` 的 `sdk.dir` 指向实际 SDK；本机环境配置与构建产物不提交到 Git。
 
 在仓库根目录构建 Debug APK：

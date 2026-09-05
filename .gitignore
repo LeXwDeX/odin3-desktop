@@ -10,3 +10,5 @@ captures
 .cxx
 *.apk
 *.aab
+/.android-local/
+/.agents/skills/android-cli/
