@@ -17,6 +17,7 @@ public final class HardwareBridgeSelfTest {
         performanceFanCoupling();
         observerOverwriteAndFanRollback();
         performanceReadOnly();
+        fanTelemetry();
         rejectUnknownOperations();
         partialChargeRollback();
         incompleteRollbackIsReported();
@@ -24,6 +25,8 @@ public final class HardwareBridgeSelfTest {
         propertyPartialFailureRollback();
         rejectedSnapshotDoesNotWrite();
         protocolPrimitives();
+        nativeProtocol();
+        airplaneControl();
         commandDeadline();
         System.out.println("Hardware bridge self-test passed (" + checks + " checks).");
     }
@@ -40,6 +43,75 @@ public final class HardwareBridgeSelfTest {
             long millis = (System.nanoTime() - start) / 1_000_000;
             equal(true, millis >= 1800 && millis < 4500);
         }
+    }
+
+    private static void fanTelemetry() {
+        final String[][] reading = { { "5700", "1", "11500", "50000" } };
+        MemoryStore store = new MemoryStore() {
+            @Override public String[] fanTelemetry() { return reading[0]; }
+        };
+        HardwareOperations operations = new HardwareOperations(store);
+        equal("OK\tFAN_TELEMETRY\t5700\t23", operations.execute("FAN_TELEMETRY"));
+        reading[0] = new String[] { "0", "0", "0", "50000" };
+        equal("OK\tFAN_TELEMETRY\t0\t0", operations.execute("FAN_TELEMETRY"));
+        for (String[] bad : new String[][] {
+                null, { "0" }, { "", "1", "11500", "50000" },
+                { "5700", "1", "11500", "0" }, { "5700", "1", "50001", "50000" },
+                { "5700", "2", "11500", "50000" }, { "-1", "1", "11500", "50000" },
+                { "9999999", "1", "11500", "50000" } }) {
+            reading[0] = bad;
+            equal("ERR\tREAD_UNAVAILABLE", operations.execute("FAN_TELEMETRY"));
+        }
+        equal("ERR\tREAD_UNAVAILABLE", new HardwareOperations(new MemoryStore()).execute("FAN_TELEMETRY"));
+        equal("ERR\tBAD_REQUEST", operations.execute("FAN_TELEMETRY\tanything"));
+        equal(0, store.writes);
+    }
+
+    private static void nativeProtocol() throws Exception {
+        // Use a real host shell to exercise quoting and the OEM's first-line response behavior.
+        String literal = "red'; printf INJECTED; '";
+        String command = OemCommandCodec.encode("/usr/bin/printf", "%s\\n", literal, "second")
+            .replace("/system/bin/timeout 2 ", "").replace("/system/bin/tr", "/usr/bin/tr");
+        String response = OdinHardwareBridge.run("/bin/sh", "-c", command);
+        equal(false, response.contains("\n"));
+        equal(literal + " second", OemCommandCodec.decode(response.getBytes(StandardCharsets.UTF_8)));
+        for (String bad : Arrays.asList("", "0", "ODIN:1 denied", "ODIN:124 timed out", "ODIN:0")) {
+            try { OemCommandCodec.decode(bad.getBytes(StandardCharsets.UTF_8)); throw new AssertionError("Bad status accepted"); }
+            catch (IOException expected) { checks++; }
+        }
+        for (byte[] bad : new byte[][] { null, new byte[4097] }) {
+            try { OemCommandCodec.decode(bad); throw new AssertionError("Bad response size accepted"); }
+            catch (IOException expected) { checks++; }
+        }
+        try {
+            OemCommandCodec.encode(String.join("", Collections.nCopies(256, "x")));
+            throw new AssertionError("Truncated command accepted");
+        } catch (IOException expected) { checks++; }
+        equal(true, OemCommandCodec.encode("/system/bin/cat", "/sys/class/gpio5_pwm2/speed",
+            "/sys/class/gpio5_pwm2/state", "/sys/class/gpio5_pwm2/duty", "/sys/class/gpio5_pwm2/period").length() <= 255);
+        equal(true, OemCommandCodec.encode("/system/bin/cmd", "settings", "--user", "0", "put", "system",
+            "joystick_led_light_picker_color", "#ff7c4dff,#ff7c4dff").length() <= 255);
+    }
+
+    private static void airplaneControl() {
+        final String[] state = { "0" };
+        final boolean[] reject = { false };
+        MemoryStore store = new MemoryStore() {
+            @Override public String airplane() { return state[0]; }
+            @Override public void airplane(String value) throws IOException {
+                state[0] = value;
+                if (reject[0] && "1".equals(value)) throw new IOException("Partial airplane write");
+            }
+        };
+        HardwareOperations operations = new HardwareOperations(store);
+        equal("OK\tAIRPLANE\t1", operations.execute("AIRPLANE\t1"));
+        equal("1", state[0]);
+        equal("OK\tAIRPLANE\t0", operations.execute("AIRPLANE\t0"));
+        reject[0] = true;
+        equal("ERR\tWRITE_REJECTED", operations.execute("AIRPLANE\t1"));
+        equal("0", state[0]);
+        equal("ERR\tBAD_REQUEST", operations.execute("AIRPLANE\tenable;anything"));
+        equal("ERR\tREAD_UNAVAILABLE", new HardwareOperations(new MemoryStore()).execute("AIRPLANE\t1"));
     }
 
     private static void performanceFanCoupling() {

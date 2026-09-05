@@ -47,7 +47,7 @@ Wi-Fi 名称受精确位置权限与系统定位开关限制，缺失时卡片�
 
 系统文件管理优先打开 DocumentsUI Launcher/FilesActivity，不能用 PickActivity 目录选择器冒充文件管理；Odin 设置通过已解析的 `com.odin.settings/com.ro.settings.activity.MainSettingsActivity` 打开，避免依赖该应用不存在的 Launcher 入口。
 
-Dock 的性能、风扇、灯光和充电操作使用新受限 ADB 桥：本机 `127.0.0.1:18889`、请求鉴权、白名单设置及读回确认。设备重启后需电脑重新启用。状态读取不代表写入权限已具备，后端失败应显示错误。部署与限制见 [快捷控制说明](quick-controls.md#受限硬件后端)。
+Dock 的性能、风扇、灯光、充电与飞行模式现直接调用原厂 `PServerBinder`，保留固定操作与读回确认。服务启用与验证见 [原厂服务接入记录](hardware-standalone-investigation.md)。CPU/GPU、存储和内存统计保持既有数据路径；跨应用诊断权限要求仍按上文区分。下面的 ADB 桥记录属于 2026-09-04 历史版本。
 
 ## 本轮实机验证（2026-09-04）
 

@@ -19,7 +19,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- Hardware & Fan Management permissions -->
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"

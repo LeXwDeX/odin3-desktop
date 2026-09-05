@@ -9,12 +9,12 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
-import com.odin.desktop.hardware.HardwareBridgeClient
+import com.odin.desktop.hardware.HardwareControlClient
 import com.odin.desktop.hardware.HardwareControlException
 
 /**
  * Odin 3 硬件状态统一管理器。
- * 写入由认证的 ADB Shell 服务执行并读回；调用方必须在 IO 线程执行硬件操作。
+ * 通过原厂 Binder 服务直接执行、读回并在失败时恢复；调用方必须在 IO 线程执行硬件操作。
  */
 object HardwareController {
 
@@ -111,7 +111,7 @@ object HardwareController {
         Settings.System.getString(context.contentResolver, key)
 
     private fun setSystem(context: Context, key: String, value: String) {
-        val reply = HardwareBridgeClient.request(context, "SET\t$key\t$value")
+        val reply = HardwareControlClient.request(context, "SET\t$key\t$value")
         if (reply != listOf(key, value) || systemValue(context, key) != value) {
             throw HardwareControlException(context.getString(R.string.text_hardware_readback_differs_from_the_requested_setting))
         }
@@ -119,7 +119,7 @@ object HardwareController {
 
     // --- CPU 性能模式 ---
     fun getPerformanceMode(context: Context): Int {
-        val reply = HardwareBridgeClient.request(context, "PERFORMANCE_GET")
+        val reply = HardwareControlClient.request(context, "PERFORMANCE_GET")
         val value = reply.getOrNull(1)?.toIntOrNull()
         if (reply.size != 2 || reply[0] != "PERFORMANCE" || value == null || value !in 0..2) {
             throw HardwareControlException(context.getString(R.string.text_system_performance_mode_is_unavailable_refresh_the))
@@ -154,8 +154,21 @@ object HardwareController {
     }
 
     // --- 风扇模式 ---
+    data class FanTelemetry(val rpm: Int, val dutyPercent: Int)
+
+    fun getFanTelemetry(context: Context): FanTelemetry {
+        val reply = HardwareControlClient.request(context, "FAN_TELEMETRY")
+        val rpm = reply.getOrNull(1)?.toIntOrNull()
+        val duty = reply.getOrNull(2)?.toIntOrNull()
+        if (reply.size != 3 || reply[0] != "FAN_TELEMETRY" ||
+            rpm == null || rpm !in 0..50000 || duty == null || duty !in 0..100) {
+            throw HardwareControlException(context.getString(R.string.text_cannot_confirm_the_actual_fan_mode_refresh))
+        }
+        return FanTelemetry(rpm, duty)
+    }
+
     fun getFanMode(context: Context): Int {
-        val reply = HardwareBridgeClient.request(context, "FAN_GET")
+        val reply = HardwareControlClient.request(context, "FAN_GET")
         val value = reply.getOrNull(1)?.toIntOrNull()
         if (reply.size != 2 || reply[0] != "FAN" || value == null || value !in 0..6) {
             throw HardwareControlException(context.getString(R.string.text_cannot_confirm_the_actual_fan_mode_refresh))
@@ -198,7 +211,7 @@ object HardwareController {
         if (applied && expected.fanMode != mode &&
             (expected.autoEnabled || expected.fanMode == FAN_OFF)) {
             // Settings notifications precede OEM settling. Publish completion only after the
-            // bridge has confirmed the driver state, including changes made by the watchdog.
+            // hardware service has confirmed the driver state, including changes made by the watchdog.
             context.sendBroadcast(Intent(ACTION_FAN_STATE_CHANGED).setPackage(context.packageName))
         }
         return applied
@@ -217,7 +230,7 @@ object HardwareController {
         }
         override fun writeFan(mode: Int) = setSystem(context, KEY_FAN_MODE, mode.toString())
         override fun writePerformanceAndFan(performance: Int, fan: Int) {
-            val reply = HardwareBridgeClient.request(context, "PERFORMANCE_FAN\t$performance\t$fan")
+            val reply = HardwareControlClient.request(context, "PERFORMANCE_FAN\t$performance\t$fan")
             if (reply != listOf("PERFORMANCE_FAN", performance.toString(), fan.toString())) {
                 throw HardwareControlException(context.getString(R.string.text_performance_and_fan_settings_were_not_both))
             }
@@ -236,7 +249,7 @@ object HardwareController {
 
     fun setJoystickLightEnabled(context: Context, enabled: Boolean): Boolean {
         val value = if (enabled) "1,1" else "0,0"
-        val reply = HardwareBridgeClient.request(context, "LIGHTS\t$value")
+        val reply = HardwareControlClient.request(context, "LIGHTS\t$value")
         if (reply != listOf("LIGHTS", value) ||
             systemValue(context, KEY_JOYSTICK_LIGHT_ENABLED) != value ||
             systemValue(context, KEY_JOYSTICK_HANDLE_LIGHT_ENABLED) != value) {
@@ -289,7 +302,7 @@ object HardwareController {
     fun toggleChargeLimit80(context: Context): Boolean {
         val next = !(isChargeLimit80Enabled(context) && isChargePowerLimitEnabled(context))
         val value = if (next) "1" else "0"
-        val reply = HardwareBridgeClient.request(context, "CHARGE\t$value")
+        val reply = HardwareControlClient.request(context, "CHARGE\t$value")
         if (reply != listOf("CHARGE", value) ||
             isChargeLimit80Enabled(context) != next || isChargePowerLimitEnabled(context) != next) {
             throw HardwareControlException(context.getString(R.string.text_charging_limits_were_not_both_applied_refresh))
@@ -307,14 +320,9 @@ object HardwareController {
     }
 
     fun setAirplaneMode(context: Context, enabled: Boolean): Boolean {
-        try {
-            check(Settings.Global.putInt(context.contentResolver, Settings.Global.AIRPLANE_MODE_ON, if (enabled) 1 else 0))
-            try {
-                context.sendBroadcast(Intent(Intent.ACTION_AIRPLANE_MODE_CHANGED).putExtra("state", enabled))
-            } catch (_: Exception) {}
-        } catch (error: Exception) {
-            throw HardwareControlException(context.getString(R.string.text_airplane_mode_could_not_be_changed_refresh), error)
-        }
+        val value = if (enabled) "1" else "0"
+        val reply = HardwareControlClient.request(context, "AIRPLANE\t$value")
+        if (reply != listOf("AIRPLANE", value)) throw HardwareControlException(context.getString(R.string.text_airplane_mode_could_not_be_changed_refresh))
         if (isAirplaneModeOn(context) != enabled) throw HardwareControlException(context.getString(R.string.text_airplane_mode_readback_differs))
         return enabled
     }

@@ -44,3 +44,15 @@ tools/android python3 tools/hardware-bridge/build.py --sdk .android-local/sdk --
 - 覆盖设备配置前备份确切目标文件，交付时说明备份位置；Root、刷机、分区变更、恢复出厂设置需要针对具体操作另行授权并约定恢复方案。
 - 设备未连接时完成本地工作，明确记录尚未安装、尚未实机验证的项目。构建或替身回归通过不代表设备行为已验收。
 - 性能与风扇验收同时核对界面和设备读回；OEM 异步响应、PWM 与实际转速的证据边界见 [修复记录](performance-fan-home-fixes.md) 和 [桥接说明](../tools/hardware-bridge/README.md)。
+
+## 原厂硬件接口调试
+
+当前应用内硬件控制不需要运行 `tools/hardware-bridge/manage.py start`。旧桥仅作开发诊断；共享事务和 OEM 协议的 142 项 JVM 检查仍由 `tools/hardware-bridge/build.py` 执行。
+
+Debug APK 提供只读探针，在真实应用 UID / SELinux 域中检查服务、性能、风扇与权限，不读取桥接令牌；Release APK 不包含该 instrumentation。
+
+```sh
+tools/android adb -s <serial> shell am instrument -w com.odin.desktop/com.odin.desktop.hardware.HardwareProbeInstrumentation
+```
+
+只有显式加上 `-e verify_controls true` 才运行固定控制验收，临时改变并恢复性能、风扇、灯光、充电与飞行模式。先确认没有游戏运行并记录当前设置；结果必须检查 `control_verification` 无 `error` / `failure` 且 `restoration` 全部为 true，不能只看 instrumentation 退出码。灯光读回证明配置层成功，实体亮灭需要现场观察。详见 [原厂服务接入记录](hardware-standalone-investigation.md)。

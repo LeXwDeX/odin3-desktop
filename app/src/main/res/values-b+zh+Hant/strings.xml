@@ -336,4 +336,5 @@
     <string name="language_title" formatted="false">"应用语言"</string>
     <string name="language_description" formatted="false">"默认跟随系统，也可为 Odin Desktop 单独选择语言。其他系统语言使用英文。"</string>
     <string name="language_follow_system" formatted="false">"跟随系统"</string>
+    <string name="hardware_oem_service_unavailable">原廠硬體服務暫時無法使用，請待裝置啟動完成後重試。</string>
 </resources>

@@ -1,6 +1,8 @@
 # Odin hardware bridge
 
-This ADB-started Java process runs as the normal Android shell UID 2000. It restores the desktop's hardware controls when ordinary-app writes to OEM private System settings are rejected. It does not require root, change an OEM package, replace thermal services, or offer arbitrary shell commands.
+> Developer diagnostics only since 2026-09-06. The app now calls the firmware `PServerBinder` directly and does not connect to this process or read its pairing token. Starting this bridge is not an installation or recovery step for the current app. See [native hardware integration](../../docs/hardware-standalone-investigation.md). The transaction engine is shared from `app/src/main/java/com/odin/hardware/HardwareOperations.java`.
+
+This ADB-started Java process runs as the normal Android shell UID 2000. It was the previous desktop backend for OEM private System settings; it is retained for developer diagnostics and shared regression tests. It does not require root, change an OEM package, replace thermal services, or offer arbitrary shell commands.
 
 The app reads actual system state after every acknowledgement. Performance comes from `persist.vendor.debug.mode` through the authenticated fixed `PERFORMANCE_GET` request; the actual app process cannot reliably read this property itself. `Settings.System.performance_mode` is a compatibility mirror which also triggers SystemUI's fan observer. Fan reads and writes check the configured mode plus the Odin 3 PWM enable/duty/period nodes. This confirms the driver command, not physical RPM, airflow, current, or LED output. SMART permits zero duty and its software thermal-loop liveness cannot be established from a single sample.
 
@@ -11,6 +13,8 @@ The app reads actual system state after every acknowledgement. Performance comes
 | `PERFORMANCE_GET` | Read-only property `persist.vendor.debug.mode`, with no caller-supplied argument | Returns only validated 0, 1, or 2; inaccessible/invalid state returns an error |
 | `PERFORMANCE` | System `performance_mode`, property `persist.vendor.debug.mode`, then `fan_mode` | 0 normal, 1 performance, 2 high performance; retains configured MAX, otherwise normal OFF / elevated SMART |
 | `PERFORMANCE_FAN` | Same performance destinations, followed by an explicit final fan mode in one transaction | Performance 0/1/2 and fan 0/4/5; elevated performance plus OFF is rejected |
+| `FAN_TELEMETRY` | Fixed fan speed, state, duty and period nodes | Validated RPM and PWM duty percentage; unavailable readings return an error |
+| `AIRPLANE` | `cmd connectivity airplane-mode` | 0 off or 1 on, verified with rollback on failure |
 | `FAN_GET` | Fixed System fan key and read-only Odin 3 PWM nodes | Returns `FAN` and mode; known OFF/MAX driver mismatches fail, SMART allows duty 0..50000 with enabled PWM |
 | `SET fan_mode` | System `fan_mode` | 0 off, 4 OEM smart control, 5 maximum fixed mode |
 | `LIGHTS` | System `joystick_light_enabled` and `joystick_handle_light_enabled` | `0,0` or `1,1` |

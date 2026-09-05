@@ -6,16 +6,16 @@
 
 - [#1：通过系统默认桌面注册启动，移除开机主动拉起](https://github.com/LeXwDeX/odin3-desktop/issues/1)。修复与验证见 [Home 修复记录](performance-fan-home-fixes.md#2026-09-06默认桌面注册与升级验证)。
 - [#2：启动卡在 Odin Logo](https://github.com/LeXwDeX/odin3-desktop/issues/2)。原始卡死根因仍待确认，不能把一次启动成功当作彻底修复。
-- [#3：硬件控制依赖临时 ADB 桥](https://github.com/LeXwDeX/odin3-desktop/issues/3)。脱离电脑、重启后独立控制的要求仍未解决，见 [调查记录](hardware-standalone-investigation.md)。
+- [#3：硬件控制依赖临时 ADB 桥](https://github.com/LeXwDeX/odin3-desktop/issues/3)。原厂服务直连已实现，无额外授权、重启和实体灯光验收通过；固件适配边界见 [接入记录](hardware-standalone-investigation.md)。
 - [#4：VIDEO SHADER 如实显示当前游戏的实际生效状态](https://github.com/LeXwDeX/odin3-desktop/issues/4)。仍待实现与实机验证。
 
 ## ODIN-20260905-01：Dock 风扇、性能无法操作
 
 - 记录日期：2026-09-05。
-- 状态：待排查；本次仅记录用户反馈。
+- 状态：已修复；原厂服务直连、软件控制、重启验证及用户现场灯光确认通过。
 - 用户反馈：今天无法操作底部 Dock（用户描述为“docker”）中的风扇、性能功能，出现大意为“ADB 没连接，无法访问硬件服务”的提示。提示文字为用户转述，尚未取得完整原文。
 - 影响：用户无法通过桌面的这两个入口调整硬件。
-- 待确认：发生时的应用版本、是否重启过设备、ADB 连接状态、硬件桥的可用性与认证状态，以及完整错误与复现步骤。尚未确定根因，也未确认是否与此前修复有关。
+- 已确认原因：旧后端依赖临时 ADB shell 桥，退出或重启后丢失连接。当前 APK 已移除该运行依赖；验证与剩余边界见原厂服务接入记录。
 
 后续处理与验收：
 

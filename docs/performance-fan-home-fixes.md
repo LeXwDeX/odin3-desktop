@@ -1,5 +1,10 @@
 # 性能、风扇与 Home/返回键修复记录
 
+## 2026-09-06：硬件服务直接接入
+
+当前硬件后端已由临时 ADB 桥改为原厂 `PServerBinder`。性能、风扇、灯光、充电及飞行模式的普通应用直控、额外权限撤销及重启验证见 [接入记录](hardware-standalone-investigation.md)。本轮最终没有 UI 布局变化；下面较早段落中“需启动桥/无电脑未解决”的状态属于当时记录，不再作为当前部署步骤。
+
+
 ## 2026-09-06：默认桌面注册与升级验证
 
 对应 [Issue #1](https://github.com/LeXwDeX/odin3-desktop/issues/1)。开机接收器已删除主动启动 MainActivity 的分支，三个既有开机广播仅尝试恢复温控服务。设置页面和手柄导航移除了独立的开机自启开关；旧 `boot_auto_start_enabled` 偏好不再读取。
@@ -45,7 +50,7 @@ python3 tools/hardware-bridge/build.py --sdk "$ANDROID_HOME" --java-home "$JAVA_
 
 需要 Python 3 和完整 JDK 17，无额外 Python 包。三个 Kotlin 方法回归脚本依赖首次 Gradle 构建生成的缓存，支持 `GRADLE_USER_HOME`，未设置时使用 `~/.gradle`。项目内环境可通过 `tools/android python3 tools/…` 运行，见[开发说明](development.md)。协调器测试无需 Gradle 缓存。APK、桥接构建产物、`local.properties`、签名私钥、设备配对令牌和 `/tmp` 原始调试材料均不在 Git 中。
 
-设备重新连接后先运行 `adb devices` 确认目标，再覆盖安装新 APK、按硬件桥 README 启动/核验桥接，完成本文“设备断开时的交付边界”中的三项实机验收。新机器的默认 debug 签名可能不同；需要安全迁移原调试 keystore 才能保留数据覆盖安装，不将私钥提交到 Git，也不通过卸载/清数据绕过签名不匹配。
+设备重新连接后先运行 `adb devices` 确认目标，再覆盖安装新 APK、按原厂服务接入记录核验控制，完成本文“设备断开时的交付边界”中的三项实机验收。新机器的默认 debug 签名可能不同；需要安全迁移原调试 keystore 才能保留数据覆盖安装，不将私钥提交到 Git，也不通过卸载/清数据绕过签名不匹配。
 
 ## 根因与最终行为
 

@@ -337,4 +337,5 @@
     <string name="language_title" formatted="false">"アプリの言語"</string>
     <string name="language_description" formatted="false">"端末の言語に従うか、Odin Desktopの言語を選択できます。対応外の言語では英語を使用します。"</string>
     <string name="language_follow_system" formatted="false">"システムに従う"</string>
+    <string name="hardware_oem_service_unavailable">本体のハードウェアサービスを利用できません。起動完了後に再試行してください。</string>
 </resources>
