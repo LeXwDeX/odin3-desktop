@@ -5,7 +5,7 @@
 已发布的 GitHub Issues：
 
 - [#1：通过系统默认桌面注册启动，移除开机主动拉起](https://github.com/LeXwDeX/odin3-desktop/issues/1)。修复与验证见 [Home 修复记录](performance-fan-home-fixes.md#2026-09-06默认桌面注册与升级验证)。
-- [#2：启动卡在 Odin Logo](https://github.com/LeXwDeX/odin3-desktop/issues/2)。原始卡死根因仍待确认，不能把一次启动成功当作彻底修复。
+- [#2：启动卡在 Odin Logo](https://github.com/LeXwDeX/odin3-desktop/issues/2)。已结案。用户确认原因为应用自启动但未注册为桌面，与已注册的系统桌面相互争抢；随 #1 移除主动拉起、改由系统默认桌面注册与用户选择解决。
 - [#3：硬件控制依赖临时 ADB 桥](https://github.com/LeXwDeX/odin3-desktop/issues/3)。原厂服务直连已实现，无额外授权、重启和实体灯光验收通过；固件适配边界见 [接入记录](hardware-standalone-investigation.md)。
 - [#4：VIDEO SHADER 如实显示当前游戏的实际生效状态](https://github.com/LeXwDeX/odin3-desktop/issues/4)。已实现并通过固定测试应用的实机状态验收；详见 [本轮记录](completion-validation.md)。
 

@@ -1,5 +1,9 @@
 # 性能、风扇与 Home/返回键修复记录
 
+## 2026-09-06：Logo 问题结案
+
+用户确认 [Issue #2](https://github.com/LeXwDeX/odin3-desktop/issues/2) 原因为应用自启动但未注册为桌面，与已注册的系统桌面相互争抢，并要求关闭。处理由 #1 的修复覆盖：移除开机主动拉起界面，注册系统 HOME，由用户选择默认桌面。冷启动、系统 HOME 启动和整机重启均已通过；结案原因采用用户确认，下面较早阶段的“根因待确认”保留为历史记录。
+
 ## 2026-09-06：硬件服务直接接入
 
 当前硬件后端已由临时 ADB 桥改为原厂 `PServerBinder`。性能、风扇、灯光、充电及飞行模式的普通应用直控、额外权限撤销及重启验证见 [接入记录](hardware-standalone-investigation.md)。本轮最终没有 UI 布局变化；下面较早段落中“需启动桥/无电脑未解决”的状态属于当时记录，不再作为当前部署步骤。
@@ -24,7 +28,7 @@ Odin3 / Android 15 实机结果：
 
 本地验证：Debug 构建、`tools/home-back-regression.py`、`tools/cooling-ui-regression.py` 通过。Home 回归新增了真实 BootCompletedReceiver 的三种广播、旧自启偏好为 true、温控服务启动异常及无关广播场景，确保没有 Activity 启动；同时检查角色选择返回时刷新状态，保留原有 100 次 HOME/BACK 重放。
 
-上述结果覆盖默认桌面注册和本次重启场景；[Issue #2](https://github.com/LeXwDeX/odin3-desktop/issues/2) 的原始 Logo 卡死根因尚未确定，继续保留跟踪。性能、风扇仍显示未连接/未读取，[Issue #3](https://github.com/LeXwDeX/odin3-desktop/issues/3) 的无电脑硬件控制要求未解决。本次没有启动临时 ADB 硬件桥。
+上述结果覆盖默认桌面注册和该阶段重启场景。该阶段记录中，Issue #2 原始 Logo 卡死原因仍待确认，性能、风扇仍显示未连接/未读取，Issue #3 无电脑硬件控制要求尚未解决；当时没有启动临时 ADB 硬件桥。后续 #2 结案与 #3 原厂服务接入结果见本文件开头的更新。
 
 ## 2026-09-04：交接背景
 
