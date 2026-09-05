@@ -1,5 +1,7 @@
 package com.odin.desktop.service.afk
 
+import com.odin.desktop.locale.AppLanguageContext
+import com.odin.desktop.locale.AppLanguage
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
@@ -28,6 +30,9 @@ import java.util.Date
 import java.util.Locale
 
 class AfkOverlayService : Service() {
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(AppLanguageContext.wrap(base))
+    }
 
     private lateinit var windowManager: WindowManager
     private var overlayView: FrameLayout? = null
@@ -48,8 +53,11 @@ class AfkOverlayService : Service() {
         }
     }
 
+    private var languageSubscription: AutoCloseable? = null
+
     override fun onCreate() {
         super.onCreate()
+        languageSubscription = AppLanguage.observeLegacyChanges(::refreshNotificationLanguage)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
     }
 
@@ -207,6 +215,10 @@ class AfkOverlayService : Service() {
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
+        refreshNotificationLanguage()
+    }
+
+    private fun refreshNotificationLanguage() {
         getSystemService(android.app.NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
     }
 
@@ -232,6 +244,7 @@ class AfkOverlayService : Service() {
     }
 
     override fun onDestroy() {
+        languageSubscription?.close()
         cleanUp()
         super.onDestroy()
     }

@@ -43,6 +43,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.OdinDesktop">
 
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data android:name="autoStoreLocales" android:value="true" />
+        </service>
+
         <activity
             android:name=".shader.control.ShaderControlActivity"
             android:exported="true"
@@ -108,7 +115,7 @@
             android:name=".shader.overlay.ShaderTileService"
             android:exported="true"
             android:icon="@drawable/ic_tile_shader"
-            android:label="滤镜开关"
+            android:label="@string/text_game_filter"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />

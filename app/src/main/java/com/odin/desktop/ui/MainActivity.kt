@@ -7,7 +7,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import com.odin.desktop.dashboard.DashboardActions
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -25,7 +25,7 @@ import com.odin.desktop.ui.viewmodel.LauncherViewModel
  * 注册为系统 Default Home Launcher。
  * 具备全屏沉浸式 OLED 纯黑布局与全局实体手柄按键路由。
  */
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     private val viewModel: LauncherViewModel by viewModels()
 
@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity() {
         } catch (_: Exception) {}
         // A HOME intent can pause/resume this singleTask Activity while it stays visible.
         // Tie expensive refreshes and dashboard collection to actual visibility changes.
+        viewModel.refreshAppLanguage()
         viewModel.setLauncherVisible(true)
         ensureAccessibilityServiceEnabled()
         // 回到桌面时刷新硬件状态与应用列表，并确保隐藏 VideoShader 遮罩 (Shader 仅在应用内生效)

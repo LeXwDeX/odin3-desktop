@@ -11,7 +11,7 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -26,7 +26,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /** Uses the same GPU effect chain as a future in-process renderer integration. */
-class ShaderPreviewActivity : ComponentActivity() {
+class ShaderPreviewActivity : AppCompatActivity() {
     private lateinit var preview: ShaderPreviewView
     private lateinit var status: TextView
     private lateinit var originalButton: Button

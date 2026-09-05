@@ -3,6 +3,11 @@ package com.odin.desktop.ui.components
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
+import com.odin.desktop.locale.AppLanguage
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -46,6 +51,8 @@ fun ConfigDialog(
     onSectionClick: (Int) -> Unit,
     currentJoystickColor: String,
     currentOrientation: Int,
+    currentLanguage: AppLanguage,
+    onLanguageSelect: (AppLanguage) -> Unit,
     isDefaultHome: Boolean = false,
     bootAutoStartEnabled: Boolean = true,
     autoFanControlEnabled: Boolean,
@@ -74,8 +81,14 @@ fun ConfigDialog(
         strings.getString(R.string.text_3_home_and_startup),
         strings.getString(R.string.text_4_automatic_fan),
         strings.getString(R.string.text_5_edit_tabs),
-        strings.getString(R.string.text_6_about)
+        strings.getString(R.string.language_section),
+        strings.getString(R.string.text_7_about)
     )
+
+    val menuScrollState = rememberLazyListState()
+    LaunchedEffect(selectedSection) {
+        menuScrollState.animateScrollToItem(selectedSection)
+    }
 
     // 同一 Window 内的原生全屏遮罩，确保 D-Pad、A、B 键位事件完全直通
     Box(
@@ -118,7 +131,8 @@ fun ConfigDialog(
                 horizontalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 // 左侧设置分类导航
-                Column(
+                LazyColumn(
+                    state = menuScrollState,
                     modifier = Modifier
                         .width(220.dp)
                         .fillMaxHeight()
@@ -132,7 +146,7 @@ fun ConfigDialog(
                         .padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    sections.forEachIndexed { index, title ->
+                    itemsIndexed(sections) { index, title ->
                         val isSelected = selectedSection == index
                         val isMenuFocused = !inSubMenu && isSelected
 
@@ -183,7 +197,8 @@ fun ConfigDialog(
                         2 -> DefaultHomeAndBootSection(isDefaultHome, bootAutoStartEnabled, inSubMenu, subFocusIndex, onRequestDefaultHome, onToggleBootAutoStart)
                         3 -> AutoFanSection(autoFanControlEnabled, socTemp, inSubMenu, subFocusIndex, onToggleAutoFan)
                         4 -> TabEditSection(tabs, inSubMenu, subFocusIndex, tabActionFocusIndex, onAddTab, onRenameTab, onDeleteTab, onMoveTabUp, onMoveTabDown, onSetDefaultTab)
-                        5 -> AboutSection()
+                        5 -> LanguageSection(currentLanguage, inSubMenu, subFocusIndex, onLanguageSelect)
+                        6 -> AboutSection()
                     }
                 }
             }

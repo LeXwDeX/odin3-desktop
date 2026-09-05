@@ -242,6 +242,7 @@ fun LauncherScreen(
     }
 
     // 5. Config 设置弹窗 (支持手柄 D-Pad 上下左右与 A/B/X/L1/R1 盲操)
+    val appLanguage by viewModel.appLanguage.collectAsState()
     ConfigDialog(
         isOpen = isConfigOpen,
         onDismiss = { viewModel.closeConfigDialog() },
@@ -251,6 +252,8 @@ fun LauncherScreen(
         onSectionClick = { index -> viewModel.setConfigSection(index) },
         currentJoystickColor = joystickColor,
         currentOrientation = orientationMode,
+        currentLanguage = appLanguage,
+        onLanguageSelect = viewModel::setAppLanguage,
         isDefaultHome = isDefaultHome,
         bootAutoStartEnabled = bootAutoStartEnabled,
         autoFanControlEnabled = autoFanControlEnabled,

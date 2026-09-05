@@ -286,7 +286,6 @@
     <string name="text_3_home_and_startup" formatted="false">"3. Home and startup"</string>
     <string name="text_4_automatic_fan" formatted="false">"4. Automatic fan"</string>
     <string name="text_5_edit_tabs" formatted="false">"5. Edit tabs"</string>
-    <string name="text_6_about" formatted="false">"6. About"</string>
     <string name="text_b_or_tap_the_background_to_return" formatted="false">"B or tap the background to return"</string>
     <string name="text_manage_category_apps" formatted="false">"Manage category apps"</string>
     <string name="text_up_down_select_app_a_add_remove" formatted="false">"Up/Down: select app • A: add/remove • B: done"</string>
@@ -332,4 +331,12 @@
     <string name="page_dashboard" formatted="false">"Dashboard"</string>
     <string name="page_config" formatted="false">"⚙️ Settings"</string>
     <string name="shader_calibration_title" formatted="false">"TV DISPLAY CALIBRATION"</string>
+    <string name="language_section" formatted="false">"6. Language"</string>
+    <string name="text_7_about" formatted="false">"7. About"</string>
+    <string name="language_title" formatted="false">"App language"</string>
+    <string name="language_description" formatted="false">"Follow the system language or choose a language for Odin Desktop. Other system languages use English."</string>
+    <string name="language_follow_system" formatted="false">"Follow system"</string>
+    <string name="language_chinese" translatable="false">中文</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_japanese" translatable="false">日本語</string>
 </resources>

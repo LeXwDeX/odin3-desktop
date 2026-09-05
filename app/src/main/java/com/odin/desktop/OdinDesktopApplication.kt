@@ -7,8 +7,17 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import com.odin.desktop.data.db.OdinDatabase
+import com.odin.desktop.locale.AppLanguage
+import com.odin.desktop.locale.AppLanguageContext
 
 class OdinDesktopApplication : Application() {
+
+    private var languageSubscription: AutoCloseable? = null
+
+    override fun attachBaseContext(base: Context) {
+        AppLanguageContext.restoreBeforeApplicationCreate(base)
+        super.attachBaseContext(AppLanguageContext.wrap(base))
+    }
 
     val database: OdinDatabase by lazy { OdinDatabase.getDatabase(this) }
 
@@ -17,11 +26,23 @@ class OdinDesktopApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        languageSubscription = AppLanguage.observeLegacyChanges(::refreshLanguageResources)
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
+        refreshLanguageResources()
+    }
+
+    override fun onTerminate() {
+        languageSubscription?.close()
+        super.onTerminate()
+    }
+
+    private fun refreshLanguageResources() {
         createNotificationChannels()
+        com.odin.desktop.service.afk.AfkTileService.requestRefresh(this)
+        com.odin.desktop.shader.overlay.ShaderTileService.requestRefresh(this)
     }
 
     private fun createNotificationChannels() {

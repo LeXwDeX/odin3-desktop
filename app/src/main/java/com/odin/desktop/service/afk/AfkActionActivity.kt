@@ -1,5 +1,6 @@
 package com.odin.desktop.service.afk
 
+import com.odin.desktop.locale.AppLanguageContext
 import com.odin.desktop.R
 import android.app.Activity
 import android.content.Intent
@@ -10,6 +11,10 @@ import android.widget.Toast
 
 /** A short, transparent user action that lets Quick Settings collapse before showing the mask. */
 class AfkActionActivity : Activity() {
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(AppLanguageContext.wrap(base))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {

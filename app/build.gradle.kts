@@ -15,6 +15,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
+        resourceConfigurations += listOf("en", "b+zh+Hans", "b+zh+Hant", "ja")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,6 +40,15 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+    bundle {
+        language {
+            // CONFIG must be able to switch to any supported language while offline.
+            enableSplit = false
+        }
+    }
 }
 
 ksp {
@@ -49,6 +59,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.appcompat)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -66,4 +77,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     debugImplementation(libs.androidx.ui.tooling)
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
 }

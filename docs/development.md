@@ -14,7 +14,7 @@
 
 按改动范围选择验证：性能、风扇与 Home/返回的 Python 3 回归命令及缓存前提见 [修复记录](performance-fan-home-fixes.md)；硬件桥构建和 JVM 自检见 [桥接说明](../tools/hardware-bridge/README.md)。纯文档修改检查内容和链接，无需无关的全量测试。
 
-首版多语言和扩展接口见 [架构审计](architecture.md)。`python3 tools/architecture-regression.py` 验证语言资源、分类身份、实际数据库迁移 SQL 和 Shader 预设；发布构建还需运行 `:app:assembleRelease :app:lintDebug`。首次 Lint 需要联网获取工具依赖。Room schema 导出文件应随迁移提交。
+多语言实现与设备验收见 [多语言说明](languages.md)，扩展接口见 [架构审计](architecture.md)。`./gradlew :app:testDebugUnitTest` 在 Robolectric 的 Android 12L / 15 环境中检查语言匹配、切换与旧版上下文刷新；首次运行需要下载测试依赖。`python3 tools/architecture-regression.py` 验证语言资源、分类身份、实际数据库迁移 SQL 和 Shader 预设；发布构建还需运行 `:app:assembleRelease :app:lintDebug`。首次 Lint 需要联网获取工具依赖。Room schema 导出文件应随迁移提交。
 
 ## 设备调试授权与验收
 

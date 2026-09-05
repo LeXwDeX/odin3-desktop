@@ -33,6 +33,7 @@ main = ROOT / "app/src/main/java/com/odin/desktop/ui/MainActivity.kt"
 gamepad = ROOT / "app/src/main/java/com/odin/desktop/ui/navigation/GamepadKeyHandler.kt"
 keys = sorted(set(re.findall(r"KeyEvent\.(KEYCODE_\w+)", gamepad.read_text() + main.read_text())))
 stubs = {
+    "appcompat": "package androidx.appcompat.app\nopen class AppCompatActivity : androidx.activity.ComponentActivity()\n",
     "content": '''package android.content
 open class Context {
     val packageName = "com.odin.desktop"
@@ -153,6 +154,7 @@ class LauncherViewModel {
     val requestRoleEvent = Flow()
     var scans = 0; var hardwareLoads = 0; var visibilityChanges = 0; var visible = false
     var backCalls = 0; var modalOpen = false
+    fun refreshAppLanguage() {}
     fun scanInstalledApps() { scans++ }
     fun loadHardwareStates() { hardwareLoads++ }
     fun setLauncherVisible(value: Boolean) { if (value != visible) visibilityChanges++; visible = value }

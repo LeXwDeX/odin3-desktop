@@ -20,13 +20,18 @@ def resources(directory):
 
 
 en = resources("values")
-zh = resources("values-b+zh+Hans")
-assert en.keys() == zh.keys(), "Translation keys differ"
-for key in en:
-    assert sorted(re.findall(r"%\d+\$[sdf]", en[key])) == sorted(re.findall(r"%\d+\$[sdf]", zh[key])), key
+nontranslatable = {item.attrib["name"] for item in ET.parse(ROOT / "app/src/main/res/values/strings.xml").getroot()
+                  if item.get("translatable") == "false"}
+for directory in ("values-b+zh+Hans", "values-b+zh+Hant", "values-ja"):
+    translated = resources(directory)
+    assert en.keys() - nontranslatable == translated.keys(), f"Translation keys differ: {directory}"
+    for key, text in translated.items():
+        assert sorted(re.findall(r"%\d+\$[sdf]", en[key])) == sorted(re.findall(r"%\d+\$[sdf]", text)), (directory, key)
+        assert en[key] and text, f"Empty translation: {directory}/{key}"
+for key in en.keys() - nontranslatable:
     assert not re.search(r"[\u4e00-\u9fff]", en[key]), f"Chinese leaked into English fallback: {key}"
-    assert en[key] and zh[key], f"Empty translation: {key}"
-print(f"PASS: {len(en)} English and Simplified Chinese keys; matching format arguments")
+assert resources("values-b+zh+Hans") == resources("values-b+zh+Hant"), "Chinese script fallbacks differ"
+print(f"PASS: {len(en) - len(nontranslatable)} English, Chinese and Japanese keys; matching format arguments")
 
 # The v3 schema is an independent historical contract. Populate default and user-created
 # tabs, explicit sorting and shader JSON, then run the actual production 3 -> 4 SQL.
@@ -134,12 +139,15 @@ import com.odin.desktop.shader.model.*
 fun main() {
     val english = Context(mapOf(R.string.tab_all_apps to "All apps"))
     val chinese = Context(mapOf(R.string.tab_all_apps to "全部应用"))
+    val japanese = Context(mapOf(R.string.tab_all_apps to "すべてのアプリ"))
     val builtin = TabEntity(id = 3, name = "全部应用", kind = TabKind.ALL_APPS, usesDefaultName = true)
     check(builtin.displayName(english) == "All apps")
     check(builtin.displayName(chinese) == "全部应用")
+    check(builtin.displayName(japanese) == "すべてのアプリ")
     check(builtin.name == "全部应用")
     val renamed = builtin.copy(name = "My collection", usesDefaultName = false)
     check(renamed.displayName(english) == renamed.displayName(chinese))
+    check(renamed.displayName(english) == renamed.displayName(japanese))
     check(TabAction.DELETE !in getAvailableTabActions(renamed, 1, 3))
     check(TabAction.DELETE in getAvailableTabActions(TabEntity(name = "All apps"), 1, 3))
     check(TabAction.DELETE !in getAvailableTabActions(TabEntity(name = "Home", isDefault = true), 0, 3))

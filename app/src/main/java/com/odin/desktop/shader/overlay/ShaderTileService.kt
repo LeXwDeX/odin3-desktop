@@ -1,5 +1,6 @@
 package com.odin.desktop.shader.overlay
 
+import com.odin.desktop.locale.AppLanguageContext
 import com.odin.desktop.R
 import android.content.ComponentName
 import android.content.Context
@@ -9,6 +10,10 @@ import android.util.Log
 import com.odin.desktop.shader.engine.VideoShaderEngine
 
 class ShaderTileService : TileService() {
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(AppLanguageContext.wrap(base))
+    }
+
     override fun onTileAdded() {
         super.onTileAdded()
         requestRefresh(this)

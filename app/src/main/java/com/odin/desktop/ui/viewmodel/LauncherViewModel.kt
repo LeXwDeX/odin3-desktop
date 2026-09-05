@@ -2,6 +2,7 @@ package com.odin.desktop.ui.viewmodel
 
 import com.odin.desktop.data.model.displayName
 import com.odin.desktop.R
+import com.odin.desktop.locale.AppLanguage
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -116,7 +117,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _isConfigOpen = MutableStateFlow(false)
     val isConfigOpen: StateFlow<Boolean> = _isConfigOpen.asStateFlow()
 
-    private val _configSectionIndex = MutableStateFlow(0) // 0..5 左侧栏
+    private val _configSectionIndex = MutableStateFlow(0) // 0..6 左侧栏
     val configSectionIndex: StateFlow<Int> = _configSectionIndex.asStateFlow()
 
     private val _configInSubMenu = MutableStateFlow(false) // 是否进入右侧内容区
@@ -124,6 +125,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     private val _configContentFocusIndex = MutableStateFlow(0) // 右侧内容项焦点
     val configContentFocusIndex: StateFlow<Int> = _configContentFocusIndex.asStateFlow()
+
+    private val _appLanguage = MutableStateFlow(AppLanguage.current())
+    val appLanguage = _appLanguage.asStateFlow()
+
+    fun refreshAppLanguage() {
+        _appLanguage.value = AppLanguage.current()
+    }
+
+    fun setAppLanguage(language: AppLanguage) {
+        _configContentFocusIndex.value = language.ordinal
+        _appLanguage.value = language
+        language.apply()
+    }
 
     private val _configTabActionIndex = MutableStateFlow(0) // Tab 编辑右侧行内按钮焦点
     val configTabActionIndex: StateFlow<Int> = _configTabActionIndex.asStateFlow()
@@ -454,6 +468,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             clampTabActionIndex()
                         }
                     }
+                    5 -> { // Language options
+                        _configContentFocusIndex.value = (_configContentFocusIndex.value - 1).coerceAtLeast(0)
+                    }
                     // 自动风扇控制等不可向上越界
                 }
             }
@@ -489,7 +506,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             FocusZone.DOCK -> {}
             FocusZone.CONFIG_MODAL -> {
                 if (!_configInSubMenu.value) {
-                    if (_configSectionIndex.value < 5) {
+                    if (_configSectionIndex.value < 6) {
                         _configSectionIndex.value += 1
                     }
                 } else when (_configSectionIndex.value) {
@@ -511,6 +528,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             _configContentFocusIndex.value += 1
                             clampTabActionIndex()
                         }
+                    }
+                    5 -> { // Language options
+                        _configContentFocusIndex.value = (_configContentFocusIndex.value + 1).coerceAtMost(AppLanguage.entries.lastIndex)
                     }
                     // 摇杆灯、关于等无多行下移
                 }
@@ -772,11 +792,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
             }
+            5 -> AppLanguage.entries.getOrNull(_configContentFocusIndex.value)?.let(::setAppLanguage)
             else -> {}
         }
     }
 
     fun openConfigDialog() {
+        refreshAppLanguage()
         hardware.refreshHomeAndBootStatus()
         _isConfigOpen.value = true
         _configInSubMenu.value = false

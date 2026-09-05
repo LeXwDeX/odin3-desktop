@@ -1,5 +1,7 @@
 package com.odin.desktop.service.fan
 
+import com.odin.desktop.locale.AppLanguageContext
+import com.odin.desktop.locale.AppLanguage
 import android.app.Notification
 import android.app.Service
 import android.content.BroadcastReceiver
@@ -31,6 +33,10 @@ import java.util.concurrent.atomic.AtomicLong
 
 /** Charging-mode policy only; disabling it leaves manual fan settings untouched. */
 class FanWatchdogService : Service() {
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(AppLanguageContext.wrap(base))
+    }
+
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val policyRequests = Channel<PolicyRequest>(Channel.CONFLATED)
     private val requestVersion = AtomicLong()
@@ -68,8 +74,11 @@ class FanWatchdogService : Service() {
         }
     }
 
+    private var languageSubscription: AutoCloseable? = null
+
     override fun onCreate() {
         super.onCreate()
+        languageSubscription = AppLanguage.observeLegacyChanges(::refreshNotificationLanguage)
         val app = application as OdinDesktopApplication
         appRepository = app.appRepository
         try {
@@ -194,6 +203,10 @@ class FanWatchdogService : Service() {
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
+        refreshNotificationLanguage()
+    }
+
+    private fun refreshNotificationLanguage() {
         getSystemService(android.app.NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
     }
 
@@ -207,6 +220,7 @@ class FanWatchdogService : Service() {
             .build()
 
     override fun onDestroy() {
+        languageSubscription?.close()
         requestVersion.incrementAndGet()
         policyRequests.close()
         serviceScope.cancel()

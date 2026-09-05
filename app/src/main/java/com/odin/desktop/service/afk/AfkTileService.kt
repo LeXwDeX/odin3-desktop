@@ -1,5 +1,6 @@
 package com.odin.desktop.service.afk
 
+import com.odin.desktop.locale.AppLanguageContext
 import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
@@ -11,6 +12,10 @@ import android.widget.Toast
 import com.odin.desktop.R
 
 class AfkTileService : TileService() {
+    override fun attachBaseContext(base: android.content.Context) {
+        super.attachBaseContext(AppLanguageContext.wrap(base))
+    }
+
 
     override fun onTileAdded() {
         super.onTileAdded()

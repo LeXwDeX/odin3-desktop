@@ -1,0 +1,340 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name" formatted="false">"Odin Desktop"</string>
+    <string name="tile_afk_label" formatted="false">"画面保護"</string>
+    <string name="tile_afk_active" formatted="false">"動作中"</string>
+    <string name="tile_afk_inactive" formatted="false">"停止中"</string>
+    <string name="afk_overlay_unlock_hint" formatted="false">"ダブルタップで終了"</string>
+    <string name="afk_notification_title" formatted="false">"OLED画面保護が動作中です"</string>
+    <string name="afk_notification_text" formatted="false">"黒いオーバーレイを表示しています。タップすると画面が戻ります。"</string>
+    <string name="fan_notification_title" formatted="false">"充電中のファン監視"</string>
+    <string name="fan_notification_text" formatted="false">"ゲーム未実行・ファン静音"</string>
+    <string name="tab_games" formatted="false">"ゲーム・エミュレーター"</string>
+    <string name="tab_system" formatted="false">"システムアプリ"</string>
+    <string name="tab_all_apps" formatted="false">"すべてのアプリ"</string>
+    <string name="text_idle_screen_protection" formatted="false">"画面保護"</string>
+    <string name="text_foreground_notification_for_oled_idle_protection" formatted="false">"OLED画面保護の常駐通知"</string>
+    <string name="text_charging_fan_monitor" formatted="false">"充電中のファン監視"</string>
+    <string name="text_charging_and_cooling_status_notifications" formatted="false">"充電と冷却の状態通知"</string>
+    <string name="text_hardware_control_is_not_connected_reconnect_the" formatted="false">"ハードウェア制御が接続されていません。ADB経由で制御サービスに再接続してください。"</string>
+    <string name="text_the_hardware_service_could_not_be_authenticated" formatted="false">"ハードウェアサービスを認証できませんでした。ADB経由で再接続してください。"</string>
+    <string name="text_the_hardware_response_could_not_be_verified" formatted="false">"ハードウェアの応答を検証できませんでした。状態を更新して再試行してください。"</string>
+    <string name="text_the_operation_was_incomplete_and_some_settings" formatted="false">"操作が完了せず、一部の設定を復元できませんでした。端末の設定を確認してください。"</string>
+    <string name="text_the_system_did_not_keep_the_selected" formatted="false">"システムが選択した設定を保持しませんでした。復元を試みました。"</string>
+    <string name="text_hardware_status_is_temporarily_unavailable_refresh_it" formatted="false">"ハードウェアの状態を一時的に取得できません。しばらくしてから更新してください。"</string>
+    <string name="text_this_hardware_operation_is_not_allowed" formatted="false">"このハードウェア操作は許可されていません。"</string>
+    <string name="text_hardware_authentication_failed_reconnect_through_adb" formatted="false">"ハードウェアの認証に失敗しました。ADB経由で再接続してください。"</string>
+    <string name="text_the_system_rejected_the_operation_restoration_was" formatted="false">"システムが操作を拒否しました。復元を試みました。"</string>
+    <string name="text_the_hardware_service_is_offline_or_timed" formatted="false">"ハードウェアサービスがオフラインか、応答がタイムアウトしました。ADB経由で再接続し、状態を更新してください。"</string>
+    <string name="text_reading_non_system_app_pss" formatted="false">"システム以外のアプリのPSSを取得中"</string>
+    <string name="text_external_storage" formatted="false">"外部ストレージ"</string>
+    <string name="text_this_android_version_does_not_provide_a" formatted="false">"このAndroidバージョンではボリュームのパスを取得できないため、容量を表示できません"</string>
+    <string name="text_volume_mounted_but_its_path_is_unavailable" formatted="false">"ボリュームはマウント済みですが、パスを取得できません"</string>
+    <string name="text_volume_mounted_but_its_capacity_is_unavailable" formatted="false">"ボリュームはマウント済みですが、容量を取得できません"</string>
+    <string name="text_internal_storage_is_unavailable" formatted="false">"内部ストレージを取得できません"</string>
+    <string name="text_allow_usage_access_to_measure_apps_system" formatted="false">"アプリの容量を測定するには使用状況へのアクセスを許可してください。システムにはパーティションと予約領域を含みます"</string>
+    <string name="text_app_storage_statistics_are_unavailable" formatted="false">"アプリのストレージ統計を取得できません"</string>
+    <string name="text_the_app_list_is_restricted_total_app" formatted="false">"アプリ一覧へのアクセスが制限されているため、アプリの合計容量を測定できません"</string>
+    <string name="text_cannot_read_the_app_list" formatted="false">"アプリ一覧を読み込めません"</string>
+    <string name="text_app_list_unavailable" formatted="false">"アプリ一覧を取得できません"</string>
+    <string name="text_some_app_storage_is_unreadable_an_incomplete" formatted="false">"一部のアプリ容量を取得できないため、不完全な合計は表示しません"</string>
+    <string name="text_storage_snapshots_differ_waiting_for_the_next" formatted="false">"ストレージの測定結果が一致しません。次の更新を待っています"</string>
+    <string name="text_data_partition_only_total_system_usage_is" formatted="false">"データパーティションのみ。システム全体の使用量は取得できません"</string>
+    <string name="text_system_includes_partitions_and_reserves_apps_include" formatted="false">"システムはパーティションと予約領域、アプリはデータとキャッシュ、その他は共有ファイルと他のユーザーを含みます"</string>
+    <string name="text_cpu_temperature_unavailable" formatted="false">"CPU温度を取得できません"</string>
+    <string name="text_highest_cpu_sensor_temperature" formatted="false">"CPUセンサーの最高温度"</string>
+    <string name="text_gpu_temperature_unavailable" formatted="false">"GPU温度を取得できません"</string>
+    <string name="text_highest_gpu_sensor_temperature" formatted="false">"GPUセンサーの最高温度"</string>
+    <string name="text_system_memory_information_unavailable" formatted="false">"システムのメモリ情報を取得できません"</string>
+    <string name="text_network_state_permission_is_missing" formatted="false">"ネットワーク状態へのアクセス権限がありません"</string>
+    <string name="text_wi_fi_network_status_unavailable" formatted="false">"Wi-Fiの接続状態を取得できません"</string>
+    <string name="text_wi_fi_disconnected" formatted="false">"Wi-Fi未接続"</string>
+    <string name="text_wi_fi_name_requires_precise_location_access" formatted="false">"Wi-Fi名の取得には正確な位置情報へのアクセスが必要です。端末の位置情報もオフになっています"</string>
+    <string name="text_wi_fi_name_requires_precise_location_access_2" formatted="false">"Wi-Fi名の取得には正確な位置情報へのアクセスが必要です"</string>
+    <string name="text_system_location_is_off_wi_fi_name" formatted="false">"端末の位置情報がオフのため、Wi-Fi名を取得できません"</string>
+    <string name="text_wi_fi_name_unavailable" formatted="false">"Wi-Fi名を取得できません"</string>
+    <string name="text_wi_fi_traffic_counters_unavailable" formatted="false">"Wi-Fiの通信量を取得できません"</string>
+    <string name="text_sampling_wi_fi_traffic" formatted="false">"Wi-Fiの通信量を測定中"</string>
+    <string name="text_wi_fi_interface_value">"Wi-Fiインターフェース %1$s"</string>
+    <string name="text_app_pss_value">"アプリPSS：%1$s"</string>
+    <string name="text_the_app_list_is_restricted_pss_cannot" formatted="false">"アプリ一覧へのアクセスが制限されているため、PSSを完全に分類できません"</string>
+    <string name="text_cannot_identify_non_system_apps" formatted="false">"システム以外のアプリを識別できません"</string>
+    <string name="text_process_diagnostics_unavailable_or_timed_out" formatted="false">"プロセス診断を取得できないか、タイムアウトしました"</string>
+    <string name="text_process_list_incomplete_waiting_for_the_next" formatted="false">"プロセス一覧が不完全です。次の測定を待っています"</string>
+    <string name="text_memory_diagnostics_unavailable_or_timed_out" formatted="false">"メモリ診断を取得できないか、タイムアウトしました"</string>
+    <string name="text_the_system_returned_an_incomplete_pss_section" formatted="false">"システムから返されたPSS情報が不完全です"</string>
+    <string name="text_processes_are_changing_waiting_for_a_consistent" formatted="false">"プロセスが変化しています。整合するPSS測定結果を待っています"</string>
+    <string name="text_some_processes_cannot_be_classified_an_incomplete" formatted="false">"一部のプロセスを分類できないため、不完全な合計は表示しません"</string>
+    <string name="text_some_app_pss_readings_are_unavailable" formatted="false">"一部のアプリのPSSを取得できません"</string>
+    <string name="text_non_system_app_pss_for_this_user" formatted="false">"このユーザーのシステム以外のアプリのPSS。キャッシュ済みプロセスを含み、約15秒ごとに測定します"</string>
+    <string name="text_system_diagnostics_permission_not_granted" formatted="false">"システム診断の権限がありません"</string>
+    <string name="text_system_usage_statistics_permission_not_granted" formatted="false">"システム使用状況の統計権限がありません"</string>
+    <string name="text_usage_access_is_off" formatted="false">"使用状況へのアクセスがオフです"</string>
+    <string name="text_cannot_open_this_system_page" formatted="false">"このシステム設定画面を開けません。"</string>
+    <string name="text_allow_display_over_other_apps_before_starting" formatted="false">"画面保護を開始するには、他のアプリの上への表示を許可してください"</string>
+    <string name="text_cannot_toggle_the_idle_screen_check_overlay" formatted="false">"画面保護を切り替えられません。オーバーレイ権限を確認してください。"</string>
+    <string name="text_cannot_start_the_idle_screen_try_again" formatted="false">"画面保護を開始できません。再試行してください。"</string>
+    <string name="text_overlay_permission_is_unavailable_cannot_start_the" formatted="false">"オーバーレイ権限がないため、画面保護を開始できません"</string>
+    <string name="text_idle_screen_failed_to_start_the_picture" formatted="false">"画面保護を開始できなかったため、画面を復元しました"</string>
+    <string name="text_idle_screen_active_value_nvalue">"画面保護中 • %1$s\n%2$s"</string>
+    <string name="text_hardware_readback_differs_from_the_requested_setting" formatted="false">"ハードウェアの読取値が指定した設定と一致しません。更新して再試行してください。"</string>
+    <string name="text_system_performance_mode_is_unavailable_refresh_the" formatted="false">"システムのパフォーマンスモードを取得できません。状態を更新してください。"</string>
+    <string name="text_cannot_confirm_the_actual_fan_mode_refresh" formatted="false">"実際のファンモードを確認できません。状態を更新してください。"</string>
+    <string name="text_cannot_read_the_selected_fan_mode" formatted="false">"選択されたファンモードを読み取れません。"</string>
+    <string name="text_performance_and_fan_settings_were_not_both" formatted="false">"パフォーマンスとファンの設定を両方とも適用できませんでした。状態を更新してください。"</string>
+    <string name="text_stick_lighting_readback_differs_refresh_the_status" formatted="false">"スティックライトの読取値が一致しません。状態を更新してください。"</string>
+    <string name="text_charging_limits_were_not_both_applied_refresh" formatted="false">"充電制限を両方とも適用できませんでした。両方の設定を更新してください。"</string>
+    <string name="text_airplane_mode_could_not_be_changed_refresh" formatted="false">"機内モードを変更できませんでした。状態を更新してください。"</string>
+    <string name="text_airplane_mode_readback_differs" formatted="false">"機内モードの読取値が一致しません。"</string>
+    <string name="text_gamenative_crt_scanlines" formatted="false">"GameNative CRT走査線"</string>
+    <string name="text_could_not_save_screenshot_preview_settings" formatted="false">"スクリーンショットのプレビュー設定を保存できませんでした"</string>
+    <string name="text_open_a_game_then_choose_the_filter" formatted="false">"ゲームを開いてから、クイック設定でフィルターを選択してください"</string>
+    <string name="text_auto_compatible_scanlines" formatted="false">"自動・互換走査線"</string>
+    <string name="text_auto_screenshot_preview" formatted="false">"自動・スクリーンショットプレビュー"</string>
+    <string name="text_smpte_color_bars" formatted="false">"SMPTEカラーバー"</string>
+    <string name="text_alignment_grid" formatted="false">"位置合わせグリッド"</string>
+    <string name="text_retro_pixel_game_scene" formatted="false">"レトロなドット絵ゲーム画面"</string>
+    <string name="text_cannot_read_the_image" formatted="false">"画像を読み込めません"</string>
+    <string name="text_choose_a_valid_game_screenshot" formatted="false">"有効なゲームのスクリーンショットを選択してください"</string>
+    <string name="text_image_too_large" formatted="false">"画像が大きすぎます"</string>
+    <string name="text_screenshot_import_failed" formatted="false">"スクリーンショットを読み込めませんでした"</string>
+    <string name="text_back" formatted="false">"戻る"</string>
+    <string name="text_import_unfiltered_screenshot" formatted="false">"フィルターなしの画像を読み込む"</string>
+    <string name="text_show_original_x" formatted="false">"原画を表示・X"</string>
+    <string name="text_live_integration_status" formatted="false">"リアルタイム連携の状態"</string>
+    <string name="text_import_a_game_screenshot_with_all_filters" formatted="false">"すべてのフィルターを無効にしたゲームのスクリーンショットを読み込んでください。画面解像度でプレビューします。"</string>
+    <string name="text_value_value_source_value_screen_resolution_preview">"元画像 %1$d × %2$d・%3$s・画面解像度でプレビュー・Xで比較"</string>
+    <string name="text_show_filter_x" formatted="false">"フィルターを表示・X"</string>
+    <string name="text_live_rendering_integration" formatted="false">"リアルタイム描画との連携"</string>
+    <string name="text_this_preview_processes_your_imported_screenshot_on" formatted="false">"このプレビューは読み込んだスクリーンショットをGPUで処理し、すべてのフィルターの組み合わせに対応します。\n\nゲーム映像へのリアルタイム適用は未実装です。対象アプリのVulkanまたはOpenGL描画への組み込みが必要です。デスクトップの設定を有効にしても、任意のアプリにシェーダーを挿入することはできません。\n\n軽量オーバーレイはVulkan系のCRTのみに対応します。その他の効果はリアルタイム連携が実装されるまでスクリーンショットのプレビューで利用できます。設定はアプリごとに保存されます。"</string>
+    <string name="text_got_it" formatted="false">"了解"</string>
+    <string name="text_gpu_error_0xvalue">"GPUエラー 0x%1$s"</string>
+    <string name="text_filter_rendering_failed_value">"フィルターの描画に失敗しました：%1$s"</string>
+    <string name="text_exported_value_gpu_comparisons_press_x_to">"GPU比較画像を%1$d件出力しました。Xで現在の設定と原画を比較できます。"</string>
+    <string name="text_game_filter" formatted="false">"ゲームフィルター"</string>
+    <string name="text_on_hold_to_adjust" formatted="false">"オン・長押しで調整"</string>
+    <string name="text_off_hold_to_adjust" formatted="false">"オフ・長押しで調整"</string>
+    <string name="text_return_to_the_game_before_toggling_its" formatted="false">"ゲームに戻ってからフィルターを切り替えてください"</string>
+    <string name="text_could_not_save_the_filter_switch" formatted="false">"フィルターの切替状態を保存できませんでした"</string>
+    <string name="text_this_combination_needs_game_frame_integration_saved" formatted="false">"この組み合わせにはゲーム映像との連携が必要です。プレビュー用として保存しました"</string>
+    <string name="text_off" formatted="false">"オフ"</string>
+    <string name="text_on" formatted="false">"[ ● オン ]"</string>
+    <string name="text_off_2" formatted="false">"[ ○ オフ ]"</string>
+    <string name="text_standalone_calibration" formatted="false">"単独キャリブレーション"</string>
+    <string name="text_ready" formatted="false">"準備完了"</string>
+    <string name="text_trinitron_crt" formatted="false">"トリニトロンCRT"</string>
+    <string name="text_retro_arcade" formatted="false">"レトロアーケード"</string>
+    <string name="text_vivid_game" formatted="false">"鮮やかなゲーム"</string>
+    <string name="text_hd_fxaa" formatted="false">"HD FXAA"</string>
+    <string name="text_unfiltered" formatted="false">"フィルターなし"</string>
+    <string name="text_custom" formatted="false">"カスタム"</string>
+    <string name="text_smpte_calibration_bars" formatted="false">"SMPTE調整用バー"</string>
+    <string name="text_retro_pixel_scene" formatted="false">"レトロなドット絵"</string>
+    <string name="text_game_screenshot" formatted="false">"ゲームのスクリーンショット"</string>
+    <string name="text_loading_screenshot" formatted="false">"スクリーンショットを読み込み中…"</string>
+    <string name="text_choose_a_valid_screenshot" formatted="false">"有効なスクリーンショットを選択してください"</string>
+    <string name="text_screenshot_loaded" formatted="false">"スクリーンショットを読み込みました"</string>
+    <string name="text_could_not_read_screenshot_value">"スクリーンショットを読み込めませんでした：%1$s"</string>
+    <string name="text_saved_automatically" formatted="false">"自動保存しました"</string>
+    <string name="text_save_failed_value">"保存に失敗しました：%1$s"</string>
+    <string name="text_enabled_for_this_game" formatted="false">"このゲーム用に保存済み"</string>
+    <string name="text_disabled_for_this_game" formatted="false">"このゲームでは無効"</string>
+    <string name="text_preset_value">"プリセット %1$d"</string>
+    <string name="text_filter_preset_value">"フィルタープリセット：%1$s"</string>
+    <string name="text_bypass_raw_source" formatted="false">"⚡ バイパス・原画"</string>
+    <string name="text_select_item" formatted="false">"項目を選択"</string>
+    <string name="text_adjust_value" formatted="false">"値を調整"</string>
+    <string name="text_change_preset" formatted="false">"プリセットを変更"</string>
+    <string name="text_hold_to_compare" formatted="false">"長押しで比較"</string>
+    <string name="text_hide_menu" formatted="false">"メニューを隠す"</string>
+    <string name="text_show_menu" formatted="false">"メニューを表示"</string>
+    <string name="text_save_and_exit" formatted="false">"保存して終了"</string>
+    <string name="text_target_value">"対象：%1$s"</string>
+    <string name="text_grayscale_reference" formatted="false">"グレースケール基準"</string>
+    <string name="text_left_barely_visible_right_clear" formatted="false">"左はかすかに見える・右ははっきり見える"</string>
+    <string name="text_04_faint" formatted="false">"04% かすか"</string>
+    <string name="text_50_reference" formatted="false">"50% 基準"</string>
+    <string name="text_96_clear" formatted="false">"96% 明瞭"</string>
+    <string name="text_picture_preset" formatted="false">"画質プリセット"</string>
+    <string name="text_value">"◄ %1$s ►"</string>
+    <string name="text_contrast" formatted="false">"コントラスト"</string>
+    <string name="text_brightness" formatted="false">"明るさ"</string>
+    <string name="text_gamma" formatted="false">"ガンマ"</string>
+    <string name="text_crt_scanlines" formatted="false">"CRT走査線"</string>
+    <string name="text_amd_fsr_sharpness" formatted="false">"AMD FSRシャープネス"</string>
+    <string name="text_level" formatted="false">"レベル"</string>
+    <string name="text_vivid_color_enhancement" formatted="false">"鮮やかさ補正"</string>
+    <string name="text_fxaa_anti_aliasing" formatted="false">"FXAAアンチエイリアス"</string>
+    <string name="text_test_signal" formatted="false">"テスト信号"</string>
+    <string name="text_enable_for_this_game" formatted="false">"このゲームで有効にする"</string>
+    <string name="text_enable_for_game_no_running_game_detected" formatted="false">"ゲームで有効にする（実行中のゲームなし）"</string>
+    <string name="text_screenshot_too_large" formatted="false">"スクリーンショットが大きすぎます"</string>
+    <string name="text_all_apps" formatted="false">"すべてのアプリ"</string>
+    <string name="text_cannot_launch_value">"%1$sを起動できません"</string>
+    <string name="text_you_can_create_up_to_10_tabs" formatted="false">"タブは10個まで作成できます"</string>
+    <string name="text_the_default_category_cannot_be_deleted" formatted="false">"デフォルトのカテゴリは削除できません"</string>
+    <string name="text_set_value_as_the_home_tab">"「%1$s」をホームタブに設定しました"</string>
+    <string name="text_target_category" formatted="false">"移動先のカテゴリ"</string>
+    <string name="text_added_value_to_the_start_of_value">"「%1$s」を「%2$s」の先頭に追加しました"</string>
+    <string name="text_sorting_icons_a_to_pick_up_or" formatted="false">"アイコン並べ替え：Aで選択・配置、Bで終了"</string>
+    <string name="text_icon_order_saved" formatted="false">"アイコンの順序を保存しました"</string>
+    <string name="text_all_apps_contains_every_installed_app_icons" formatted="false">"すべてのアプリにはインストール済みの全アプリが表示されます。ここからアイコンを削除することはできません"</string>
+    <string name="text_removed_icon_from_value">"「%1$s」からアイコンを削除しました"</string>
+    <string name="text_no_other_custom_categories_are_available" formatted="false">"移動先となる他のカスタムカテゴリがありません"</string>
+    <string name="text_cannot_open_app_details_value">"アプリ情報を開けません：%1$s"</string>
+    <string name="text_all_apps_is_managed_automatically" formatted="false">"すべてのアプリは自動管理されます"</string>
+    <string name="text_hardware_setting_failed_try_again" formatted="false">"ハードウェアの設定に失敗しました。再試行してください。"</string>
+    <string name="text_performance_or_fan_setting_failed_try_again" formatted="false">"パフォーマンスまたはファンの設定に失敗しました。再試行してください。"</string>
+    <string name="text_stick_lighting_could_not_be_changed_try" formatted="false">"スティックライトを変更できませんでした。再試行してください。"</string>
+    <string name="text_bypass_charging_could_not_be_changed_try" formatted="false">"バイパス充電を変更できませんでした。再試行してください。"</string>
+    <string name="text_charging_power_could_not_be_changed_try" formatted="false">"充電電力を変更できませんでした。再試行してください。"</string>
+    <string name="text_airplane_mode_could_not_be_changed_try" formatted="false">"機内モードを変更できませんでした。再試行してください。"</string>
+    <string name="text_no_apps_in_this_category" formatted="false">"このカテゴリにはアプリがありません"</string>
+    <string name="text_normal" formatted="false">"標準"</string>
+    <string name="text_performance" formatted="false">"パフォーマンス"</string>
+    <string name="text_maximum" formatted="false">"最大"</string>
+    <string name="text_offline" formatted="false">"オフライン"</string>
+    <string name="text_smart" formatted="false">"スマート"</string>
+    <string name="text_maximum_2" formatted="false">"最大"</string>
+    <string name="text_quiet" formatted="false">"静音"</string>
+    <string name="text_system" formatted="false">"システム"</string>
+    <string name="text_unknown" formatted="false">"不明"</string>
+    <string name="text_on_2" formatted="false">"オン"</string>
+    <string name="text_5v_bypass" formatted="false">"5Vバイパス"</string>
+    <string name="text_9v_bypass" formatted="false">"9Vバイパス"</string>
+    <string name="text_performance_2" formatted="false">"⚡ パフォーマンス"</string>
+    <string name="text_fan" formatted="false">"🌀 ファン"</string>
+    <string name="text_stick_lights" formatted="false">"💡 スティックライト"</string>
+    <string name="text_charging" formatted="false">"🔋 充電"</string>
+    <string name="text_airplane_mode" formatted="false">"✈️ 機内モード"</string>
+    <string name="text_tab_groups_and_order_value_10">"タブの分類と順序（%1$d/10）："</string>
+    <string name="text_up_down_tab_left_right_action_a" formatted="false">"上下：タブ・左右：操作・A：決定"</string>
+    <string name="text_new_tab_name" formatted="false">"新しいタブ名…"</string>
+    <string name="text_add" formatted="false">"追加"</string>
+    <string name="text_home_tab" formatted="false">"★ ホームタブ"</string>
+    <string name="text_game_category" formatted="false">"ゲームカテゴリ"</string>
+    <string name="text_move_up" formatted="false">"▲ 上へ"</string>
+    <string name="text_move_down" formatted="false">"▼ 下へ"</string>
+    <string name="text_set_as_home" formatted="false">"ホームに設定"</string>
+    <string name="text_delete" formatted="false">"削除"</string>
+    <string name="text_move_to_another_tab" formatted="false">"📁 別のタブへ移動"</string>
+    <string name="text_assign_this_icon_to_another_category_tab" formatted="false">"このアイコンを別のカテゴリタブに移動します"</string>
+    <string name="text_app_details_system_settings" formatted="false">"⚙️ アプリ情報（システム設定）"</string>
+    <string name="text_stop_or_uninstall_the_app_or_manage" formatted="false">"アプリの停止・アンインストール、ストレージや権限の管理"</string>
+    <string name="text_remove_from_this_category" formatted="false">"🗑️ このカテゴリから削除"</string>
+    <string name="text_remove_from_this_tab_keep_the_app" formatted="false">"このタブからアイコンを削除します。アプリはアンインストールされません"</string>
+    <string name="text_choose_target_tab" formatted="false">"移動先のタブを選択"</string>
+    <string name="text_up_down_target_tab_a_move_b" formatted="false">"上下：移動先・A：移動・B：戻る"</string>
+    <string name="text_up_down_select_a_execute_b_close" formatted="false">"上下：選択・A：実行・B：閉じる"</string>
+    <string name="text_choose_a_target_tab_for_value">"「%1$s」の移動先タブを選択："</string>
+    <string name="text_games_and_emulators" formatted="false">"ゲーム・エミュレーター"</string>
+    <string name="text_general_category" formatted="false">"一般カテゴリ"</string>
+    <string name="text_default_home_and_startup" formatted="false">"デフォルトのホームと起動："</string>
+    <string name="text_use_odin_desktop_as_the_system_home" formatted="false">"Odin Desktopをホーム画面に設定し、端末起動時の自動起動を選択できます。"</string>
+    <string name="text_default_home_screen" formatted="false">"デフォルトのホーム画面"</string>
+    <string name="text_set_as_default" formatted="false">"✓ デフォルトに設定済み"</string>
+    <string name="text_not_the_default" formatted="false">"デフォルト未設定"</string>
+    <string name="text_the_home_button_opens_odin_desktop" formatted="false">"ホームボタンでOdin Desktopを開きます。"</string>
+    <string name="text_press_a_or_tap_to_choose_odin" formatted="false">"Aを押すかタップすると、システム設定でOdin Desktopをデフォルトのホームに選択できます。"</string>
+    <string name="text_manage_home_settings_a" formatted="false">"ホーム設定を開く（A）"</string>
+    <string name="text_set_as_default_a" formatted="false">"デフォルトに設定（A）"</string>
+    <string name="text_start_odin_desktop_at_boot" formatted="false">"端末起動時にOdin Desktopを起動"</string>
+    <string name="text_on_enabled" formatted="false">"ON 有効"</string>
+    <string name="text_off_disabled" formatted="false">"OFF 無効"</string>
+    <string name="text_start_odin_desktop_and_the_cooling_monitor" formatted="false">"端末起動時にOdin Desktopと冷却監視を開始します。"</string>
+    <string name="text_start_the_desktop_only_when_opened_by" formatted="false">"ユーザーまたはシステムが開いたときだけデスクトップを起動します。"</string>
+    <string name="text_disable_startup_a" formatted="false">"自動起動を無効にする（A）"</string>
+    <string name="text_enable_startup_a" formatted="false">"自動起動を有効にする（A）"</string>
+    <string name="text_internal_storage" formatted="false">"内部ストレージ"</string>
+    <string name="text_total_value">"合計 %1$s"</string>
+    <string name="text_measuring" formatted="false">"測定中"</string>
+    <string name="text_used" formatted="false">" 使用中"</string>
+    <string name="text_system_2" formatted="false">"システム"</string>
+    <string name="text_apps" formatted="false">"アプリ"</string>
+    <string name="text_other" formatted="false">"その他"</string>
+    <string name="text_free" formatted="false">"空き"</string>
+    <string name="text_app_storage_classification_permission_is_off" formatted="false">"アプリのストレージ分類に必要な権限がありません"</string>
+    <string name="text_reading_storage_categories" formatted="false">"ストレージの分類を読み込み中…"</string>
+    <string name="text_categories_unavailable_bar_shows_total_usage" formatted="false">"分類を取得できません・バーは合計使用量を表示"</string>
+    <string name="text_read_only" formatted="false">"読み取り専用"</string>
+    <string name="text_total" formatted="false">" 合計"</string>
+    <string name="text_used_2" formatted="false">"使用済み"</string>
+    <string name="text_capacity_unavailable" formatted="false">"容量を取得できません"</string>
+    <string name="text_memory" formatted="false">"メモリ"</string>
+    <string name="text_non_system_apps" formatted="false">"システム以外のアプリ"</string>
+    <string name="text_reading_memory" formatted="false">"メモリを読み込み中…"</string>
+    <string name="text_value_temperature">"%1$s温度"</string>
+    <string name="text_reading" formatted="false">"読み込み中…"</string>
+    <string name="text_wi_fi_connected" formatted="false">"Wi-Fi接続済み"</string>
+    <string name="text_wi_fi_disconnected_2" formatted="false">"Wi-Fi未接続"</string>
+    <string name="text_connected" formatted="false">"接続済み"</string>
+    <string name="text_wi_fi_name_permission_is_off" formatted="false">"Wi-Fi名の取得に必要な権限がありません"</string>
+    <string name="text_files" formatted="false">"ファイル"</string>
+    <string name="text_system_settings" formatted="false">"システム設定"</string>
+    <string name="text_odin_settings" formatted="false">"Odin設定"</string>
+    <string name="text_filters" formatted="false">"フィルター"</string>
+    <string name="text_dashboard_internal_storage" formatted="false">"ダッシュボード・内部ストレージ"</string>
+    <string name="text_dashboard_internal_and_external_storage" formatted="false">"ダッシュボード・内部／外部ストレージ"</string>
+    <string name="text_sd_card" formatted="false">"SDカード"</string>
+    <string name="text_example_wi_fi" formatted="false">"サンプルWi-Fi"</string>
+    <string name="text_screen_orientation" formatted="false">"画面の向き："</string>
+    <string name="text_the_usb_port_is_on_the_bottom" formatted="false">"Odin 3のUSBポートは本体下部にあります。横向き固定またはセンサー連動を選択してください。"</string>
+    <string name="text_fixed_landscape_default_grip" formatted="false">"横向き固定（標準の持ち方）"</string>
+    <string name="text_sensor_landscape_either_landscape_direction" formatted="false">"センサー連動（横向き・上下反転）"</string>
+    <string name="text_active" formatted="false">"✓ 選択中"</string>
+    <string name="text_1_stick_light_color" formatted="false">"1. スティックライト"</string>
+    <string name="text_2_screen_orientation" formatted="false">"2. 画面の向き"</string>
+    <string name="text_3_home_and_startup" formatted="false">"3. ホームと起動"</string>
+    <string name="text_4_automatic_fan" formatted="false">"4. 自動ファン制御"</string>
+    <string name="text_5_edit_tabs" formatted="false">"5. タブの編集"</string>
+    <string name="text_b_or_tap_the_background_to_return" formatted="false">"Bまたは背景をタップして戻る"</string>
+    <string name="text_manage_category_apps" formatted="false">"カテゴリのアプリ管理"</string>
+    <string name="text_up_down_select_app_a_add_remove" formatted="false">"上下：アプリ選択・A：追加／削除・B：完了"</string>
+    <string name="text_filter_by_app_or_package_name_down" formatted="false">"アプリ名またはパッケージ名で絞り込み・下で一覧に戻る…"</string>
+    <string name="text_matching_apps_value">"該当するアプリ（%1$d）："</string>
+    <string name="text_this_category_contains_value_apps">"このカテゴリのアプリ：%1$d件"</string>
+    <string name="text_no_matching_apps" formatted="false">"該当するアプリはありません"</string>
+    <string name="text_added" formatted="false">"✓ 追加済み"</string>
+    <string name="text_not_added" formatted="false">"+ 未追加"</string>
+    <string name="text_cyan_default" formatted="false">"シアン（デフォルト）"</string>
+    <string name="text_purple" formatted="false">"紫"</string>
+    <string name="text_red" formatted="false">"赤"</string>
+    <string name="text_green" formatted="false">"緑"</string>
+    <string name="text_white" formatted="false">"白"</string>
+    <string name="text_dark_gray" formatted="false">"ダークグレー"</string>
+    <string name="text_choose_a_stick_led_color_a_to" formatted="false">"スティックLEDの色を選択（Aで適用）："</string>
+    <string name="text_automatic_fan_policy" formatted="false">"自動ファン制御の動作："</string>
+    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"充電中でゲームを実行しておらず、CPUとGPUがともに60°C以下のときはファンを停止できます。"</string>
+    <string name="text_automatic_fan_control" formatted="false">"自動ファン制御"</string>
+    <string name="text_automatic_control_enabled_a_or_tap_to" formatted="false">"自動制御が有効（Aまたはタップで切替）"</string>
+    <string name="text_automatic_control_disabled_manual_mode_retained" formatted="false">"自動制御が無効（手動モードを保持）"</string>
+    <string name="text_on_3" formatted="false">"✓ [ オン ]"</string>
+    <string name="text_off_3" formatted="false">"✕ [ オフ ]"</string>
+    <string name="text_temperature_and_cooling_status" formatted="false">"温度と冷却の状態"</string>
+    <string name="text_highest_chip_temperature_soc" formatted="false">"• チップ最高温度（SoC）："</string>
+    <string name="text_cooling_threshold" formatted="false">"• 冷却開始温度："</string>
+    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60.0 °C（この温度を超えると冷却）"</string>
+    <string name="text_automatic_stop_conditions" formatted="false">"• 自動停止の条件："</string>
+    <string name="text_charging_no_game_temperature_60_c" formatted="false">"充電中 ＋ ゲーム未実行 ＋ 温度 ≤ 60°C"</string>
+    <string name="text_no_apps_press_x_to_manage_this" formatted="false">"アプリがありません。Xでこのカテゴリを管理できます。"</string>
+    <string name="text_picked_up_left_right_to_move_a" formatted="false">"選択中：左右で移動・Aで配置"</string>
+    <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"並べ替え：Aで選択・左右で移動・Bで終了"</string>
+    <string name="text_odin_3_handheld_launcher" formatted="false">"Odin 3 携帯ゲーム機用ランチャー"</string>
+    <string name="text_a_desktop_and_system_controls_for_ayn" formatted="false">"AYN Odin 3向けのデスクトップとシステム操作。\n"</string>
+    <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• OLED向けの黒背景と焼き付き防止\n"</string>
+    <string name="text_full_gamepad_navigation_n" formatted="false">"• 全画面でゲームパッド操作に対応\n"</string>
+    <string name="text_default_home_and_startup_integration_n" formatted="false">"• デフォルトホームと自動起動の連携\n"</string>
+    <string name="text_charging_fan_control_n_n" formatted="false">"• 充電中のファン制御\n\n"</string>
+    <string name="text_open_source_acknowledgements_n" formatted="false">"オープンソースへの謝辞：\n"</string>
+    <string name="text_up_down_select_a_confirm_b_back" formatted="false">"上下：選択・A：決定・B：戻る"</string>
+    <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"Bまたは背景をタップして戻る"</string>
+    <string name="text_write_error" formatted="false">"書き込みエラー"</string>
+    <string name="page_dashboard" formatted="false">"ダッシュボード"</string>
+    <string name="page_config" formatted="false">"⚙️ 設定"</string>
+    <string name="shader_calibration_title" formatted="false">"テレビ画質調整"</string>
+    <string name="language_section" formatted="false">"6. 言語"</string>
+    <string name="text_7_about" formatted="false">"7. このアプリについて"</string>
+    <string name="language_title" formatted="false">"アプリの言語"</string>
+    <string name="language_description" formatted="false">"端末の言語に従うか、Odin Desktopの言語を選択できます。対応外の言語では英語を使用します。"</string>
+    <string name="language_follow_system" formatted="false">"システムに従う"</string>
+</resources>

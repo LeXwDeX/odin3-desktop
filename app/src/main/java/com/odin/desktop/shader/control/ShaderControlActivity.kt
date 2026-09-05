@@ -15,7 +15,7 @@ import android.view.KeyEvent
 import android.view.Window
 import android.view.WindowManager
 import android.widget.Toast
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -85,7 +85,7 @@ import kotlin.math.roundToInt
  * 掌机 TVGAME 级电视画质校准与滤镜调整控制台 (TV Display Calibration OSD)。
  * 提供 100% 实体手柄盲操体验，全屏内置广播级 SMPTE 测试图、灰度标定阶梯与特丽珑 OSD 调屏菜单。
  */
-class ShaderControlActivity : ComponentActivity() {
+class ShaderControlActivity : AppCompatActivity() {
 
     private val repository by lazy {
         ShaderConfigRepository(OdinDatabase.getDatabase(applicationContext).appShaderConfigDao())

@@ -5,6 +5,9 @@ ksp = "2.0.0-1.0.24"
 coreKtx = "1.13.1"
 lifecycleRuntimeKtx = "2.8.4"
 activityCompose = "1.9.1"
+appcompat = "1.7.0"
+junit = "4.13.2"
+robolectric = "4.14.1"
 composeBom = "2024.08.00"
 room = "2.6.1"
 coroutines = "1.8.1"
@@ -14,6 +17,9 @@ material = "1.12.0"
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
