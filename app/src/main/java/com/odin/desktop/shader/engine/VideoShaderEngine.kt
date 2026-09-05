@@ -1,6 +1,5 @@
 package com.odin.desktop.shader.engine
 
-import com.odin.desktop.R
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
@@ -9,192 +8,200 @@ import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Toast
+import com.odin.desktop.R
 import com.odin.desktop.data.db.OdinDatabase
+import com.odin.desktop.service.fan.AppMonitorAccessibilityService
 import com.odin.desktop.shader.model.AppShaderConfigEntity
 import com.odin.desktop.shader.overlay.ShaderOverlayView
 import com.odin.desktop.shader.overlay.ShaderTileService
 import com.odin.desktop.shader.pipeline.AgslVideoShaderPipeline
+import com.odin.desktop.shader.repository.ShaderConfigWrites
 import com.odin.desktop.shader.runtime.ShaderRuntime
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
+import com.odin.desktop.shader.runtime.ShaderRuntimeState
+import com.odin.desktop.shader.runtime.ShaderStatus
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
 
-/**
- * 掌机 VideoShader 引擎控制器单例
- * 负责分应用着色器调度、全局悬浮视图生命周期及实时开关
- */
+/** Main-thread owner of target identity, configuration revision and overlay evidence. */
 object VideoShaderEngine {
     private var overlayView: ShaderOverlayView? = null
-    private var windowManager: WindowManager? = null
     private var applicationContext: Context? = null
-    private var isAttached = false
     private var currentForegroundPackage: String? = null
     private var foregroundLookup: Job? = null
+    private var healthCheck: Job? = null
     private var controlSessions = 0
+    private var systemWindowVisible = false
+    private var generation = 0L
+    private var loadedConfig: AppShaderConfigEntity? = null
     private val toggleMutex = Mutex()
-    private val frameInputNoticeShownFor = mutableSetOf<String>()
-    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
+    private val mutableState = MutableStateFlow(ShaderRuntimeState())
+    val state = mutableState.asStateFlow()
 
     fun currentTargetPackage(context: Context): String? = currentForegroundPackage?.takeUnless {
         it == context.packageName || it == "com.android.systemui" || it == "android"
     }
 
-    /** Keep the game target while its controls or screenshot preview cover it. */
-    @Suppress("UNUSED_PARAMETER")
+    // A covered disabled/unsupported filter may keep that more useful status. The
+    // window transition still needs a refresh before a later configuration change.
+    fun needsForegroundRefresh(): Boolean = systemWindowVisible ||
+        mutableState.value.status in setOf(ShaderStatus.PAUSED, ShaderStatus.UNKNOWN)
+
+    private fun publish(status: ShaderStatus, enabled: Boolean? = loadedConfig?.isEnabled) {
+        val next = ShaderRuntimeState(currentForegroundPackage, enabled, status)
+        if (mutableState.value == next) return
+        mutableState.value = next
+        applicationContext?.let(ShaderTileService::requestRefresh)
+    }
+
     fun beginControlSession(context: Context) {
-        controlSessions += 1
-        foregroundLookup?.cancel()
-        hideOverlay()
+        applicationContext = context.applicationContext
+        controlSessions++
+        invalidateOverlay()
+        publish(coveredStatus(context))
+    }
+
+    private fun coveredStatus(context: Context): ShaderStatus {
+        if (currentTargetPackage(context) == null) return ShaderStatus.NO_TARGET
+        val config = loadedConfig ?: return ShaderStatus.UNKNOWN
+        return statusForSelection(context, config.packageName, config.isEnabled, config.effects)
     }
 
     fun endControlSession(context: Context) {
         controlSessions = (controlSessions - 1).coerceAtLeast(0)
         if (controlSessions == 0) {
-            currentForegroundPackage?.let { onForegroundPackageChanged(context, it) }
+            // Wait for the actual focused window; never restore a remembered game's success.
+            invalidateOverlay()
+            publish(ShaderStatus.UNKNOWN)
+            AppMonitorAccessibilityService.requestRefresh()
         }
     }
 
     fun refreshConfig(context: Context, packageName: String) {
-        if (currentForegroundPackage == packageName && controlSessions == 0) {
-            onForegroundPackageChanged(context, packageName)
+        if (currentForegroundPackage == packageName) reload(context)
+    }
+
+    fun onForegroundUnknown(context: Context) {
+        applicationContext = context.applicationContext
+        currentForegroundPackage = null
+        loadedConfig = null
+        invalidateOverlay()
+        publish(ShaderStatus.UNKNOWN, null)
+    }
+
+    fun onSystemWindowForeground(context: Context) {
+        applicationContext = context.applicationContext
+        systemWindowVisible = true
+        invalidateOverlay()
+        publish(coveredStatus(context))
+    }
+
+    fun onForegroundPackageChanged(context: Context, packageName: String) {
+        applicationContext = context.applicationContext
+        // Our control/preview window covers the game but does not become the game target.
+        if (controlSessions > 0 && packageName == context.packageName) return
+        systemWindowVisible = false
+        currentForegroundPackage = packageName
+        reload(context)
+    }
+
+    private fun reload(context: Context) {
+        applicationContext = context.applicationContext
+        invalidateOverlay()
+        loadedConfig = null
+        val target = currentTargetPackage(context)
+        if (target == null || !ShaderRuntime.resolve(context, target).hasTarget) {
+            publish(ShaderStatus.NO_TARGET, null)
+            return
+        }
+        val revision = generation
+        publish(ShaderStatus.CHECKING, null)
+        foregroundLookup = scope.launch {
+            try {
+                val config = withContext(Dispatchers.IO) {
+                    OdinDatabase.getDatabase(context.applicationContext).appShaderConfigDao().getConfig(target)
+                        ?: AppShaderConfigEntity.defaultFor(target).copy(isEnabled = false)
+                }
+                if (generation != revision || currentForegroundPackage != target) return@launch
+                loadedConfig = config
+                applyLoadedConfig(context, config, revision)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                if (generation == revision) publish(ShaderStatus.FAILED, null)
+                Log.e("VideoShaderEngine", "Could not load shader config", failure)
+            }
         }
     }
 
     fun toggleCurrentAppShader(context: Context, onToggled: (Boolean) -> Unit) {
         val target = currentTargetPackage(context)
-        if (controlSessions > 0 || !ShaderRuntime.resolve(context, target).hasTarget || target == null) {
-            Toast.makeText(context, context.getString(R.string.text_return_to_the_game_before_toggling_its), Toast.LENGTH_SHORT).show()
+        if (controlSessions > 0 || target == null || !ShaderRuntime.resolve(context, target).hasTarget) {
+            Toast.makeText(context, R.string.text_return_to_the_game_before_toggling_its, Toast.LENGTH_SHORT).show()
             onToggled(false)
             return
         }
         scope.launch {
             toggleMutex.withLock {
-                runCatching {
-                    withContext(Dispatchers.IO) {
-                        val dao = OdinDatabase.getDatabase(context.applicationContext).appShaderConfigDao()
-                        val current = dao.getConfig(target)
+                try {
+                    val current = withContext(Dispatchers.IO) {
+                        OdinDatabase.getDatabase(context).appShaderConfigDao().getConfig(target)
                             ?: AppShaderConfigEntity.defaultFor(target).copy(isEnabled = false)
-                        dao.insertOrUpdate(current.copy(isEnabled = !current.isEnabled))
                     }
-                }.onSuccess {
-                    if (currentForegroundPackage == target && controlSessions == 0) {
-                        val config = withContext(Dispatchers.IO) {
-                            OdinDatabase.getDatabase(context).appShaderConfigDao().getConfig(target)
+                    // Same write queue as the panel. An old target completion cannot publish for a new app.
+                    ShaderConfigWrites.save(context, current.copy(isEnabled = !current.isEnabled)).await().getOrThrow()
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    if (currentForegroundPackage == target) {
+                        invalidateOverlay()
+                        publish(ShaderStatus.FAILED)
+                    }
+                    Toast.makeText(context, R.string.text_could_not_save_the_filter_switch, Toast.LENGTH_SHORT).show()
+                }
+                onToggled(false) // No backend in this build confirms a game's final composed pixels.
+            }
+        }
+    }
+
+    fun statusForSelection(context: Context, target: String?, enabled: Boolean,
+                           effects: com.odin.desktop.shader.model.GameNativeShaderSettings): ShaderStatus {
+        if (target == null) return ShaderStatus.NO_TARGET
+        return ShaderStatus.evaluate(enabled, effects, Build.VERSION.SDK_INT,
+            Settings.canDrawOverlays(context),
+            AppMonitorAccessibilityService.isRunning && currentForegroundPackage == target,
+            controlSessions > 0 || systemWindowVisible)
+    }
+
+    private fun applyLoadedConfig(context: Context, config: AppShaderConfigEntity, revision: Long) {
+        val status = statusForSelection(context, config.packageName, config.isEnabled, config.effects)
+        publish(status)
+        if (status != ShaderStatus.CHECKING) return
+        val wm = context.applicationContext.getSystemService(WindowManager::class.java)
+        try {
+            val view = ShaderOverlayView(context.applicationContext,
+                onDrawn = {
+                    if (generation == revision) publish(ShaderStatus.OVERLAY_UNCONFIRMED)
+                },
+                onFailure = {
+                    scope.launch {
+                        if (generation == revision) {
+                            invalidateOverlay()
+                            publish(ShaderStatus.FAILED)
                         }
-                        if (config != null && config.isEnabled) showOverlay(context, config) else hideOverlay()
                     }
-                }.onFailure {
-                    Log.e("VideoShaderEngine", "Could not save shader toggle", it)
-                    Toast.makeText(context, context.getString(R.string.text_could_not_save_the_filter_switch), Toast.LENGTH_SHORT).show()
-                }
-                onToggled(isShaderActive())
-            }
-        }
-    }
-
-    /**
-     * 前台应用切换事件回调
-     */
-    fun onForegroundPackageChanged(context: Context, packageName: String) {
-        foregroundLookup?.cancel()
-        if (currentForegroundPackage != packageName) hideOverlay()
-        currentForegroundPackage = packageName
-
-        // Odin 桌面自身或系统界面不显示滤镜
-        if (controlSessions > 0 || packageName == context.packageName || packageName == "com.android.systemui") {
-            hideOverlay()
-            return
-        }
-
-        foregroundLookup = scope.launch {
-            val config = try {
-                withContext(Dispatchers.IO) {
-                    OdinDatabase.getDatabase(context).appShaderConfigDao().getConfig(packageName)
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (failure: Exception) {
-                Log.e("VideoShaderEngine", "Could not load app shader settings", failure)
-                hideOverlay()
-                return@launch
-            }
-            if (currentForegroundPackage != packageName) return@launch
-            android.util.Log.d("VideoShaderEngine", "Package $packageName config: isEnabled=${config?.isEnabled}")
-
-            if (config != null && config.isEnabled) {
-                showOverlay(context, config)
-            } else {
-                hideOverlay()
-            }
-        }
-    }
-
-    private fun showOverlay(context: Context, config: AppShaderConfigEntity) {
-        if (controlSessions > 0) {
-            hideOverlay()
-            return
-        }
-        val effectiveConfig = config
-        val effects = effectiveConfig.effects
-        if (effects.requiresFrameInput) {
-            hideOverlay()
-            if (config.isEnabled && currentForegroundPackage == config.packageName &&
-                frameInputNoticeShownFor.add(config.packageName)
-            ) {
-                Toast.makeText(context, context.getString(R.string.text_this_combination_needs_game_frame_integration_saved), Toast.LENGTH_LONG).show()
-            }
-            return
-        }
-        if (!config.isEnabled || !effects.enableCRT ||
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !Settings.canDrawOverlays(context)
-        ) {
-            hideOverlay()
-            return
-        }
-
-        // 核心准则：Shader 仅在应用内生效，启动台或系统界面严禁加载 Shader
-        val pkg = currentForegroundPackage
-        if (pkg != config.packageName || pkg == context.packageName || pkg == "com.android.systemui") {
-            hideOverlay()
-            return
-        }
-
-        applicationContext = context.applicationContext
-        if (windowManager == null) {
-            windowManager = context.applicationContext.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        }
-
-        val wm = windowManager ?: return
-
-        if (overlayView == null) {
-            overlayView = try {
-                ShaderOverlayView(context.applicationContext)
-            } catch (failure: Exception) {
-                Log.e("VideoShaderEngine", "Could not initialize CRT overlay", failure)
-                hideOverlay()
-                return
-            }
-        }
-
-        val view = overlayView ?: return
-        view.applyConfig(effectiveConfig)
-
-        if (!isAttached) {
+                })
+            overlayView = view
+            view.applyConfig(config)
             val params = WindowManager.LayoutParams(
-                WindowManager.LayoutParams.MATCH_PARENT,
-                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                        WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-                        WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+                    WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
                 PixelFormat.TRANSLUCENT
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
@@ -202,36 +209,50 @@ object VideoShaderEngine {
                 layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setFitInsetsTypes(0)
             }
-
-            try {
-                wm.addView(view, params)
-                updateAttachmentState(true)
-            } catch (e: Exception) {
-                android.util.Log.e("VideoShaderEngine", "Could not attach CRT overlay", e)
-                view.release()
-                overlayView = null
+            wm.addView(view, params)
+            healthCheck = scope.launch {
+                delay(500)
+                var checks = 0
+                while (generation == revision) {
+                    val permission = Settings.canDrawOverlays(context)
+                    val interactive = context.getSystemService(android.os.PowerManager::class.java).isInteractive
+                    if (!permission || !AppMonitorAccessibilityService.isRunning || !interactive || !view.isAttachedToWindow) {
+                        invalidateOverlay()
+                        publish(when {
+                            !permission -> ShaderStatus.PERMISSION_REQUIRED
+                            !interactive -> ShaderStatus.PAUSED
+                            else -> ShaderStatus.UNKNOWN
+                        })
+                        return@launch
+                    }
+                    // Drawing alone does not prove visibility over apps that hide overlays.
+                    if (!view.isShown || (++checks >= 4 && mutableState.value.status == ShaderStatus.CHECKING)) {
+                        publish(ShaderStatus.UNKNOWN)
+                    }
+                    delay(500)
+                }
             }
+        } catch (failure: Exception) {
+            Log.e("VideoShaderEngine", "Could not create CRT overlay", failure)
+            invalidateOverlay()
+            publish(ShaderStatus.FAILED)
         }
     }
 
-    private fun hideOverlay() {
-        val view = overlayView ?: return
-        try {
-            if (isAttached) windowManager?.removeViewImmediate(view)
-        } catch (e: Exception) {
-            android.util.Log.w("VideoShaderEngine", "Could not detach CRT overlay", e)
-        } finally {
-            updateAttachmentState(false)
-            view.release()
-            overlayView = null
+    private fun invalidateOverlay() {
+        generation++
+        foregroundLookup?.cancel()
+        foregroundLookup = null
+        healthCheck?.cancel()
+        healthCheck = null
+        val view = overlayView
+        overlayView = null
+        if (view != null) {
+            try {
+                applicationContext?.getSystemService(WindowManager::class.java)?.removeViewImmediate(view)
+            } catch (failure: Exception) {
+                Log.w("VideoShaderEngine", "Could not detach CRT overlay", failure)
+            } finally { view.release() }
         }
     }
-
-    private fun updateAttachmentState(attached: Boolean) {
-        if (isAttached == attached) return
-        isAttached = attached
-        applicationContext?.let(ShaderTileService::requestRefresh)
-    }
-
-    fun isShaderActive(): Boolean = isAttached
 }

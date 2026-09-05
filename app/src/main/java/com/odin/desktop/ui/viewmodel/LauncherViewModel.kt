@@ -62,9 +62,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val dashboardRepository by lazy { DashboardRepository(context) }
     private var dashboardJob: Job? = null
     private var launcherVisible = false
+    private val _telemetry = MutableStateFlow(LauncherTelemetry())
+    val telemetry = _telemetry.asStateFlow()
+    private var telemetryJob: Job? = null
 
     fun setLauncherVisible(visible: Boolean) {
         launcherVisible = visible
+        if (!visible) {
+            telemetryJob?.cancel()
+            telemetryJob = null
+            _telemetry.value = LauncherTelemetry()
+        } else if (telemetryJob?.isActive != true) {
+            telemetryJob = viewModelScope.launch {
+                LauncherTelemetryRepository(context).observe().collect { _telemetry.value = it }
+            }
+        }
         updateDashboardCollection()
     }
 
@@ -704,7 +716,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
         if (launchIntent != null) {
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(context, app.packageName)
+            // Launching is intent, not evidence that this app obtained the foreground.
+            com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundUnknown(context)
             context.startActivity(launchIntent)
         } else {
             Toast.makeText(context, context.getString(R.string.text_cannot_launch_value, app.label), Toast.LENGTH_SHORT).show()

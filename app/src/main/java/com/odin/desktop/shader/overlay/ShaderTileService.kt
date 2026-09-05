@@ -21,7 +21,7 @@ class ShaderTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
-        updateTileState(VideoShaderEngine.isShaderActive())
+        updateTileState()
     }
 
     override fun onClick() {
@@ -29,17 +29,26 @@ class ShaderTileService : TileService() {
         val locked = isLocked
         val toggle = {
             VideoShaderEngine.toggleCurrentAppShader(this) {
-                updateTileState(it)
+                updateTileState()
             }
         }
         if (locked) unlockAndRun { toggle() } else toggle()
     }
 
-    private fun updateTileState(isActive: Boolean) {
+    private fun updateTileState() {
         val tile = qsTile ?: return
-        tile.state = if (isActive) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+        val runtime = VideoShaderEngine.state.value
+        // Never make an unverified overlay look like confirmed game rendering.
+        tile.state = Tile.STATE_INACTIVE
         tile.label = this.getString(R.string.text_game_filter)
-        tile.subtitle = if (isActive) this.getString(R.string.text_on_hold_to_adjust) else this.getString(R.string.text_off_hold_to_adjust)
+        tile.subtitle = getString(when (runtime.status) {
+            com.odin.desktop.shader.runtime.ShaderStatus.OVERLAY_UNCONFIRMED -> R.string.shader_tile_unconfirmed
+            com.odin.desktop.shader.runtime.ShaderStatus.PREVIEW_ONLY -> R.string.shader_tile_preview
+            com.odin.desktop.shader.runtime.ShaderStatus.PAUSED -> R.string.shader_tile_paused
+            com.odin.desktop.shader.runtime.ShaderStatus.UNKNOWN -> R.string.shader_tile_unknown
+            else -> runtime.status.message
+        })
+        tile.contentDescription = "${tile.label}: ${tile.subtitle}"
         tile.updateTile()
     }
 

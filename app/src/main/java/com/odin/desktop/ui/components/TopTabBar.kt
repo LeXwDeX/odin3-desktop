@@ -12,7 +12,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontFamily
+import com.odin.desktop.R
+import com.odin.desktop.ui.viewmodel.LauncherTelemetry
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,6 +39,7 @@ import com.odin.desktop.ui.navigation.FocusZone
 
 @Composable
 fun TopTabBar(
+    telemetry: LauncherTelemetry,
     tabs: List<TabEntity>,
     selectedTabIndex: Int,
     isDashboardSelected: Boolean,
@@ -59,7 +67,7 @@ fun TopTabBar(
             state = listState,
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             item(key = "dashboard") {
                 HomeTab(strings.getString(com.odin.desktop.R.string.page_dashboard), isDashboardSelected && !isConfigFocused, focusZone, onDashboardSelected)
@@ -71,6 +79,9 @@ fun TopTabBar(
         }
         ShoulderButtonBadge(label = "R1")
         Spacer(Modifier.padding(horizontal = 6.dp))
+
+        HeaderTelemetry(telemetry)
+        Spacer(Modifier.width(12.dp))
 
         // 右侧固定 [CONFIG] 设置按钮
         val isConfigSelected = isConfigFocused && focusZone == FocusZone.TABS
@@ -101,13 +112,13 @@ private fun HomeTab(label: String, selected: Boolean, focusZone: FocusZone, onCl
     val palette = LocalOdinPalette.current
     val focused = selected && focusZone == FocusZone.TABS
     Box(
-        Modifier.clip(RoundedCornerShape(6.dp))
+        Modifier.widthIn(max = 150.dp).clip(RoundedCornerShape(6.dp))
             .background(if (focused) palette.accent.copy(alpha = 0.2f) else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Text(label, color = if (selected) palette.accent else palette.textDim, fontSize = 15.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, maxLines = 1)
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -127,5 +138,31 @@ fun ShoulderButtonBadge(label: String) {
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+@Composable
+private fun HeaderTelemetry(telemetry: LauncherTelemetry) {
+    val palette = LocalOdinPalette.current
+    val strings = LocalContext.current
+    Row(Modifier.width(208.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.width(84.dp)) {
+            Text(strings.getString(R.string.header_battery, telemetry.battery.percent?.toString() ?: "—"),
+                color = palette.text, fontSize = 12.sp, lineHeight = 14.sp, maxLines = 1)
+            Text(strings.getString(when (telemetry.battery.status) {
+                android.os.BatteryManager.BATTERY_STATUS_CHARGING -> R.string.header_charging
+                android.os.BatteryManager.BATTERY_STATUS_FULL -> R.string.header_full
+                android.os.BatteryManager.BATTERY_STATUS_DISCHARGING,
+                android.os.BatteryManager.BATTERY_STATUS_NOT_CHARGING -> R.string.header_on_battery
+                else -> R.string.header_unread
+            }), color = palette.textDim, fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
+        }
+        Column(Modifier.weight(1f)) {
+            Text(strings.getString(R.string.header_fan, telemetry.fan?.rpm?.toString() ?: "—"), color = palette.text,
+                fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 14.sp, maxLines = 1)
+            Text("PWM ${telemetry.fan?.dutyPercent ?: "—"}%", color = palette.textDim,
+                fontFamily = FontFamily.Monospace, fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
+        }
     }
 }

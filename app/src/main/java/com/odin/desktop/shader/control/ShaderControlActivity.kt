@@ -44,6 +44,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -95,6 +96,8 @@ class ShaderControlActivity : AppCompatActivity() {
     private var targetPackage: String? = null
     private var appLabel: String = ""
     private var isGameTarget = false
+    private var configLoaded = false
+    private var editRevision = 0L
 
     // 当前配置与滤镜参数
     private var currentConfig: AppShaderConfigEntity? = null
@@ -203,6 +206,7 @@ class ShaderControlActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         preview.onResume()
+        targetPackage?.let { VideoShaderEngine.refreshConfig(applicationContext, it) }
     }
 
     override fun onPause() {
@@ -251,10 +255,17 @@ class ShaderControlActivity : AppCompatActivity() {
                 packageManager.getApplicationLabel(packageManager.getApplicationInfo(target, 0)).toString()
             }.getOrDefault(target)
             uiTargetName.value = appLabel
-            uiIsGame.value = true
+            uiIsGame.value = false
 
             lifecycleScope.launch {
-                val stored = runCatching { repository.getConfig(target) }.getOrNull()
+                val stored = try {
+                    repository.getConfig(target)
+                } catch (failure: Exception) {
+                    uiSaveStatus.value = getString(R.string.shader_status_failed)
+                    return@launch
+                }
+                configLoaded = true
+                uiIsGame.value = true
                 val active = stored ?: AppShaderConfigEntity.defaultFor(target).copy(isEnabled = false)
                 currentConfig = active
                 isAppFilterEnabled = active.isEnabled
@@ -304,9 +315,10 @@ class ShaderControlActivity : AppCompatActivity() {
         uiEffects.value = newSettings
         preview.setEffects(newSettings)
         hasPendingSave = true
+        editRevision++
 
         saveDebounceJob?.cancel()
-        saveDebounceJob = lifecycleScope.launch(Dispatchers.IO) {
+        saveDebounceJob = lifecycleScope.launch {
             delay(250)
             commitPendingSave()
         }
@@ -317,6 +329,7 @@ class ShaderControlActivity : AppCompatActivity() {
         val game = targetPackage
         val settings = currentEffects
         val isEnabled = isAppFilterEnabled
+        val revision = editRevision
         val result = if (game != null) {
             val updated = (currentConfig ?: AppShaderConfigEntity.defaultFor(game))
                 .copy(isEnabled = isEnabled)
@@ -327,6 +340,7 @@ class ShaderControlActivity : AppCompatActivity() {
             ShaderConfigWrites.saveScreenshotSettings(applicationContext, settings).await()
         }
         withContext(Dispatchers.Main) {
+            if (revision != editRevision) return@withContext
             if (result.isSuccess) {
                 uiSaveStatus.value = getString(R.string.text_saved_automatically)
             } else {
@@ -356,14 +370,15 @@ class ShaderControlActivity : AppCompatActivity() {
     }
 
     private fun toggleAppFilter() {
-        if (!isGameTarget) return
+        if (!isGameTarget || !configLoaded) return
+        val revision = ++editRevision
         val next = !isAppFilterEnabled
         isAppFilterEnabled = next
         uiAppFilterEnabled.value = next
 
         saveDebounceJob?.cancel()
         hasPendingSave = false
-        saveDebounceJob = lifecycleScope.launch(Dispatchers.IO) {
+        saveDebounceJob = lifecycleScope.launch {
             val game = targetPackage ?: return@launch
             val updated = (currentConfig ?: AppShaderConfigEntity.defaultFor(game))
                 .copy(isEnabled = next)
@@ -371,8 +386,9 @@ class ShaderControlActivity : AppCompatActivity() {
             currentConfig = updated
             val result = ShaderConfigWrites.save(applicationContext, updated).await()
             withContext(Dispatchers.Main) {
+                if (revision != editRevision) return@withContext
                 if (result.isSuccess) {
-                    uiSaveStatus.value = if (next) getString(R.string.text_enabled_for_this_game) else getString(R.string.text_disabled_for_this_game)
+                    uiSaveStatus.value = if (next) getString(R.string.shader_request_saved_on) else getString(R.string.shader_request_saved_off)
                 } else {
                     isAppFilterEnabled = !next
                     uiAppFilterEnabled.value = !next
@@ -702,6 +718,8 @@ class ShaderControlActivity : AppCompatActivity() {
         onItemClick: (Int) -> Unit,
         onItemAdjust: (Int, Int) -> Unit
     ) {
+        val runtimeState by VideoShaderEngine.state.collectAsState()
+        val runtimeStatus = VideoShaderEngine.statusForSelection(this, targetPackage, appFilterEnabled, effects)
         val palette = LocalOdinPalette.current
         val listState = rememberLazyListState()
 
@@ -743,7 +761,10 @@ class ShaderControlActivity : AppCompatActivity() {
             }
 
             Text(
-                text = getString(R.string.text_target_value, targetName),
+                text = getString(R.string.text_target_value, targetName) + " · " +
+                    getString(if (runtimeState.packageName == targetPackage &&
+                        runtimeState.status == com.odin.desktop.shader.runtime.ShaderStatus.FAILED)
+                        runtimeState.status.message else runtimeStatus.message),
                 color = Color(0xFFA6B7CE),
                 fontSize = 11.sp,
                 modifier = Modifier.padding(top = 2.dp, bottom = 8.dp)
@@ -947,7 +968,7 @@ class ShaderControlActivity : AppCompatActivity() {
                 // 9. 应用到当前游戏
                 item {
                     OsdToggleRow(
-                        title = if (isGame) getString(R.string.text_enable_for_this_game) else getString(R.string.text_enable_for_game_no_running_game_detected),
+                        title = if (isGame) getString(R.string.shader_enable_request) else getString(R.string.text_enable_for_game_no_running_game_detected),
                         enabled = appFilterEnabled && isGame,
                         isSelected = selectedIndex == 9,
                         onClick = { onItemClick(9) }

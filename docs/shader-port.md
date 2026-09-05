@@ -4,6 +4,10 @@
 
 本次已安装用户提供的 [GameNative 1.2.0 官方 APK](https://downloads.gamenative.app/releases/1.2.0/gamenative-v1.2.0.apk)，并将其屏幕效果算法接入 Odin 桌面的 GPU 截图预览。设置入口独立放在系统下拉面板，支持关联当前应用保存，也支持无游戏时独立调节截图。下文的 **Vulkan、OpenGL 表示保留的两套算法家族**，不是面板要求用户选择的运行模式；其中 Vulkan 公式经过适配，在 GLES 3 上执行，并非原生 Vulkan 后端，也不表示已经 Hook 到游戏进程。
 
+## 2026-09-06：运行状态修复
+
+Issue #4 已实现保存意愿与实时运行状态分离。当前组合、权限、目标切换和覆盖层绘制均纳入状态判定；即使遮罩完成绘制，也明确显示游戏效果未确认。实机允许/屏蔽浮层的对照证明不能仅凭 `addView` 或 `onDraw` 宣称生效。见 [本轮验收](completion-validation.md)。完整实时游戏帧接入的边界与下文一致。
+
 ## 已交付的能力
 
 | 设置 | OpenGL 家族 | Vulkan 家族 |

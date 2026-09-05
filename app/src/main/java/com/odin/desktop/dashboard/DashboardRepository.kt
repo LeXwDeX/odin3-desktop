@@ -47,7 +47,7 @@ class DashboardRepository(context: Context) {
     @Volatile private var storageCache: CachedStorage? = null
 
     fun observe(): Flow<DashboardState> = channelFlow {
-        var state = DashboardState(storage = storageCache?.value ?: StorageUsage())
+        var state = DashboardState(storage = storageCache?.takeIf { it.localeTags == app.resources.configuration.locales.toLanguageTags() }?.value ?: StorageUsage())
         val stateLock = Mutex()
         val sampler = LiveSampler(app)
         val dumpSampler = SystemDumpSampler(app)
@@ -102,12 +102,13 @@ class DashboardRepository(context: Context) {
 
     private suspend fun storageSnapshot(): StorageUsage = storageLock.withLock {
         val access = hasUsageAccess(app)
+        val localeTags = app.resources.configuration.locales.toLanguageTags()
         val now = SystemClock.elapsedRealtime()
-        storageCache?.takeIf { it.hasAccess == access && now - it.time < STORAGE_INTERVAL_MS }
+        storageCache?.takeIf { it.hasAccess == access && it.localeTags == localeTags && now - it.time < STORAGE_INTERVAL_MS }
             ?.let { return@withLock it.value }
         val value = readStorage(access)
         currentCoroutineContext().ensureActive()
-        storageCache = CachedStorage(value, SystemClock.elapsedRealtime(), access)
+        storageCache = CachedStorage(value, SystemClock.elapsedRealtime(), access, localeTags)
         value
     }
 
@@ -192,7 +193,7 @@ class DashboardRepository(context: Context) {
         )
     }
 
-    private data class CachedStorage(val value: StorageUsage, val time: Long, val hasAccess: Boolean)
+    private data class CachedStorage(val value: StorageUsage, val time: Long, val hasAccess: Boolean, val localeTags: String)
 
     private companion object {
         const val LIVE_INTERVAL_MS = 2_000L

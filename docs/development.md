@@ -56,3 +56,7 @@ tools/android adb -s <serial> shell am instrument -w com.odin.desktop/com.odin.d
 ```
 
 只有显式加上 `-e verify_controls true` 才运行固定控制验收，临时改变并恢复性能、风扇、灯光、充电与飞行模式。先确认没有游戏运行并记录当前设置；结果必须检查 `control_verification` 无 `error` / `failure` 且 `restoration` 全部为 true，不能只看 instrumentation 退出码。灯光读回证明配置层成功，实体亮灭需要现场观察。详见 [原厂服务接入记录](hardware-standalone-investigation.md)。
+
+## 状态、启动与顶部信息验收
+
+固定目标的 Shader 和应用内启动故障探针见 [验收工具](../tools/shader-validation/README.md)，最终范围及原始 Logo 问题的边界见 [验收记录](completion-validation.md)。

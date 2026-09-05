@@ -7,7 +7,7 @@
 - [#1：通过系统默认桌面注册启动，移除开机主动拉起](https://github.com/LeXwDeX/odin3-desktop/issues/1)。修复与验证见 [Home 修复记录](performance-fan-home-fixes.md#2026-09-06默认桌面注册与升级验证)。
 - [#2：启动卡在 Odin Logo](https://github.com/LeXwDeX/odin3-desktop/issues/2)。原始卡死根因仍待确认，不能把一次启动成功当作彻底修复。
 - [#3：硬件控制依赖临时 ADB 桥](https://github.com/LeXwDeX/odin3-desktop/issues/3)。原厂服务直连已实现，无额外授权、重启和实体灯光验收通过；固件适配边界见 [接入记录](hardware-standalone-investigation.md)。
-- [#4：VIDEO SHADER 如实显示当前游戏的实际生效状态](https://github.com/LeXwDeX/odin3-desktop/issues/4)。仍待实现与实机验证。
+- [#4：VIDEO SHADER 如实显示当前游戏的实际生效状态](https://github.com/LeXwDeX/odin3-desktop/issues/4)。已实现并通过固定测试应用的实机状态验收；详见 [本轮记录](completion-validation.md)。
 
 ## ODIN-20260905-01：Dock 风扇、性能无法操作
 
@@ -28,7 +28,7 @@
 ## ODIN-20260905-02：VIDEO SHADER 如实显示当前游戏的生效状态
 
 - 记录日期：2026-09-05。
-- 状态：待核查、待实现；本次仅记录需求。
+- 状态：已实现；保存意愿与运行证据分离，支持范围、权限、未知/失败和目标切换均有状态；固定测试应用验收见 [记录](completion-validation.md)。
 - 用户要求：诚实显示 VIDEO SHADER 是否能够正确应用到当前游戏，不能显示“开启”，实际却无法开启或使用。
 - 用户接受的限制：部分游戏可能因反作弊等限制无法使用滤镜，这是可以接受的；关键是如实告知。不将“反作弊”直接认定为任何一次失败的原因。
 

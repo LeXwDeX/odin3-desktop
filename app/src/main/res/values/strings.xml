@@ -340,4 +340,28 @@
     <string name="language_english" translatable="false">English</string>
     <string name="language_japanese" translatable="false">日本語</string>
     <string name="hardware_oem_service_unavailable">The firmware hardware service is unavailable. Try again after the device finishes starting.</string>
+    <string name="shader_status_no_target">Screenshot preview · no current game</string>
+    <string name="shader_status_disabled">Game filter request off</string>
+    <string name="shader_status_checking">Checking · game effect unconfirmed</string>
+    <string name="shader_status_preview_only">Preview only · this combination needs game frame access</string>
+    <string name="shader_status_no_effect">No effect selected</string>
+    <string name="shader_status_permission">Not applied · overlay permission required</string>
+    <string name="shader_status_system">Preview only · Android 13 or later required</string>
+    <string name="shader_status_paused">Preview/system UI · game effect paused</string>
+    <string name="shader_status_overlay">CRT mask drawn · game effect unconfirmed</string>
+    <string name="shader_status_unknown">Game effect unknown · foreground/visibility unconfirmed</string>
+    <string name="shader_status_failed">Apply failed · cause unknown; retry</string>
+    <string name="shader_request_saved_on">Enable request saved</string>
+    <string name="shader_request_saved_off">Disable request saved</string>
+    <string name="shader_enable_request">Enable for game (request)</string>
+    <string name="header_battery">Battery %1$s%%</string>
+    <string name="header_charging">Charging</string>
+    <string name="header_on_battery">Not charging</string>
+    <string name="header_unread">Not read</string>
+    <string name="header_full">Fully charged</string>
+    <string name="header_fan">Fan %1$s RPM</string>
+    <string name="shader_tile_unconfirmed">Unconfirmed · CRT mask</string>
+    <string name="shader_tile_preview">Screenshot preview only</string>
+    <string name="shader_tile_paused">Game effect paused</string>
+    <string name="shader_tile_unknown">Game effect unconfirmed</string>
 </resources>

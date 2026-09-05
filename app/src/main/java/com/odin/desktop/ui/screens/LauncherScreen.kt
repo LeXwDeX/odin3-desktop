@@ -42,6 +42,7 @@ fun LauncherScreen(
     val isDashboardSelected by viewModel.isDashboardSelected.collectAsState()
     val dashboardState by viewModel.dashboardState.collectAsState()
     val selectedDashboardControl by viewModel.selectedDashboardControl.collectAsState()
+    val telemetry by viewModel.telemetry.collectAsState()
     val tabs by viewModel.tabs.collectAsState()
     val selectedTabIndex by viewModel.selectedTabIndex.collectAsState()
     val isConfigFocused by viewModel.isConfigFocusedInTabs.collectAsState()
@@ -202,6 +203,7 @@ fun LauncherScreen(
                 .fillMaxWidth()
         ) {
             TopTabBar(
+                telemetry = telemetry,
                 tabs = tabs,
                 isDashboardSelected = isDashboardSelected,
                 onDashboardSelected = viewModel::selectDashboard,

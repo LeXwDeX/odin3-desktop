@@ -4,4 +4,12 @@
         android:name="com.odin.desktop.hardware.HardwareProbeInstrumentation"
         android:targetPackage="com.odin.desktop"
         android:label="Odin hardware diagnostics" />
+    <instrumentation
+        android:name="com.odin.desktop.shader.ShaderProbeInstrumentation"
+        android:targetPackage="com.odin.desktop"
+        android:label="Odin shader validation" />
+    <instrumentation
+        android:name="com.odin.desktop.hardware.StartupProbeInstrumentation"
+        android:targetPackage="com.odin.desktop"
+        android:label="Odin startup fault validation" />
 </manifest>

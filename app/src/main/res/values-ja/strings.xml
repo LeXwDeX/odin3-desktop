@@ -338,4 +338,28 @@
     <string name="language_description" formatted="false">"端末の言語に従うか、Odin Desktopの言語を選択できます。対応外の言語では英語を使用します。"</string>
     <string name="language_follow_system" formatted="false">"システムに従う"</string>
     <string name="hardware_oem_service_unavailable">本体のハードウェアサービスを利用できません。起動完了後に再試行してください。</string>
+    <string name="shader_status_no_target">画像プレビュー · 対象ゲームなし</string>
+    <string name="shader_status_disabled">ゲームフィルターの要求はオフ</string>
+    <string name="shader_status_checking">確認中 · ゲームの効果は未確認</string>
+    <string name="shader_status_preview_only">プレビューのみ · ゲーム画像への接続が必要</string>
+    <string name="shader_status_no_effect">効果が未選択</string>
+    <string name="shader_status_permission">未適用 · オーバーレイ権限が必要</string>
+    <string name="shader_status_system">プレビューのみ · Android 13 以降が必要</string>
+    <string name="shader_status_paused">プレビュー/システム画面 · ゲーム効果は一時停止</string>
+    <string name="shader_status_overlay">CRT マスク描画済み · ゲームの効果は未確認</string>
+    <string name="shader_status_unknown">効果不明 · 前面アプリまたは表示を確認できません</string>
+    <string name="shader_status_failed">適用失敗 · 原因不明、再試行してください</string>
+    <string name="shader_request_saved_on">有効化の要求を保存しました</string>
+    <string name="shader_request_saved_off">無効化の要求を保存しました</string>
+    <string name="shader_enable_request">ゲームに適用（要求）</string>
+    <string name="header_battery">電池 %1$s%%</string>
+    <string name="header_charging">充電中</string>
+    <string name="header_on_battery">充電していません</string>
+    <string name="header_unread">未取得</string>
+    <string name="header_full">満充電</string>
+    <string name="header_fan">ファン %1$s RPM</string>
+    <string name="shader_tile_unconfirmed">効果未確認 · CRT マスク</string>
+    <string name="shader_tile_preview">画像プレビューのみ</string>
+    <string name="shader_tile_paused">ゲーム効果は一時停止</string>
+    <string name="shader_tile_unknown">ゲーム効果は未確認</string>
 </resources>

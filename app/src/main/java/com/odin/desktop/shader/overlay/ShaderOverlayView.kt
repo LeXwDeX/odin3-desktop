@@ -15,10 +15,13 @@ import com.odin.desktop.shader.pipeline.OverlayShaderConfig
  */
 class ShaderOverlayView(
     context: Context,
-    private val pipeline: OverlayShaderPipeline = AgslVideoShaderPipeline()
+    private val pipeline: OverlayShaderPipeline = AgslVideoShaderPipeline(),
+    private val onDrawn: () -> Unit = {},
+    private val onFailure: (Exception) -> Unit = {}
 ) : View(context) {
 
     private var startTimeMs: Long = SystemClock.uptimeMillis()
+    private var reportedDraw = false
     private var currentConfig: AppShaderConfigEntity? = null
 
     init {
@@ -43,7 +46,16 @@ class ShaderOverlayView(
         if (w <= 0f || h <= 0f) return
 
         val elapsedSeconds = (SystemClock.uptimeMillis() - startTimeMs) / 1000f
-        pipeline.onDraw(canvas, w, h, elapsedSeconds)
+        try {
+            check(canvas.isHardwareAccelerated) { "CRT overlay needs a hardware canvas" }
+            pipeline.onDraw(canvas, w, h, elapsedSeconds)
+            if (!reportedDraw) {
+                reportedDraw = true
+                post { onDrawn() }
+            }
+        } catch (failure: Exception) {
+            post { onFailure(failure) }
+        }
     }
 
     fun release() {

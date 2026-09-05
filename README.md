@@ -219,6 +219,12 @@ adb shell am start -n com.odin.desktop/.ui.MainActivity
 第三方 Shader 来源与许可见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。仓库尚未包含第一方代码的统一 LICENSE 文本。
 
 
+## 顶部状态与滤镜实际效果
+
+设置按钮左侧显示电池电量、充电状态、风扇转速和 PWM，占用固定区域；TAB 列表相应缩窄，底部 Dock 保持原布局。桌面不可见时停止采样，不可读的数据显示“—”。
+
+VIDEO SHADER 分开显示启用意愿与实际运行状态。完整游戏帧处理尚未接入的组合只显示“仅预览”；CRT 兼容遮罩完成绘制也不代表游戏最终画面已经生效，会明确显示“游戏效果未确认”。详见 [状态与设备验收](docs/completion-validation.md)。
+
 ## 硬件服务如何启用
 
 在已验证的 Odin 3 固件上，安装并打开应用即可使用底部硬件控制。`PServerBinder` 由固件启动并注册，我们的应用通过 Android Binder 获取它，在应用内管理性能、风扇、摇杆灯、充电和飞行模式。设备重启后重新取得该接口即可，不需要用户连接开发电脑、启动 ADB 桥、开启无线调试或安装其他授权应用。
