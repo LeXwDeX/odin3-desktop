@@ -23,12 +23,14 @@ variants.add_argument("--legacy-policy-variant", action="store_true",
                       help="In temporary compiled source only, reproduce old backend-recomputed performance fan policy")
 variants.add_argument("--unguarded-readback-variant", action="store_true",
                       help="In temporary compiled source only, remove the guard against publishing stale cooling readback")
+variants.add_argument("--unguarded-light-variant", action="store_true",
+                      help="In temporary source only, reproduce stale light observer updates")
 args = parser.parse_args()
 METHODS = ("enqueueCoolingAction", "cyclePerformanceMode", "cycleFanMode",
            "toggleAutoFanControl", "refreshHardwareStates")
 # changeHardware shares the hardware mutex/readback and is extracted as the sixth
 # production entry point, even though the cooling-specific tests do not invoke it.
-METHODS += ("changeHardware", "toggleJoystickLight", "setJoystickColor")
+METHODS += ("changeHardware", "toggleJoystickLight", "refreshJoystickLight", "setJoystickColor")
 
 
 def jar(group, name, version):
@@ -65,7 +67,7 @@ fields = ("_performanceMode", "_fanMode", "_autoFanControlEnabled", "hardwareLoc
           "coolingJob", "coolingIntentPending", "coolingIntentRevision", "pendingCoolingActions",
           "_joystickLightEnabled", "_joystickColor", "_chargingSeparation", "_chargePowerLimit",
           "_chargeLimit80", "_airplaneMode", "_orientationMode", "_isDefaultHome",
-          "_currentSocTemp", "lightJob", "colorJob")
+          "_currentSocTemp", "lightJob", "lightIntentPending", "lightIntentRevision", "pendingLightTarget", "colorJob")
 declarations = []
 for name in fields:
     match = re.search(rf"^    (?:@Volatile )?private (?:val|var) {name}\b[^\n]*", source, re.M)
@@ -87,6 +89,10 @@ if args.unguarded_readback_variant:
         raise SystemExit("Cannot reproduce stale readback: expected exact production guard is missing")
     production = production.replace(guard, "if (true)")
     print("NEGATIVE CONTROL: temporary source publishes readback without checking newer selection", flush=True)
+if args.unguarded_light_variant:
+    production = production.replace("if (lightIntentPending) return", "")
+    production = production.replace("if (!lightIntentPending && revision == lightIntentRevision.get())", "if (true)")
+    print("NEGATIVE CONTROL: temporary source publishes stale light readback", flush=True)
 
 compiler = [jar("org.jetbrains.kotlin", name, version) for name, version in [
     ("kotlin-compiler-embeddable", "2.0.0"), ("kotlin-stdlib", "2.0.0"),
@@ -124,6 +130,7 @@ class CoolingViewModelHarness {
         _autoFanControlEnabled.value = auto
     }
     fun selection() = Selection(_performanceMode.value, _fanMode.value, _autoFanControlEnabled.value)
+    fun lightSelection() = _joystickLightEnabled.value
     fun pendingKinds() = pendingCoolingActions.keys.toSet()
     suspend fun awaitIdle() {
         withTimeout(5_000) { coolingJob?.join() }
@@ -255,7 +262,11 @@ object HardwareController {
         before("automation", enabled.toString()); auto = enabled
         if (enabled) fan = FAN_SMART
     }
-    fun isJoystickLightEnabled(context: Any) = lights
+    fun isJoystickLightEnabled(context: Any): Boolean {
+        val captured = lights
+        gates.remove("readLights")?.block()
+        return captured
+    }
     fun getJoystickColor(context: Any) = color
     fun setJoystickLightEnabled(context: Any, enabled: Boolean) { before("lights", enabled.toString()); lights = enabled }
     fun setJoystickColor(context: Any, hex: String) { before("color", hex); color = hex }
@@ -458,6 +469,60 @@ fun main() = runBlocking {
             }
         }
         println("PASS light color and toggle retain both intentions in either order")
+        fixture { vm ->
+            withContext(Dispatchers.Main) { vm.toggleJoystickLight() }
+            vm.observerRefresh().join()
+            withContext(Dispatchers.Main) {
+                check(vm.lightSelection()) { "Observer replaced a pending light selection" }
+                vm.awaitLights()
+                check(vm.lightSelection() && HardwareController.lights)
+            }
+        }
+        println("PASS observer during light debounce preserves the user's selection")
+        fixture { vm ->
+            withContext(Dispatchers.Main) { vm.toggleJoystickLight(); vm.awaitLights() }
+            val read = HardwareController.blockNext("readLights")
+            val refresh = vm.observerRefresh()
+            read.awaitEntered()
+            try {
+                withContext(Dispatchers.Main) { vm.toggleJoystickLight() }
+                read.release()
+                refresh.join()
+                withContext(Dispatchers.Main) {
+                    check(!vm.lightSelection()) { "Old ON readback flashed over new OFF intent" }
+                    vm.awaitLights()
+                    check(!vm.lightSelection() && !HardwareController.lights)
+                }
+            } finally { read.release() }
+        }
+        println("PASS delayed ON readback cannot flash over a newer OFF selection")
+        fixture { vm ->
+            val write = HardwareController.blockNext("lights")
+            withContext(Dispatchers.Main) { vm.toggleJoystickLight() }
+            write.awaitEntered()
+            try {
+                withContext(Dispatchers.Main) { repeat(1_001) { vm.toggleJoystickLight() } }
+                write.release()
+                vm.observerRefresh().join()
+                withContext(Dispatchers.Main) {
+                    vm.awaitLights()
+                    check(!vm.lightSelection() && !HardwareController.lights)
+                    check(HardwareController.calls.filter { it.startsWith("lights:") } == listOf("lights:true", "lights:false"))
+                }
+            } finally { write.release() }
+        }
+        println("PASS in-flight light write finishes and 1,001 new presses coalesce to final OFF")
+        fixture { vm ->
+            HardwareController.failNext("lights")
+            withContext(Dispatchers.Main) {
+                vm.toggleJoystickLight(); vm.awaitLights()
+                check(!vm.lightSelection() && !HardwareController.lights)
+                check(android.widget.Toast.shown == 1)
+                vm.toggleJoystickLight(); vm.awaitLights()
+                check(vm.lightSelection() && HardwareController.lights)
+            }
+        }
+        println("PASS failed light write restores actual state and the next operation still works")
         println("PASS all actual-source cooling UI regressions")
     } finally { MainThread.close() }
 }

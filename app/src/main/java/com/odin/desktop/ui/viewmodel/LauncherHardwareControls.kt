@@ -72,6 +72,9 @@ class LauncherHardwareControls(
     // finish in-flight writes, then reconcile only if no newer user intent has arrived.
     private val pendingCoolingActions = linkedMapOf<String, () -> Unit>()
     private var lightJob: Job? = null
+    @Volatile private var lightIntentPending = false
+    private val lightIntentRevision = java.util.concurrent.atomic.AtomicLong()
+    private var pendingLightTarget: Boolean? = null
     private var colorJob: Job? = null
     private var chargePowerJob: Job? = null
     private var chargeSeparationJob: Job? = null
@@ -148,7 +151,7 @@ class LauncherHardwareControls(
                 }
             }
         }
-        runCatching { HardwareController.isJoystickLightEnabled(context) }.onSuccess { _joystickLightEnabled.value = it }
+        refreshJoystickLight()
         runCatching { HardwareController.getJoystickColor(context) }.onSuccess { _joystickColor.value = it.substringBefore(',') }
         runCatching { HardwareController.isChargingSeparationEnabled(context) }.onSuccess { _chargingSeparation.value = it }
         runCatching { HardwareController.isChargePowerLimit5V(context) }.onSuccess { _chargePowerLimit.value = it }
@@ -280,23 +283,51 @@ class LauncherHardwareControls(
     fun toggleJoystickLight() {
         val next = !_joystickLightEnabled.value
         _joystickLightEnabled.value = next
-
-        lightJob?.cancel()
-        lightJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(150)
-            hardwareLock.withLock {
-                try {
-                    HardwareController.setJoystickLightEnabled(context, next)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    android.util.Log.w("OdinHardware", "Joystick light toggle failed", failure)
-                    runCatching { HardwareController.isJoystickLightEnabled(context) }
-                        .onSuccess { _joystickLightEnabled.value = it }
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, failure.message ?: context.getString(R.string.text_stick_lighting_could_not_be_changed_try), Toast.LENGTH_SHORT).show()
+        lightIntentRevision.incrementAndGet()
+        lightIntentPending = true
+        pendingLightTarget = next
+        // Cancellation cannot undo an in-flight Binder write. Finish it, then apply
+        // the newest intent without letting observers expose intermediate values.
+        if (lightJob?.isActive == true) return
+        lightJob = viewModelScope.launch {
+            try {
+                delay(150)
+                while (pendingLightTarget != null) {
+                    val target = pendingLightTarget!!
+                    pendingLightTarget = null
+                    try {
+                        withContext(Dispatchers.IO) {
+                            hardwareLock.withLock { HardwareController.setJoystickLightEnabled(context, target) }
+                        }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        android.util.Log.w("OdinHardware", "Joystick light toggle failed", failure)
+                        if (pendingLightTarget == null) {
+                            Toast.makeText(context, failure.message ?: context.getString(R.string.text_stick_lighting_could_not_be_changed_try), Toast.LENGTH_SHORT).show()
+                        }
                     }
+                    if (pendingLightTarget == null) {
+                        lightIntentPending = false
+                        withContext(Dispatchers.IO) {
+                            hardwareLock.withLock { refreshJoystickLight() }
+                        }
+                    }
+                    if (pendingLightTarget != null) delay(150)
                 }
+            } finally {
+                lightIntentPending = false
+            }
+        }
+    }
+
+    private suspend fun refreshJoystickLight() {
+        val revision = lightIntentRevision.get()
+        if (lightIntentPending) return
+        val actual = runCatching { HardwareController.isJoystickLightEnabled(context) }.getOrNull() ?: return
+        withContext(Dispatchers.Main) {
+            if (!lightIntentPending && revision == lightIntentRevision.get()) {
+                _joystickLightEnabled.value = actual
             }
         }
     }
