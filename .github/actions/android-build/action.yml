@@ -31,6 +31,7 @@ runs:
       shell: bash
       run: |
         python3 -m unittest discover -s tools/release-tests -v
+        python3 -m unittest discover -s tools/tooling-tests -v
         python3 tools/fan-policy/test.py
         python3 tools/cooling-ui-regression.py
         python3 tools/home-back-regression.py

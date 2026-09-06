@@ -47,6 +47,21 @@ GitHub Actions 的自动检查、签名 APK 与 Release 发布方式见 [发布�
 - 设备未连接时完成本地工作，明确记录尚未安装、尚未实机验证的项目。构建或替身回归通过不代表设备行为已验收。
 - 性能与风扇验收同时核对界面和设备读回；OEM 异步响应、PWM 与实际转速的证据边界见 [修复记录](performance-fan-home-fixes.md) 和 [桥接说明](../tools/hardware-bridge/README.md)。
 
+### UI 调试辅助进程的清理
+
+统一通过 `tools/android android layout ...` / `tools/android android screen capture ...` 检查界面。包装器会在操作前后停止所选设备的 `com.android.cli.interact.instrumentation`，并将一次 UI 检查限制为 60 秒；失败、超时和中断也执行清理。只有一个已授权设备时可自动选取，否则必须传入 `--device=<serial>`。构建、安装、普通 ADB 和其他 CLI 命令保持原行为。
+
+2026-09-06 曾发现旧版 CLI 辅助进程在 socket 关闭后反复抛出 `java.io.IOException: socket not created`，持续消耗 CPU 并刷日志，CPU 热点达到 102.4°C。停止该工具后同一热点降到 50°C。该辅助 APK 是开发工具，不包含在发布的 Odin Desktop APK 中，不能把它的耗电当作桌面应用耗电。
+
+若 USB 在操作中断开，电脑无法保证设备端清理成功。包装器会报错；重连后首先执行下面的清理，再继续调试。不要带着未确认退出的调试进程交付设备。
+
+```sh
+tools/android adb -s <serial> shell am force-stop com.android.cli.interact.instrumentation
+tools/android adb -s <serial> shell pidof com.android.cli.interact.instrumentation
+# pidof 无输出且退出码为 1，表示已没有该进程。
+python3 -m unittest discover -s tools/tooling-tests -v
+```
+
 ## 原厂硬件接口调试
 
 当前应用内硬件控制不需要运行 `tools/hardware-bridge/manage.py start`。旧桥仅作开发诊断；共享事务和 OEM 协议的 142 项 JVM 检查仍由 `tools/hardware-bridge/build.py` 执行。

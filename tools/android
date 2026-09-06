@@ -2,11 +2,13 @@
 """Run a command with this checkout's Android SDK, JDK and Gradle cache."""
 import os
 from pathlib import Path
+import signal
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL = ROOT / ".android-local"
+INTERACTION_PACKAGE = "com.android.cli.interact.instrumentation"
 
 
 def environment():
@@ -22,9 +24,94 @@ def environment():
     return env
 
 
+def inspects_device(command):
+    if Path(command[0]).name != "android" or any(arg in ("-h", "--help", "-V", "--version") for arg in command[1:]):
+        return False
+    args = iter(command[1:])
+    group = []
+    for arg in args:
+        if arg == "--sdk":
+            next(args, None)
+        elif arg.startswith("-"):
+            continue
+        else:
+            group.append(arg)
+            if len(group) == 1 and arg == "layout":
+                return True
+            if arg != "screen" or len(group) == 2:
+                return group == ["screen", "capture"]
+    return False
+
+
+def inspection_device(command, env):
+    for index, arg in enumerate(command):
+        if arg.startswith("--device="):
+            serial = arg.split("=", 1)[1]
+            break
+        if arg == "--device":
+            serial = command[index + 1] if index + 1 < len(command) else ""
+            break
+    else:
+        result = subprocess.run(["adb", "devices"], env=env, capture_output=True, text=True, timeout=8, check=True)
+        connected = [line.split()[0] for line in result.stdout.splitlines()
+                     if len(line.split()) == 2 and line.split()[1] == "device"]
+        if len(connected) != 1:
+            raise ValueError("UI inspection requires --device=SERIAL when there is not exactly one connected device")
+        serial = connected[0]
+    if not serial or serial.startswith("-"):
+        raise ValueError("UI inspection requires a valid --device=SERIAL")
+    return serial
+
+
+def stop_interaction(serial, env):
+    try:
+        result = subprocess.run(
+            ["adb", "-s", serial, "shell", "am", "force-stop", INTERACTION_PACKAGE],
+            env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, timeout=8)
+        if result.returncode == 0:
+            return True
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    print(f"Could not stop Android CLI helper on {serial}. Reconnect and run: "
+          f"tools/android adb -s {serial} shell am force-stop {INTERACTION_PACKAGE}", file=sys.stderr)
+    return False
+
+
+def run_command(command, env):
+    if not inspects_device(command):
+        return subprocess.call(command, cwd=ROOT, env=env)
+    try:
+        serial = inspection_device(command, env)
+    except (ValueError, OSError, subprocess.SubprocessError) as error:
+        print(str(error), file=sys.stderr)
+        return 2
+    # The CLI helper can spin on a closed socket after inspection. Own its lifetime
+    # only for the selected device; never stop the launcher or another device's tool.
+    if not stop_interaction(serial, env):
+        return 1
+    if not any(arg == "--device" or arg.startswith("--device=") for arg in command):
+        command = [*command, f"--device={serial}"]
+    try:
+        result = subprocess.call(command, cwd=ROOT, env=env, timeout=60)
+    except subprocess.TimeoutExpired:
+        print("Android UI inspection timed out after 60 seconds", file=sys.stderr)
+        result = 124
+    except KeyboardInterrupt:
+        result = 130
+    finally:
+        cleaned = stop_interaction(serial, env)
+    return result if cleaned else (result or 1)
+
+
+def interrupted(signum, frame):
+    raise KeyboardInterrupt
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit("Usage: tools/android <command> [args...] (e.g. ./gradlew :app:assembleDebug)")
     if not (LOCAL / "jdk/Contents/Home/bin/java").is_file():
         sys.exit("Run python3 tools/setup-android.py first.")
-    sys.exit(subprocess.call(sys.argv[1:], cwd=ROOT, env=environment()))
+    if inspects_device(sys.argv[1:]):
+        signal.signal(signal.SIGTERM, interrupted)
+    sys.exit(run_command(sys.argv[1:], environment()))

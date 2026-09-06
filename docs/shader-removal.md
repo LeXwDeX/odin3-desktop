@@ -21,4 +21,14 @@ Dashboard 保留文件管理、系统设置、Odin 设置三个操作。默认�
 - Lint 为 0 个错误、76 个警告，包含依赖版本建议、兼容分支和未使用资源等提示。
 - 检查实际 Release APK：`com.odin.desktop / 0.1.2 / 1003`，不可调试，保留 HOME、风扇和挂机组件；没有 Shader 类、资源目录、组件或签名私钥文件。
 
-本轮 `adb devices -l` 没有连接设备，因此尚未覆盖安装或完成移除后的实机界面验证。上述自动检查不代表实际掌机操作验收。
+本地构建阶段设备未连接；随后用户接线完成了以下实机补验。
+
+## 实机补验与发布
+
+[Android CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34010115593) 和 [Release APK](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34010121641) 均通过；[v0.1.2](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.2) 已发布。下载 GitHub 实际附件后核对版本、不可调试标记、签名证书及校验文件，APK SHA-256 为 `aca970dc8015d37eb07d84237601c581b9f512a048053b5afb82c3d9da0496a6`。签名与现有安装一致。
+
+Odin3 / Android 15 上通过 `adb install -r` 保留数据覆盖安装，读回 `0.1.2 / 1003`；MainActivity 正常打开，既有分类仍可见，最近检查的 crash buffer 中没有本应用崩溃。实机布局和截图确认三个常用操作等宽排列，顶部状态与底部 Dock 保持对齐。HOME 角色仍为本应用，无障碍启用列表保持原值。
+
+快捷设置面板已不显示 Shader，挂机磁贴仍在。该固件的 `sysui_qs_tiles` 仍保留旧组件字符串，但对应磁贴已不展示；系统移除命令与精确设置写入后的读回都没有改变这条记录，本轮保留原有系统列表；它没有对应可用入口，不需要为此增加应用权限或后台清理服务。原始列表备份位于忽略目录 `.android-local/shader-removal/quick-tiles-before-cleanup.txt`。这条系统内部的失效记录不影响普通用户安装 APK。
+
+验收时发现开发工具遗留进程持续占用 CPU；停止该进程后，最高热点从 102.4°C 回落，桌面复验显示约 39°C。现已给项目 UI 调试包装器增加退出清理，详见 [开发说明](development.md#ui-调试辅助进程的清理)。发布 APK 不包含该调试辅助应用。截图和原始设备诊断留在 `.android-local/`，不进入 Git。
