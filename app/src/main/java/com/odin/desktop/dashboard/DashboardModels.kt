@@ -52,7 +52,7 @@ data class DashboardState(
     val updatedAtMillis: Long = 0L
 )
 
-/** Only the four explicit actions participate in dashboard selection. */
+/** Only the available system actions participate in dashboard selection. */
 enum class DashboardAction {
-    FILES, SYSTEM_SETTINGS, ODIN_SETTINGS, FILTERS
+    FILES, SYSTEM_SETTINGS, ODIN_SETTINGS
 }

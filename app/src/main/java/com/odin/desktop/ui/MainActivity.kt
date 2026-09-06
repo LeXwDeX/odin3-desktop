@@ -107,10 +107,9 @@ class MainActivity : AppCompatActivity() {
         // Tie expensive refreshes and dashboard collection to actual visibility changes.
         viewModel.refreshAppLanguage()
         viewModel.setLauncherVisible(true)
-        // 回到桌面时刷新硬件状态与应用列表，并确保隐藏 VideoShader 遮罩 (Shader 仅在应用内生效)
+        // Refresh device state and apps only when the desktop becomes visible.
         viewModel.hardware.loadHardwareStates()
         viewModel.scanInstalledApps()
-        com.odin.desktop.shader.engine.VideoShaderEngine.onForegroundPackageChanged(this, packageName)
     }
 
     override fun onStop() {

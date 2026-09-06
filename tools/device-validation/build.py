@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Build an isolated overlay-validation target with the project-local SDK. Does not install it."""
+"""Build an isolated orientation-validation target with the project-local SDK. Does not install it."""
 from pathlib import Path
 import os
 import subprocess
 import zipfile
 root = Path(__file__).resolve().parents[2]
 source = Path(__file__).resolve().parent
-output = root / ".android-local/shader-validation"
+output = root / ".android-local/device-validation"
 classes = output / "classes"
 classes.mkdir(parents=True, exist_ok=True)
 sdk = Path(os.environ["ANDROID_HOME"])

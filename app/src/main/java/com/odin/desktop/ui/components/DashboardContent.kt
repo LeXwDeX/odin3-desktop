@@ -432,7 +432,6 @@ private fun actionLabel(action: DashboardAction): String {
     DashboardAction.FILES -> strings.getString(R.string.text_files)
     DashboardAction.SYSTEM_SETTINGS -> strings.getString(R.string.text_system_settings)
     DashboardAction.ODIN_SETTINGS -> strings.getString(R.string.text_odin_settings)
-    DashboardAction.FILTERS -> strings.getString(R.string.text_filters)
 }
 }
 
@@ -467,10 +466,6 @@ private fun ActionIcon(action: DashboardAction, modifier: Modifier) {
                     drawRoundRect(palette.accent, Offset(w * x, h * y), Size(w * .3f, h * .3f),
                         CornerRadius(stroke), style = Stroke(stroke))
                 } }
-            }
-            else -> listOf(.22f, .5f, .78f).forEachIndexed { index, y ->
-                drawLine(palette.accent.copy(alpha = 1f - index * .25f), Offset(w * .1f, h * y),
-                    Offset(w * .9f, h * y), stroke, StrokeCap.Round)
             }
         }
     }

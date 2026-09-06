@@ -1,5 +1,7 @@
 # 2026-09-06 用户复测：握持横屏、自动停扇与盖世游戏
 
+> 历史记录：0.1.2 已按用户要求完整移除 Shader；本文的滤镜功能、命令和验收结果仅适用于旧版。当前范围见 [移除说明](shader-removal.md)。风扇、桌面和方向验证仍保留。
+
 本轮从 `50eac77` 继续处理用户实际反馈。配置和应用数据保留，硬件和方向仍在 APK 内直接调用原厂服务，不启动旧电脑桥。代码发现采用 Tier 2，逐文件核对图谱覆盖，并直接核验生产源码；当前记录不能证明所有固件或游戏都无缺陷。
 
 ## 自动风扇
@@ -49,4 +51,4 @@
 
 本地验证：Debug/Release 构建、Android 单元测试 24 项、温控协调器 228 项及传感器回归、硬件事务 163 项、手柄与风扇队列、Home/Back、完成通知、架构／数据库／362 项多语言资源检查。最终 Debug/Release 构建和 Lint 通过，Lint 为 0 错误、90 项警告；24 项单测无失败或跳过。CONFIG 开关实测关闭时恢复智能并退出风扇服务，再开启可恢复自动停转，新说明完整可见。
 
-可复跑方向矩阵：先安装 `tools/shader-validation` 的 fixture 并在 CONFIG 选择握持模式，然后执行 `tools/android python3 tools/orientation-device-regression.py --serial <serial> --output <ignored-report.json>`。使用情况回退运行验收命令见 [Shader 验收工具](../tools/shader-validation/README.md)。
+可复跑方向矩阵：先安装 [设备验收工具](../tools/device-validation/README.md) 的 fixture 并在 CONFIG 选择握持模式，然后执行 `tools/android python3 tools/orientation-device-regression.py --serial <serial> --output <ignored-report.json>`。使用情况回退运行验收命令见 [旧版 Shader 验收工具](https://github.com/LeXwDeX/odin3-desktop/blob/v0.1.1/tools/shader-validation/README.md)。

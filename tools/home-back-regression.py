@@ -166,12 +166,6 @@ fun LauncherScreen(viewModel: com.odin.desktop.ui.viewmodel.LauncherViewModel, o
     "theme": '''package com.odin.desktop.ui.theme
 fun OdinDesktopTheme(content: () -> Unit) {}
 ''',
-    "shader": '''package com.odin.desktop.shader.engine
-object VideoShaderEngine {
-    var foregroundUpdates = 0
-    fun onForegroundPackageChanged(context: android.content.Context, name: String) { foregroundUpdates++ }
-}
-''',
     "viewmodel": '''package com.odin.desktop.ui.viewmodel
 import com.odin.desktop.ui.navigation.FocusZone
 class Value<T>(var value: T)
@@ -229,15 +223,13 @@ fun main() {
     val initialHardware = vm.hardwareLoads
     val initialVisibility = vm.visibilityChanges
     val initialAccessibility = android.provider.Settings.Secure.reads
-    val initialShader = com.odin.desktop.shader.engine.VideoShaderEngine.foregroundUpdates
     repeat(100) { activity.onPause(); activity.onResume() }
     val extraScans = vm.scans - initialScans
     val extraHardware = vm.hardwareLoads - initialHardware
     val extraVisibility = vm.visibilityChanges - initialVisibility
     val extraAccessibility = android.provider.Settings.Secure.reads - initialAccessibility
-    val extraShader = com.odin.desktop.shader.engine.VideoShaderEngine.foregroundUpdates - initialShader
-    println("HOME x100: extra package scans=$extraScans hardware refreshes=$extraHardware visibility changes=$extraVisibility accessibility reads=$extraAccessibility shader refreshes=$extraShader")
-    var failed = extraScans + extraHardware + extraVisibility + extraAccessibility + extraShader != 0
+    println("HOME x100: extra package scans=$extraScans hardware refreshes=$extraHardware visibility changes=$extraVisibility accessibility reads=$extraAccessibility")
+    var failed = extraScans + extraHardware + extraVisibility + extraAccessibility != 0
     repeat(100) {
         activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
         activity.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))

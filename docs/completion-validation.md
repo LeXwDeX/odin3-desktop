@@ -1,5 +1,7 @@
 # 2026-09-06 剩余问题与实机验收
 
+> 历史记录：0.1.2 已按用户要求完整移除 Shader；本文的滤镜功能、命令和验收结果仅适用于旧版。当前范围见 [移除说明](shader-removal.md)。风扇、桌面和方向验证仍保留。
+
 本轮范围：Issue #4 的滤镜状态、Issue #2 的启动复验、历史设备待验项，以及用户新确认的顶部电池/风扇信息区。完整跨应用游戏帧接入仍属于后端能力边界，不把截图预览冒充已完成的实时 Shader。原先暂停的全局 UI 调整和入口迁移不在本轮扩展。
 
 ## VIDEO SHADER 状态
@@ -63,6 +65,6 @@ tools/android python3 tools/cooling-ui-regression.py
 tools/android python3 tools/shader-validation/build.py
 ```
 
-测试应用、Debug 探针及其恢复步骤见 [Shader 验收工具](../tools/shader-validation/README.md)。探针必须检查报告没有 `error` 且恢复成功，不能仅看 `adb` 退出码。启动 instrumentation 会重启目标应用并暂时影响无障碍绑定；本工具不会为未授权用户开启监控。普通 APK 使用无需这些开发工具。
+测试应用、Debug 探针及其恢复步骤见 [旧版 Shader 验收工具](https://github.com/LeXwDeX/odin3-desktop/blob/v0.1.1/tools/shader-validation/README.md)。探针必须检查报告没有 `error` 且恢复成功，不能仅看 `adb` 退出码。启动 instrumentation 会重启目标应用并暂时影响无障碍绑定；本工具不会为未授权用户开启监控。普通 APK 使用无需这些开发工具。
 
 最终复跑曾与仍运行的 Android CLI 布局工具争用 UiAutomation，在调试探针结束时触发 disconnect 异常；停止 CLI 开发服务后全矩阵通过。该次无有效报告的运行不计入通过结果，异常也不作为原始 Logo 故障的根因证据。

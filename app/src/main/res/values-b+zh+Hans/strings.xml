@@ -85,88 +85,8 @@
     <string name="text_charging_limits_were_not_both_applied_refresh" formatted="false">"充电限制未全部切换，请刷新两项状态。"</string>
     <string name="text_airplane_mode_could_not_be_changed_refresh" formatted="false">"飞行模式切换失败，请刷新状态。"</string>
     <string name="text_airplane_mode_readback_differs" formatted="false">"飞行模式读回不一致。"</string>
-    <string name="text_gamenative_crt_scanlines" formatted="false">"GameNative CRT 扫描线"</string>
-    <string name="text_could_not_save_screenshot_preview_settings" formatted="false">"截图预览参数保存失败"</string>
-    <string name="text_open_a_game_then_choose_the_filter" formatted="false">"请先打开游戏，再从下拉面板选择滤镜"</string>
-    <string name="text_auto_compatible_scanlines" formatted="false">"自动 · 兼容扫描线"</string>
-    <string name="text_auto_screenshot_preview" formatted="false">"自动 · 截图预览"</string>
-    <string name="text_smpte_color_bars" formatted="false">"SMPTE 电视彩条标定"</string>
-    <string name="text_alignment_grid" formatted="false">"几何对齐网格"</string>
-    <string name="text_retro_pixel_game_scene" formatted="false">"复古像素游戏场景"</string>
-    <string name="text_cannot_read_the_image" formatted="false">"无法读取图片"</string>
-    <string name="text_choose_a_valid_game_screenshot" formatted="false">"请选择有效的游戏截图"</string>
-    <string name="text_image_too_large" formatted="false">"图片过大"</string>
-    <string name="text_screenshot_import_failed" formatted="false">"截图导入失败"</string>
-    <string name="text_back" formatted="false">"返回"</string>
-    <string name="text_import_unfiltered_screenshot" formatted="false">"导入无滤镜截图"</string>
-    <string name="text_show_original_x" formatted="false">"显示原图 · X"</string>
-    <string name="text_live_integration_status" formatted="false">"原生接入状态"</string>
-    <string name="text_import_a_game_screenshot_with_all_filters" formatted="false">"导入关闭所有滤镜后的游戏截图；预览按屏幕分辨率运行。"</string>
-    <string name="text_value_value_source_value_screen_resolution_preview">"%1$d × %2$d 原图 · %3$s · 屏幕分辨率渲染 · X 对比原图"</string>
-    <string name="text_show_filter_x" formatted="false">"显示滤镜 · X"</string>
-    <string name="text_live_rendering_integration" formatted="false">"原生渲染接入"</string>
-    <string name="text_this_preview_processes_your_imported_screenshot_on" formatted="false">"这里在 GPU 上处理你导入的截图，可对比全部滤镜组合。\n\n实时游戏接入尚未完成。需要在目标应用的 Vulkan / OpenGL 渲染流程中加载效果；仅开启桌面选项无法给任意第三方应用注入 Shader。\n\n现有轻量扫描线覆盖层只支持 Vulkan CRT。其他效果在原生接入前仅供截图预览，设置会按应用保存。"</string>
-    <string name="text_got_it" formatted="false">"知道了"</string>
-    <string name="text_gpu_error_0xvalue">"GPU 错误 0x%1$s"</string>
-    <string name="text_filter_rendering_failed_value">"滤镜渲染失败：%1$s"</string>
-    <string name="text_exported_value_gpu_comparisons_press_x_to">"GPU 对照已导出 %1$d 组；X 对比当前设置与原图。"</string>
-    <string name="text_game_filter" formatted="false">"滤镜开关"</string>
-    <string name="text_on_hold_to_adjust" formatted="false">"已开启 · 长按调整"</string>
-    <string name="text_off_hold_to_adjust" formatted="false">"已关闭 · 长按调整"</string>
-    <string name="text_return_to_the_game_before_toggling_its" formatted="false">"请先返回游戏，再切换滤镜"</string>
-    <string name="text_could_not_save_the_filter_switch" formatted="false">"滤镜开关保存失败"</string>
-    <string name="text_this_combination_needs_game_frame_integration_saved" formatted="false">"该组合需原生接入，当前仅保存供预览"</string>
     <string name="text_off" formatted="false">"关闭"</string>
-    <string name="text_on" formatted="false">"[ ● 开启 ]"</string>
-    <string name="text_off_2" formatted="false">"[ ○ 关闭 ]"</string>
-    <string name="text_standalone_calibration" formatted="false">"独立校准模式"</string>
-    <string name="text_ready" formatted="false">"已就绪"</string>
-    <string name="text_trinitron_crt" formatted="false">"CRT 特丽珑"</string>
-    <string name="text_retro_arcade" formatted="false">"复古街机"</string>
-    <string name="text_vivid_game" formatted="false">"鲜艳游戏"</string>
-    <string name="text_hd_fxaa" formatted="false">"高清 FXAA"</string>
-    <string name="text_unfiltered" formatted="false">"纯净原画"</string>
-    <string name="text_custom" formatted="false">"自定义"</string>
-    <string name="text_smpte_calibration_bars" formatted="false">"SMPTE 彩条标定"</string>
-    <string name="text_retro_pixel_scene" formatted="false">"复古像素场景"</string>
-    <string name="text_game_screenshot" formatted="false">"游戏实机截图"</string>
-    <string name="text_loading_screenshot" formatted="false">"正在载入截图…"</string>
-    <string name="text_choose_a_valid_screenshot" formatted="false">"请选择有效截图"</string>
-    <string name="text_screenshot_loaded" formatted="false">"截图载入完成"</string>
-    <string name="text_could_not_read_screenshot_value">"读取截图失败：%1$s"</string>
-    <string name="text_saved_automatically" formatted="false">"已自动保存"</string>
-    <string name="text_save_failed_value">"保存失败: %1$s"</string>
-    <string name="text_enabled_for_this_game" formatted="false">"已保存游戏滤镜设置"</string>
-    <string name="text_disabled_for_this_game" formatted="false">"已从游戏停用"</string>
-    <string name="text_preset_value">"预设 %1$d"</string>
-    <string name="text_filter_preset_value">"滤镜预设：%1$s"</string>
-    <string name="text_bypass_raw_source" formatted="false">"⚡ BYPASS · RAW SOURCE (原画对比中)"</string>
-    <string name="text_select_item" formatted="false">"选择条目"</string>
-    <string name="text_adjust_value" formatted="false">"微调数值"</string>
-    <string name="text_change_preset" formatted="false">"切换预设"</string>
-    <string name="text_hold_to_compare" formatted="false">"按住原画对比"</string>
-    <string name="text_hide_menu" formatted="false">"隐藏菜单"</string>
-    <string name="text_show_menu" formatted="false">"显示菜单"</string>
-    <string name="text_save_and_exit" formatted="false">"保存退出"</string>
-    <string name="text_target_value">"目标: %1$s"</string>
-    <string name="text_grayscale_reference" formatted="false">"灰阶标定基准"</string>
-    <string name="text_left_barely_visible_right_clear" formatted="false">"至左侧隐约可见·右侧清晰"</string>
-    <string name="text_04_faint" formatted="false">"04% 隐约"</string>
-    <string name="text_50_reference" formatted="false">"50% 基准"</string>
-    <string name="text_96_clear" formatted="false">"96% 清晰"</string>
-    <string name="text_picture_preset" formatted="false">"图像预设"</string>
-    <string name="text_value">"◄ %1$s ►"</string>
-    <string name="text_contrast" formatted="false">"画面对比度"</string>
-    <string name="text_brightness" formatted="false">"画面亮度"</string>
-    <string name="text_gamma" formatted="false">"色彩伽马"</string>
-    <string name="text_crt_scanlines" formatted="false">"CRT 显像管扫描线"</string>
     <string name="text_level" formatted="false">"档"</string>
-    <string name="text_vivid_color_enhancement" formatted="false">"Vivid 鲜艳色彩增强"</string>
-    <string name="text_fxaa_anti_aliasing" formatted="false">"FXAA 平滑抗锯齿"</string>
-    <string name="text_test_signal" formatted="false">"测试信号源"</string>
-    <string name="text_enable_for_this_game" formatted="false">"应用到当前游戏"</string>
-    <string name="text_enable_for_game_no_running_game_detected" formatted="false">"应用到游戏 (未检测到运行中游戏)"</string>
-    <string name="text_screenshot_too_large" formatted="false">"截图过大"</string>
     <string name="text_all_apps" formatted="false">"全部应用"</string>
     <string name="text_cannot_launch_value">"无法启动 %1$s"</string>
     <string name="text_you_can_create_up_to_10_tabs" formatted="false">"最多支持创建 10 个 Tab"</string>
@@ -270,7 +190,6 @@
     <string name="text_files" formatted="false">"文件管理"</string>
     <string name="text_system_settings" formatted="false">"系统设置"</string>
     <string name="text_odin_settings" formatted="false">"Odin 设置"</string>
-    <string name="text_filters" formatted="false">"滤镜调整"</string>
     <string name="text_dashboard_internal_storage" formatted="false">"Dashboard · 仅内置存储"</string>
     <string name="text_dashboard_internal_and_external_storage" formatted="false">"Dashboard · 内置和外部存储"</string>
     <string name="text_sd_card" formatted="false">"SD 卡"</string>
@@ -326,39 +245,18 @@
     <string name="text_open_source_acknowledgements_n" formatted="false">"开源与技术组件致谢：\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"【上下键选择 • A 键确认 • B 键返回】"</string>
     <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"【B 键 / 触碰空白返回】"</string>
-    <string name="text_write_error" formatted="false">"写入错误"</string>
     <string name="page_dashboard" formatted="false">"仪表盘"</string>
     <string name="page_config" formatted="false">"⚙️ 设置"</string>
-    <string name="shader_calibration_title" formatted="false">"电视画面校准"</string>
     <string name="language_section" formatted="false">"6. 语言"</string>
     <string name="text_7_about" formatted="false">"7. 关于"</string>
     <string name="language_title" formatted="false">"应用语言"</string>
     <string name="language_description" formatted="false">"默认跟随系统，也可为 Odin Desktop 单独选择语言。其他系统语言使用英文。"</string>
     <string name="language_follow_system" formatted="false">"跟随系统"</string>
     <string name="hardware_oem_service_unavailable">原厂硬件服务暂不可用，请待设备启动完成后重试。</string>
-    <string name="shader_status_no_target">截图预览 · 无当前游戏</string>
-    <string name="shader_status_disabled">游戏滤镜启用意愿已关闭</string>
-    <string name="shader_status_checking">正在检查 · 游戏效果未确认</string>
-    <string name="shader_status_preview_only">仅预览 · 此组合尚未接入游戏画面</string>
-    <string name="shader_status_no_effect">未选择效果</string>
-    <string name="shader_status_permission">未生效 · 缺少悬浮窗权限</string>
-    <string name="shader_status_system">仅预览 · 需要 Android 13 或更高版本</string>
-    <string name="shader_status_paused">预览/系统界面中 · 游戏效果暂停</string>
-    <string name="shader_status_overlay">CRT 遮罩已绘制 · 游戏效果未确认</string>
-    <string name="shader_status_unknown">游戏效果未知 · 前台或可见性未确认</string>
-    <string name="shader_status_failed">应用失败 · 原因未知，请重试</string>
-    <string name="shader_request_saved_on">已保存启用意愿</string>
-    <string name="shader_request_saved_off">已保存关闭意愿</string>
-    <string name="shader_enable_request">应用到游戏（启用意愿）</string>
     <string name="header_battery">电量 %1$s%%</string>
     <string name="header_charging">充电中</string>
     <string name="header_on_battery">未充电</string>
     <string name="header_unread">未读取</string>
     <string name="header_full">已充满</string>
     <string name="header_fan">风扇 %1$s RPM</string>
-    <string name="shader_tile_unconfirmed">效果未确认 · CRT 遮罩</string>
-    <string name="shader_tile_preview">仅截图预览</string>
-    <string name="shader_tile_paused">游戏效果暂停</string>
-    <string name="shader_tile_unknown">游戏效果无法确认</string>
-    <string name="shader_target_permission">请在系统中启用应用使用情况访问或应用监控，以识别前台游戏。</string>
 </resources>

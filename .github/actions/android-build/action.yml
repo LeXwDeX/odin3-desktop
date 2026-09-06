@@ -3,7 +3,7 @@ description: Shared JDK, SDK, Gradle build and device-independent regressions
 inputs:
   version:
     description: Android MAJOR.MINOR.PATCH version
-    default: '0.1.1'
+    default: '0.1.2'
 runs:
   using: composite
   steps:

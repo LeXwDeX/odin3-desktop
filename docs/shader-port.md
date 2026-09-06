@@ -1,5 +1,7 @@
 # GameNative 滤镜移植与验证记录
 
+> 历史记录：0.1.2 已按用户要求完整移除 Shader；本文的滤镜功能、命令和验收结果仅适用于旧版。当前范围见 [移除说明](shader-removal.md)。风扇、桌面和方向验证仍保留。
+
 日期：2026-09-04。目标设备：AYN Odin 3，屏幕输出 1920 × 1080，GPU 为 Adreno 830。
 
 本次已安装用户提供的 [GameNative 1.2.0 官方 APK](https://downloads.gamenative.app/releases/1.2.0/gamenative-v1.2.0.apk)，并将其屏幕效果算法接入 Odin 桌面的 GPU 截图预览。设置入口独立放在系统下拉面板，支持关联当前应用保存，也支持无游戏时独立调节截图。下文的 **Vulkan、OpenGL 表示保留的两套算法家族**，不是面板要求用户选择的运行模式；其中 Vulkan 公式经过适配，在 GLES 3 上执行，并非原生 Vulkan 后端，也不表示已经 Hook 到游戏进程。

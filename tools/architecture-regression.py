@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute migration SQL and Kotlin contracts. No device, graphics driver or JSON codec claims."""
+"""Execute migration SQL and Kotlin contracts. No physical-device claims."""
 import json
 import os
 from pathlib import Path
@@ -34,7 +34,7 @@ assert resources("values-b+zh+Hans") == resources("values-b+zh+Hant"), "Chinese 
 print(f"PASS: {len(en) - len(nontranslatable)} English, Chinese and Japanese keys; matching format arguments")
 
 # The v3 schema is an independent historical contract. Populate default and user-created
-# tabs, explicit sorting and shader JSON, then run the actual production 3 -> 4 SQL.
+# tabs, explicit sorting and shader JSON, then run the actual production 3 -> 4 -> 5 SQL.
 db = sqlite3.connect(":memory:")
 db.executescript("""
 CREATE TABLE tabs (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, name TEXT NOT NULL,
@@ -57,7 +57,7 @@ db.execute("INSERT INTO app_shader_configs VALUES ('org.example.game', 1, 'custo
 before = {table: db.execute(f"SELECT * FROM {table}").fetchall()
           for table in ("tabs", "app_mappings", "app_shader_configs")}
 source = (SOURCE / "data/db/OdinDatabase.kt").read_text()
-migration = source.split("val MIGRATION_3_4 =", 1)[1].split("fun getDatabase", 1)[0]
+migration = source.split("val MIGRATION_3_4 =", 1)[1].split("val MIGRATION_4_5 =", 1)[0]
 sql = re.findall(r'db\.execSQL\("([^"\n]+)"\)', migration)
 assert len(sql) == 5, "Review the migration harness when its shape changes"
 for statement in sql:
@@ -68,13 +68,20 @@ for table in ("app_mappings", "app_shader_configs"):
     assert db.execute(f"SELECT * FROM {table}").fetchall() == before[table], table
 assert db.execute("SELECT kind, usesDefaultName FROM tabs ORDER BY id").fetchall() == [
     ("games", 1), ("system", 1), ("all_apps", 1), ("custom", 0), ("custom", 0), ("all_apps", 0)]
-schema = json.loads((ROOT / "app/schemas/com.odin.desktop.data.db.OdinDatabase/4.json").read_text())
+# The retired table alone is removed.
+for statement in re.findall(r'db\.execSQL\("([^"\n]+)"\)',
+                            source.split("val MIGRATION_4_5 =", 1)[1].split("fun getDatabase", 1)[0]):
+    db.execute(statement)
+assert db.execute("SELECT name FROM sqlite_master WHERE name = 'app_shader_configs'").fetchall() == []
+assert db.execute("SELECT id, name, sortOrder, isDefault, isGameTab, iconKey FROM tabs").fetchall() == before["tabs"]
+assert db.execute("SELECT * FROM app_mappings").fetchall() == before["app_mappings"]
+schema = json.loads((ROOT / "app/schemas/com.odin.desktop.data.db.OdinDatabase/5.json").read_text())
 fresh = sqlite3.connect(":memory:")
 for entity in schema["database"]["entities"]:
     table = entity["tableName"]
     fresh.execute(entity["createSql"].replace("${TABLE_NAME}", table))
     assert fresh.execute(f"PRAGMA table_info({table})").fetchall() == db.execute(f"PRAGMA table_info({table})").fetchall(), table
-print("PASS: production migration retains IDs, names, ordering, mappings and shader JSON; matches Room schema 4")
+print("PASS: production migration retains IDs, names, ordering, mappings and labels; removes retired settings; matches Room schema 5")
 
 dao = (SOURCE / "data/dao/TabDao.kt").read_text()
 def query_for(method):
@@ -118,16 +125,6 @@ annotation class ColumnInfo(val defaultValue: String)
     "context": """package android.content
 class Context(private val text: Map<Int, String>) { fun getString(id: Int): String = text.getValue(id) }
 """,
-    "json": """package org.json
-// The codec is deliberately unavailable: these tests exercise model behavior only.
-class JSONObject(value: String = "") {
-    fun put(key: String, value: Any): JSONObject = error("JSON codec not under test")
-    fun optString(key: String): String = error("JSON codec not under test")
-    fun optInt(key: String, fallback: Int): Int = error("JSON codec not under test")
-    fun optDouble(key: String, fallback: Double): Double = error("JSON codec not under test")
-    fun optBoolean(key: String, fallback: Boolean): Boolean = error("JSON codec not under test")
-}
-""",
     "resources": "package com.odin.desktop\nobject R { object string {\n" +
         "\n".join(f"const val {key} = {index}" for key, index in ids.items()) + "\n} }\n",
     "test": """package regression
@@ -135,7 +132,6 @@ import android.content.Context
 import com.odin.desktop.R
 import com.odin.desktop.data.entity.*
 import com.odin.desktop.data.model.displayName
-import com.odin.desktop.shader.model.*
 fun main() {
     val english = Context(mapOf(R.string.tab_all_apps to "All apps"))
     val chinese = Context(mapOf(R.string.tab_all_apps to "全部应用"))
@@ -151,25 +147,7 @@ fun main() {
     check(TabAction.DELETE !in getAvailableTabActions(renamed, 1, 3))
     check(TabAction.DELETE in getAvailableTabActions(TabEntity(name = "All apps"), 1, 3))
     check(TabAction.DELETE !in getAvailableTabActions(TabEntity(name = "Home", isDefault = true), 0, 3))
-    val crt = GameNativeShaderSettings()
-    check(!crt.requiresFrameInput)
-    check(crt.copy(family = ShaderFamily.OPENGL).requiresFrameInput)
-    check(crt.copy(contrast = 10f).requiresFrameInput)
-    check(crt.copy(scaling = ShaderScaling.LINEAR).requiresFrameInput)
-    check(crt.copy(enableFXAA = true).requiresFrameInput)
-    check(crt.copy(gamma = Float.NaN).normalized().gamma == 1f)
-    check(crt.copy(family = ShaderFamily.OPENGL, scaling = ShaderScaling.DLS).normalized().scaling == ShaderScaling.NONE)
-    check(ShaderPresets.builtIn.map { it.id }.distinct().size == ShaderPresets.builtIn.size)
-    for (family in ShaderFamily.entries) {
-        for ((index, preset) in ShaderPresets.builtIn.withIndex()) {
-            val config = preset.settings(family)
-            check(config.family == family)
-            check(ShaderPresets.indexOf(config) == index)
-            check(ShaderPresets.indexOf(config.copy(scaling = ShaderScaling.LINEAR)) == -1)
-            check(ShaderPresets.indexOf(config.copy(enableNTSC = true)) == -1)
-        }
-    }
-    println("PASS: actual Kotlin tab identity/localized labels, shader frame requirements and complete preset matching")
+    println("PASS: actual Kotlin tab identity and localized labels")
 }
 """,
 }
@@ -181,8 +159,7 @@ with tempfile.TemporaryDirectory(prefix="odin-architecture-") as folder:
         path.write_text(content)
         paths.append(str(path))
     paths += [str(SOURCE / path) for path in (
-        "data/entity/TabEntity.kt", "data/model/TabLabels.kt",
-        "shader/model/GameNativeShaderSettings.kt", "shader/model/ShaderPresets.kt")]
+        "data/entity/TabEntity.kt", "data/model/TabLabels.kt")]
     classes = folder / "classes"
     classes.mkdir()
     runtime = os.pathsep.join(map(str, [compiler[1], annotations, classes]))
@@ -190,3 +167,19 @@ with tempfile.TemporaryDirectory(prefix="odin-architecture-") as folder:
                     "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler", "-no-stdlib", "-no-reflect", "-nowarn",
                     "-classpath", runtime, "-d", str(classes), *paths], check=True)
     subprocess.run([str(java), "-cp", runtime, "regression.TestKt"], check=True)
+
+manifest = ET.parse(ROOT / "app/src/main/AndroidManifest.xml").getroot()
+android = "{http://schemas.android.com/apk/res/android}"
+application = manifest.find("application")
+main = next(a for a in application.findall("activity") if a.get(android + "name") == ".ui.MainActivity")
+assert main.get(android + "exported") == "true"
+assert any(f.find(f"category[@{android}name='android.intent.category.HOME']") is not None
+           and f.find(f"action[@{android}name='android.intent.action.MAIN']") is not None
+           for f in main.findall("intent-filter")), "Default HOME registration was removed"
+services = {s.get(android + "name") for s in application.findall("service")}
+assert {".service.fan.AppMonitorAccessibilityService", ".service.fan.FanWatchdogService",
+        ".service.afk.AfkTileService", ".service.afk.AfkOverlayService"} <= services
+assert not any("shader" in c.get(android + "name", "").lower() for c in application)
+assert not list((SOURCE / "shader").rglob("*.kt"))
+assert not list((ROOT / "app/src/main/assets/shaders").rglob("*.*"))
+print("PASS: default HOME, fan and AFK components remain; retired components/assets are absent")

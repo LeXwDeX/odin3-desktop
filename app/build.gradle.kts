@@ -6,7 +6,7 @@ plugins {
 }
 
 // Stable version tags map to increasing Android versions, independent of CI reruns.
-val releaseVersion = providers.gradleProperty("releaseVersion").getOrElse("0.1.1")
+val releaseVersion = providers.gradleProperty("releaseVersion").getOrElse("0.1.2")
 require(releaseVersion.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) {
     "releaseVersion must be MAJOR.MINOR.PATCH without leading zeroes"
 }
@@ -52,6 +52,7 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
+    sourceSets.getByName("test").resources.srcDir("schemas")
     bundle {
         language {
             // CONFIG must be able to switch to any supported language while offline.

@@ -42,7 +42,6 @@ class OdinDesktopApplication : Application() {
     private fun refreshLanguageResources() {
         createNotificationChannels()
         com.odin.desktop.service.afk.AfkTileService.requestRefresh(this)
-        com.odin.desktop.shader.overlay.ShaderTileService.requestRefresh(this)
     }
 
     private fun createNotificationChannels() {

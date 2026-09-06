@@ -86,88 +86,8 @@
     <string name="text_charging_limits_were_not_both_applied_refresh" formatted="false">"充電制限を両方とも適用できませんでした。両方の設定を更新してください。"</string>
     <string name="text_airplane_mode_could_not_be_changed_refresh" formatted="false">"機内モードを変更できませんでした。状態を更新してください。"</string>
     <string name="text_airplane_mode_readback_differs" formatted="false">"機内モードの読取値が一致しません。"</string>
-    <string name="text_gamenative_crt_scanlines" formatted="false">"GameNative CRT走査線"</string>
-    <string name="text_could_not_save_screenshot_preview_settings" formatted="false">"スクリーンショットのプレビュー設定を保存できませんでした"</string>
-    <string name="text_open_a_game_then_choose_the_filter" formatted="false">"ゲームを開いてから、クイック設定でフィルターを選択してください"</string>
-    <string name="text_auto_compatible_scanlines" formatted="false">"自動・互換走査線"</string>
-    <string name="text_auto_screenshot_preview" formatted="false">"自動・スクリーンショットプレビュー"</string>
-    <string name="text_smpte_color_bars" formatted="false">"SMPTEカラーバー"</string>
-    <string name="text_alignment_grid" formatted="false">"位置合わせグリッド"</string>
-    <string name="text_retro_pixel_game_scene" formatted="false">"レトロなドット絵ゲーム画面"</string>
-    <string name="text_cannot_read_the_image" formatted="false">"画像を読み込めません"</string>
-    <string name="text_choose_a_valid_game_screenshot" formatted="false">"有効なゲームのスクリーンショットを選択してください"</string>
-    <string name="text_image_too_large" formatted="false">"画像が大きすぎます"</string>
-    <string name="text_screenshot_import_failed" formatted="false">"スクリーンショットを読み込めませんでした"</string>
-    <string name="text_back" formatted="false">"戻る"</string>
-    <string name="text_import_unfiltered_screenshot" formatted="false">"フィルターなしの画像を読み込む"</string>
-    <string name="text_show_original_x" formatted="false">"原画を表示・X"</string>
-    <string name="text_live_integration_status" formatted="false">"リアルタイム連携の状態"</string>
-    <string name="text_import_a_game_screenshot_with_all_filters" formatted="false">"すべてのフィルターを無効にしたゲームのスクリーンショットを読み込んでください。画面解像度でプレビューします。"</string>
-    <string name="text_value_value_source_value_screen_resolution_preview">"元画像 %1$d × %2$d・%3$s・画面解像度でプレビュー・Xで比較"</string>
-    <string name="text_show_filter_x" formatted="false">"フィルターを表示・X"</string>
-    <string name="text_live_rendering_integration" formatted="false">"リアルタイム描画との連携"</string>
-    <string name="text_this_preview_processes_your_imported_screenshot_on" formatted="false">"このプレビューは読み込んだスクリーンショットをGPUで処理し、すべてのフィルターの組み合わせに対応します。\n\nゲーム映像へのリアルタイム適用は未実装です。対象アプリのVulkanまたはOpenGL描画への組み込みが必要です。デスクトップの設定を有効にしても、任意のアプリにシェーダーを挿入することはできません。\n\n軽量オーバーレイはVulkan系のCRTのみに対応します。その他の効果はリアルタイム連携が実装されるまでスクリーンショットのプレビューで利用できます。設定はアプリごとに保存されます。"</string>
-    <string name="text_got_it" formatted="false">"了解"</string>
-    <string name="text_gpu_error_0xvalue">"GPUエラー 0x%1$s"</string>
-    <string name="text_filter_rendering_failed_value">"フィルターの描画に失敗しました：%1$s"</string>
-    <string name="text_exported_value_gpu_comparisons_press_x_to">"GPU比較画像を%1$d件出力しました。Xで現在の設定と原画を比較できます。"</string>
-    <string name="text_game_filter" formatted="false">"ゲームフィルター"</string>
-    <string name="text_on_hold_to_adjust" formatted="false">"オン・長押しで調整"</string>
-    <string name="text_off_hold_to_adjust" formatted="false">"オフ・長押しで調整"</string>
-    <string name="text_return_to_the_game_before_toggling_its" formatted="false">"ゲームに戻ってからフィルターを切り替えてください"</string>
-    <string name="text_could_not_save_the_filter_switch" formatted="false">"フィルターの切替状態を保存できませんでした"</string>
-    <string name="text_this_combination_needs_game_frame_integration_saved" formatted="false">"この組み合わせにはゲーム映像との連携が必要です。プレビュー用として保存しました"</string>
     <string name="text_off" formatted="false">"オフ"</string>
-    <string name="text_on" formatted="false">"[ ● オン ]"</string>
-    <string name="text_off_2" formatted="false">"[ ○ オフ ]"</string>
-    <string name="text_standalone_calibration" formatted="false">"単独キャリブレーション"</string>
-    <string name="text_ready" formatted="false">"準備完了"</string>
-    <string name="text_trinitron_crt" formatted="false">"トリニトロンCRT"</string>
-    <string name="text_retro_arcade" formatted="false">"レトロアーケード"</string>
-    <string name="text_vivid_game" formatted="false">"鮮やかなゲーム"</string>
-    <string name="text_hd_fxaa" formatted="false">"HD FXAA"</string>
-    <string name="text_unfiltered" formatted="false">"フィルターなし"</string>
-    <string name="text_custom" formatted="false">"カスタム"</string>
-    <string name="text_smpte_calibration_bars" formatted="false">"SMPTE調整用バー"</string>
-    <string name="text_retro_pixel_scene" formatted="false">"レトロなドット絵"</string>
-    <string name="text_game_screenshot" formatted="false">"ゲームのスクリーンショット"</string>
-    <string name="text_loading_screenshot" formatted="false">"スクリーンショットを読み込み中…"</string>
-    <string name="text_choose_a_valid_screenshot" formatted="false">"有効なスクリーンショットを選択してください"</string>
-    <string name="text_screenshot_loaded" formatted="false">"スクリーンショットを読み込みました"</string>
-    <string name="text_could_not_read_screenshot_value">"スクリーンショットを読み込めませんでした：%1$s"</string>
-    <string name="text_saved_automatically" formatted="false">"自動保存しました"</string>
-    <string name="text_save_failed_value">"保存に失敗しました：%1$s"</string>
-    <string name="text_enabled_for_this_game" formatted="false">"このゲーム用に保存済み"</string>
-    <string name="text_disabled_for_this_game" formatted="false">"このゲームでは無効"</string>
-    <string name="text_preset_value">"プリセット %1$d"</string>
-    <string name="text_filter_preset_value">"フィルタープリセット：%1$s"</string>
-    <string name="text_bypass_raw_source" formatted="false">"⚡ バイパス・原画"</string>
-    <string name="text_select_item" formatted="false">"項目を選択"</string>
-    <string name="text_adjust_value" formatted="false">"値を調整"</string>
-    <string name="text_change_preset" formatted="false">"プリセットを変更"</string>
-    <string name="text_hold_to_compare" formatted="false">"長押しで比較"</string>
-    <string name="text_hide_menu" formatted="false">"メニューを隠す"</string>
-    <string name="text_show_menu" formatted="false">"メニューを表示"</string>
-    <string name="text_save_and_exit" formatted="false">"保存して終了"</string>
-    <string name="text_target_value">"対象：%1$s"</string>
-    <string name="text_grayscale_reference" formatted="false">"グレースケール基準"</string>
-    <string name="text_left_barely_visible_right_clear" formatted="false">"左はかすかに見える・右ははっきり見える"</string>
-    <string name="text_04_faint" formatted="false">"04% かすか"</string>
-    <string name="text_50_reference" formatted="false">"50% 基準"</string>
-    <string name="text_96_clear" formatted="false">"96% 明瞭"</string>
-    <string name="text_picture_preset" formatted="false">"画質プリセット"</string>
-    <string name="text_value">"◄ %1$s ►"</string>
-    <string name="text_contrast" formatted="false">"コントラスト"</string>
-    <string name="text_brightness" formatted="false">"明るさ"</string>
-    <string name="text_gamma" formatted="false">"ガンマ"</string>
-    <string name="text_crt_scanlines" formatted="false">"CRT走査線"</string>
     <string name="text_level" formatted="false">"レベル"</string>
-    <string name="text_vivid_color_enhancement" formatted="false">"鮮やかさ補正"</string>
-    <string name="text_fxaa_anti_aliasing" formatted="false">"FXAAアンチエイリアス"</string>
-    <string name="text_test_signal" formatted="false">"テスト信号"</string>
-    <string name="text_enable_for_this_game" formatted="false">"このゲームで有効にする"</string>
-    <string name="text_enable_for_game_no_running_game_detected" formatted="false">"ゲームで有効にする（実行中のゲームなし）"</string>
-    <string name="text_screenshot_too_large" formatted="false">"スクリーンショットが大きすぎます"</string>
     <string name="text_all_apps" formatted="false">"すべてのアプリ"</string>
     <string name="text_cannot_launch_value">"%1$sを起動できません"</string>
     <string name="text_you_can_create_up_to_10_tabs" formatted="false">"タブは10個まで作成できます"</string>
@@ -271,7 +191,6 @@
     <string name="text_files" formatted="false">"ファイル"</string>
     <string name="text_system_settings" formatted="false">"システム設定"</string>
     <string name="text_odin_settings" formatted="false">"Odin設定"</string>
-    <string name="text_filters" formatted="false">"フィルター"</string>
     <string name="text_dashboard_internal_storage" formatted="false">"ダッシュボード・内部ストレージ"</string>
     <string name="text_dashboard_internal_and_external_storage" formatted="false">"ダッシュボード・内部／外部ストレージ"</string>
     <string name="text_sd_card" formatted="false">"SDカード"</string>
@@ -327,39 +246,18 @@
     <string name="text_open_source_acknowledgements_n" formatted="false">"オープンソースへの謝辞：\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"上下：選択・A：決定・B：戻る"</string>
     <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"Bまたは背景をタップして戻る"</string>
-    <string name="text_write_error" formatted="false">"書き込みエラー"</string>
     <string name="page_dashboard" formatted="false">"ダッシュボード"</string>
     <string name="page_config" formatted="false">"⚙️ 設定"</string>
-    <string name="shader_calibration_title" formatted="false">"テレビ画質調整"</string>
     <string name="language_section" formatted="false">"6. 言語"</string>
     <string name="text_7_about" formatted="false">"7. このアプリについて"</string>
     <string name="language_title" formatted="false">"アプリの言語"</string>
     <string name="language_description" formatted="false">"端末の言語に従うか、Odin Desktopの言語を選択できます。対応外の言語では英語を使用します。"</string>
     <string name="language_follow_system" formatted="false">"システムに従う"</string>
     <string name="hardware_oem_service_unavailable">本体のハードウェアサービスを利用できません。起動完了後に再試行してください。</string>
-    <string name="shader_status_no_target">画像プレビュー · 対象ゲームなし</string>
-    <string name="shader_status_disabled">ゲームフィルターの要求はオフ</string>
-    <string name="shader_status_checking">確認中 · ゲームの効果は未確認</string>
-    <string name="shader_status_preview_only">プレビューのみ · ゲーム画像への接続が必要</string>
-    <string name="shader_status_no_effect">効果が未選択</string>
-    <string name="shader_status_permission">未適用 · オーバーレイ権限が必要</string>
-    <string name="shader_status_system">プレビューのみ · Android 13 以降が必要</string>
-    <string name="shader_status_paused">プレビュー/システム画面 · ゲーム効果は一時停止</string>
-    <string name="shader_status_overlay">CRT マスク描画済み · ゲームの効果は未確認</string>
-    <string name="shader_status_unknown">効果不明 · 前面アプリまたは表示を確認できません</string>
-    <string name="shader_status_failed">適用失敗 · 原因不明、再試行してください</string>
-    <string name="shader_request_saved_on">有効化の要求を保存しました</string>
-    <string name="shader_request_saved_off">無効化の要求を保存しました</string>
-    <string name="shader_enable_request">ゲームに適用（要求）</string>
     <string name="header_battery">電池 %1$s%%</string>
     <string name="header_charging">充電中</string>
     <string name="header_on_battery">充電していません</string>
     <string name="header_unread">未取得</string>
     <string name="header_full">満充電</string>
     <string name="header_fan">ファン %1$s RPM</string>
-    <string name="shader_tile_unconfirmed">効果未確認 · CRT マスク</string>
-    <string name="shader_tile_preview">画像プレビューのみ</string>
-    <string name="shader_tile_paused">ゲーム効果は一時停止</string>
-    <string name="shader_tile_unknown">ゲーム効果は未確認</string>
-    <string name="shader_target_permission">ゲームを識別するには、システム設定で使用状況へのアクセスまたはアプリ監視を許可してください。</string>
 </resources>

@@ -7,9 +7,8 @@ import android.content.Intent
 import android.provider.DocumentsContract
 import android.provider.Settings
 import android.widget.Toast
-import com.odin.desktop.shader.control.ShaderControlActivity
 
-/** Navigation for the dashboard's four explicit actions. */
+/** Navigation for the dashboard's system actions. */
 class DashboardActions(private val activity: Activity) {
     fun execute(action: DashboardAction) {
         if (activity.isFinishing || activity.isDestroyed) return
@@ -23,10 +22,6 @@ class DashboardActions(private val activity: Activity) {
                         "com.odin.settings",
                         "com.ro.settings.activity.MainSettingsActivity"
                     ))
-            )
-            DashboardAction.FILTERS -> openOrExplain(
-                Intent(activity, ShaderControlActivity::class.java)
-                    .putExtra(ShaderControlActivity.EXTRA_PREVIEW_ONLY, true)
             )
         }
     }

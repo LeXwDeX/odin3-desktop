@@ -4,20 +4,19 @@
 
 **专为 AYN Odin 3 安卓掌机深度打造的旗舰级默认桌面启动台与系统增强套件**
 
-[![Release](https://img.shields.io/badge/Release-v0.1.0-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
+[![Release](https://img.shields.io/badge/Release-v0.1.2-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
 [![Platform](https://img.shields.io/badge/Platform-AYN%20Odin%203%20(Android%2013%2B)-black?style=for-the-badge&logo=qualcomm)](https://github.com/LeXwDeX/odin3-desktop)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20%7C%20OLED%20Black-blue?style=for-the-badge&logo=jetpackcompose)](https://github.com/LeXwDeX/odin3-desktop)
-[![Shader](https://img.shields.io/badge/Shader-TVGAME%20Calibration%20OSD-orange?style=for-the-badge&logo=opengl)](https://github.com/LeXwDeX/odin3-desktop)
 
-*纯粹掌机美学 • 100% 全实体手柄盲操 • 系统默认主屏幕 • TVGAME 电视画面校准台 • 智能温控风扇调度*
+*纯粹掌机美学 • 100% 全实体手柄盲操 • 系统默认主屏幕 • 智能温控风扇调度*
 
 </div>
 
 当前开发交接见 [性能、风扇与 Home/返回键修复记录](docs/performance-fan-home-fixes.md)。其中包含新机器 clone 后的构建步骤、已验证结果及设备重连后的待验项目。
 
-问题与验收见 [问题与需求记录](docs/issues.md)：Dock 硬件控制已改为原厂服务直连；VIDEO SHADER 的实际生效状态继续单独跟踪。
+问题与验收见 [问题与需求记录](docs/issues.md)：Dock 硬件控制已改为原厂服务直连；从 0.1.2 起已按用户要求完整移除 Shader，详见 [移除说明](docs/shader-removal.md)。
 
-支持中文、英文和日文，默认跟随设备的系统语言，其他语言使用英文。进入 **CONFIG（设置）→ 6. 语言**，可选择“跟随系统 / 中文 / English / 日本語”，选择后立即刷新并自动保存；支持触屏和手柄上下选择、A 键确认。中文目前统一使用简体文案，繁体中文系统也会匹配中文。Android 13+ 与系统的应用语言设置同步，Android 10–12 使用 AndroidX 保存选择。分类身份与显示名称分离，自定义名称保持原样。实现与验收见 [多语言说明](docs/languages.md)，扩展接口见 [架构审计](docs/architecture.md)。下方截图来自此前实机版本，三种语言的实际排版尚待设备重连验证。
+支持中文、英文和日文，默认跟随设备的系统语言，其他语言使用英文。进入 **CONFIG（设置）→ 6. 语言**，可选择“跟随系统 / 中文 / English / 日本語”，选择后立即刷新并自动保存；支持触屏和手柄上下选择、A 键确认。中文目前统一使用简体文案，繁体中文系统也会匹配中文。Android 13+ 与系统的应用语言设置同步，Android 10–12 使用 AndroidX 保存选择。分类身份与显示名称分离，自定义名称保持原样。实现与验收见 [多语言说明](docs/languages.md)，扩展接口见 [架构审计](docs/architecture.md)。下方截图来自此前实机版本；当前版本已移除图中的滤镜入口，其余布局保持原样。
 
 ---
 
@@ -39,26 +38,14 @@
   - ⚪ **空闲容量**（`#455A64` 幽灵灰）：剩余可用空间；
 * **外部扩展卷**：自动枚举并展示 TF 卡卷独立容量卡片；
 * **实时硬件传感器**：只读采集 CPU/GPU 物理最高温度（0~105°C 动态标度）、非系统应用 PSS 内存占用、Wi-Fi 吞吐速率；
-* **四项常用操作**：文件管理（DocumentsUI）、系统设置、Odin 设置、滤镜调整；
+* **三项常用操作**：文件管理（DocumentsUI）、系统设置、Odin 设置；
 * **五项硬件 Dock**：性能模式、风扇调度、摇杆氛围灯、充电优化、飞行模式。
 
 ![掌机仪表盘](docs/screenshots/01_launcher_dashboard.png)
 
 ---
 
-### 3. TVGAME 电视画面校准台 (TV Display Calibration OSD)
-专为掌机复古游戏打造的特丽珑/PVM 监视器风格实时校准工具，可通过 Dashboard 常用操作【滤镜调整】或下拉通知栏磁贴长按即刻唤出：
-* **广播级测试信号源**：内置 75% SMPTE 标准彩条标定信号、几何交叉安全框网格（Crosshatch）、240p 复古像素游戏场景、游戏原生画面截图；
-* **灰阶标定基准块**：集成 `04% 隐约`（暗部黑电平）、`50% 基准`（中灰伽马）、`96% 清晰`（高光对比度）标定基准，复刻专业调机流程；
-* **经典图像预设**：特丽珑 CRT、复古街机、鲜艳游戏、高清 FXAA、纯净原画、自定义（已彻底移除 NTSC 杂波）；
-* **实时硬件级参数调节**：对比度、亮度、色彩伽马、CRT 显像管扫描线、Vivid 鲜艳色彩增强、FXAA 抗锯齿；
-* **全手柄沉浸盲操**：D-Pad 上下选条目、左右 **0ms 实时无级微调**，L1/R1 切换预设，**按住 X 瞬时原画对比**，**Y 键一键隐藏菜单全屏沉浸**，B 键保存并退出。
-
-![TVGAME 电视画面校准台](docs/screenshots/03_video_shader_config.png)
-
----
-
-### 4. 系统默认主屏幕 (Default Home)
+### 3. 系统默认主屏幕 (Default Home)
 由用户在 Android 的系统选择窗口中决定默认桌面。
 
 * **标准桌面注册**：声明 `MAIN` / `HOME` / `DEFAULT`，通过 `android.app.role.HOME` 请求默认桌面角色。选择 Odin Desktop 后，开机及按 Home 时由系统进入本桌面。
@@ -69,7 +56,7 @@
 
 ---
 
-### 5. 屏幕方向规则系统级生效 (Orientation Rules)
+### 4. 屏幕方向规则系统级生效 (Orientation Rules)
 * **握持横屏（允许应用竖屏）**：横屏应用保持正常握持方向，传感器不会使画面掉头；应用明确请求竖屏时仍正常竖屏。
 * **传感器横屏（自适应正反横屏）**：解除握持锁，按应用自身的方向请求和传感器旋转。
 * 配置通过原厂接口写入并读回验证后显示为已启用；系统偏好持久化，不需要常驻旋转服务或电脑。实现及固件边界见 [本轮修复记录](docs/grip-fan-shader-fixes.md)。
@@ -78,7 +65,7 @@
 
 ---
 
-### 6. 应用专属操作控制台 (App Actions)
+### 5. 应用专属操作控制台 (App Actions)
 在桌面卡片对着任意应用按下手柄 `Y` 键即刻呼出控制台级操作浮层：
 * **移动至其他 Tab 分类**：无损将图标迁移至其他自定义分组；
 * **进入应用属性详情**：一键直达系统设置应用详情页（管理权限、存储与安全卸载）；
@@ -88,7 +75,7 @@
 
 ---
 
-### 7. 模块化 Tab 自定义分组编辑 (Tab Management)
+### 6. 模块化 Tab 自定义分组编辑 (Tab Management)
 彻底告别乱糟糟的手机式应用抽屉。为掌机用户量身打造分组管理体系：
 * 支持自由创建新分组、修改名称、标记为「游戏分类」；
 * 支持手柄光标快速调整分组显示顺序（上移/下移）；
@@ -99,7 +86,7 @@
 
 ---
 
-### 8. 摇杆 RGB LED 氛围灯 (LED Customization)
+### 7. 摇杆 RGB LED 氛围灯 (LED Customization)
 提供 6 种经过色彩校准的摇杆 LED 氛围灯预设（青蓝、极客紫、战斗红、荧光绿、冰川白、暗夜灰）：
 * 手柄光标左右切换，按 A 键即时生效并写入硬件；
 * 优化响应管线，极速触发，受限硬件后端双向安全读回确认。
@@ -140,11 +127,6 @@
 | **Y 键 (长按/按键)** | 桌面卡片区 | 呼出**应用专属操作菜单**（Tab 迁移、系统属性、移除图标） |
 | **Y 键 (短按)** | 桌面卡片区 | 开启/退出当前分类卡片的手动自由排序模式 |
 | **Home 键** | 系统任何位置 | 返回系统选定的默认桌面 |
-| **D-Pad (上下)** | TVGAME 校准台 | 在 OSD 校准菜单各项参数之间移动光标 |
-| **D-Pad (左右)** | TVGAME 校准台 | **0ms 实时微调**当前选中的对比度、亮度、伽马、锐化等参数 |
-| **L1 / R1** | TVGAME 校准台 | 快速循环切换 6 大图像预设 |
-| **按住 X 键** | TVGAME 校准台 | **瞬时原画对比 (Bypass)**：按住时直通纯净原画，松手瞬间恢复调校效果 |
-| **Y 键** | TVGAME 校准台 | **全屏沉浸切换**：一键隐藏/唤起 OSD 菜单，纯享全屏标定画面 |
 
 ---
 
@@ -156,17 +138,12 @@ odin3_desktop/
 │   ├── AndroidManifest.xml     # HOME Launcher、开机广播与 QS 磁贴核心声明
 │   ├── java/com/odin/desktop/
 │   │   ├── OdinDesktopApplication.kt   # 全局单例与 Room 数据库初始化
-│   │   ├── dashboard/                  # 只读统计、存储多卷探测与四项常用操作
+│   │   ├── dashboard/                  # 只读统计、存储多卷探测与三项常用操作
 │   │   ├── data/                       # Room 数据库实体、DAO 与多源数据仓库
 │   │   ├── receiver/                   # 开机恢复温控服务，不启动桌面界面
 │   │   ├── service/
 │   │   │   ├── afk/                    # 息屏挂机 OLED 纯黑防烧屏浮层服务
 │   │   │   └── fan/                    # 温控守护服务、无障碍前台感知、HardwareController
-│   │   ├── shader/
-│   │   │   ├── control/                # ShaderControlActivity 独立校准台 Activity
-│   │   │   ├── engine/                 # VideoShaderEngine 掌机生命周期渲染中心
-│   │   │   ├── preview/                # TvTestPatternGenerator 广播级彩条与测试图案
-│   │   │   └── runtime/                # AGSL 着色器运行时管线
 │   │   └── ui/
 │   │       ├── MainActivity.kt         # 默认桌面主入口、沉浸式全屏与按键路由
 │   │       ├── components/             # BottomDockBar、DashboardContent、ConfigDialog、TopTabBar
@@ -210,19 +187,14 @@ tools/android adb -s <设备序列号> shell am start -n com.odin.desktop/.ui.Ma
 
 ## 📜 许可与致谢 (Credits & License)
 
-* **GameNative & Winlator**：感谢复古游戏开源社区对于 CRT 着色器渲染算法的卓越贡献；
 * **AYN Odin 社区**：专为追求极致纯粹安卓掌机体验的硬核玩家打造。
 
-第三方 Shader 来源与许可见 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。仓库尚未包含第一方代码的统一 LICENSE 文本。
+旧版 Shader 的来源与许可记录保留在 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。仓库尚未包含第一方代码的统一 LICENSE 文本。
 
 
-## 顶部状态与滤镜实际效果
+## 顶部状态
 
 设置按钮左侧显示电池电量、充电状态、风扇转速和 PWM，占用固定区域；TAB 列表相应缩窄，底部 Dock 保持原布局。桌面不可见时停止采样，不可读的数据显示“—”。
-
-VIDEO SHADER 通过应用监控识别前台；监控未运行时，可使用用户已授予的“使用情况访问”识别盖世游戏等应用。仅在用户打开入口或兼容遮罩运行时查询，返回桌面或锁屏会丢弃游戏目标。
-
-VIDEO SHADER 分开显示启用意愿与实际运行状态。完整游戏帧处理尚未接入的组合只显示“仅预览”；CRT 兼容遮罩完成绘制也不代表游戏最终画面已经生效，会明确显示“游戏效果未确认”。详见 [状态与设备验收](docs/completion-validation.md)。
 
 ## 风扇策略与后台运行
 

@@ -5,7 +5,6 @@ import android.content.Intent
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityWindowInfo
-import com.odin.desktop.shader.engine.VideoShaderEngine
 
 class AppMonitorAccessibilityService : AccessibilityService() {
 
@@ -21,7 +20,6 @@ class AppMonitorAccessibilityService : AccessibilityService() {
         super.onDestroy()
         instance = null
         isRunning = false
-        VideoShaderEngine.onForegroundUnknown(this)
         currentForegroundPackage = null
         android.util.Log.d("AppMonitor", "AppMonitorAccessibilityService destroyed!")
         runCatching {
@@ -51,26 +49,20 @@ class AppMonitorAccessibilityService : AccessibilityService() {
                     setPackage(this@AppMonitorAccessibilityService.packageName)
                 })
             }
-            VideoShaderEngine.onForegroundUnknown(this)
             return
         }
         val foreground = foregroundResult.getOrNull()
         if (foreground == null) {
             currentForegroundPackage = null
-            VideoShaderEngine.onForegroundUnknown(this)
             return
         }
         if (isIgnoredWindowOwner(foreground)) {
-            VideoShaderEngine.onSystemWindowForeground(this)
             return
         }
 
-        // MainActivity can clear the engine independently of this service's cache.
-        if (foreground == currentForegroundPackage && foreground == VideoShaderEngine.state.value.packageName &&
-            !VideoShaderEngine.needsForegroundRefresh()) return
+        if (foreground == currentForegroundPackage) return
         Log.d("AppMonitor", "Foreground package changed to: $foreground (focused application window)")
         currentForegroundPackage = foreground
-        VideoShaderEngine.onForegroundPackageChanged(this, foreground)
 
         sendBroadcast(Intent(ACTION_FOREGROUND_CHANGED).apply {
             putExtra(EXTRA_PACKAGE_NAME, foreground)
@@ -103,7 +95,6 @@ class AppMonitorAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {
         currentForegroundPackage = null
-        VideoShaderEngine.onForegroundUnknown(this)
         sendBroadcast(Intent(ACTION_FOREGROUND_CHANGED).apply {
             putExtra(EXTRA_PACKAGE_NAME, null as String?)
             setPackage(packageName)

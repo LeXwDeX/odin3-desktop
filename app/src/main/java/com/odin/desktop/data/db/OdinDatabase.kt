@@ -11,19 +11,15 @@ import com.odin.desktop.data.dao.TabDao
 import com.odin.desktop.data.entity.AppMappingEntity
 import com.odin.desktop.data.entity.TabEntity
 
-import com.odin.desktop.shader.dao.AppShaderConfigDao
-import com.odin.desktop.shader.model.AppShaderConfigEntity
-
 @Database(
-    entities = [TabEntity::class, AppMappingEntity::class, AppShaderConfigEntity::class],
-    version = 4,
+    entities = [TabEntity::class, AppMappingEntity::class],
+    version = 5,
     exportSchema = true
 )
 abstract class OdinDatabase : RoomDatabase() {
 
     abstract fun tabDao(): TabDao
     abstract fun appMappingDao(): AppMappingDao
-    abstract fun appShaderConfigDao(): AppShaderConfigDao
 
     companion object {
         @Volatile
@@ -66,6 +62,13 @@ abstract class OdinDatabase : RoomDatabase() {
             }
         }
 
+        // Remove only the retired feature's table; launcher data and IDs stay intact.
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS app_shader_configs")
+            }
+        }
+
         fun getDatabase(context: Context): OdinDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE?.let { return@synchronized it }
@@ -74,7 +77,7 @@ abstract class OdinDatabase : RoomDatabase() {
                     OdinDatabase::class.java,
                     "odin_desktop.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                 INSTANCE = instance
                 instance

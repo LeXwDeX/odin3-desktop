@@ -47,23 +47,6 @@
             <meta-data android:name="autoStoreLocales" android:value="true" />
         </service>
 
-        <activity
-            android:name=".shader.control.ShaderControlActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:taskAffinity=""
-            android:theme="@style/Theme.OdinDesktop.ShaderControl">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name=".shader.preview.ShaderPreviewActivity"
-            android:exported="@bool/shader_preview_exported"
-            android:screenOrientation="sensorLandscape" />
-
         <!-- Default Home Launcher Activity (UI Skeleton) -->
         <activity
             android:name=".ui.MainActivity"
@@ -99,20 +82,6 @@
             android:exported="true"
             android:icon="@drawable/ic_tile_afk"
             android:label="@string/tile_afk_label"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
-            <meta-data android:name="android.service.quicksettings.ACTIVE_TILE" android:value="true" />
-            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true" />
-        </service>
-
-        <!-- Quick Settings Tile: independent shader controls -->
-        <service
-            android:name=".shader.overlay.ShaderTileService"
-            android:exported="true"
-            android:icon="@drawable/ic_tile_shader"
-            android:label="@string/text_game_filter"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE" />

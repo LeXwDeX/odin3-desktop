@@ -85,88 +85,8 @@
     <string name="text_charging_limits_were_not_both_applied_refresh" formatted="false">"Charging limits were not both applied. Refresh both settings."</string>
     <string name="text_airplane_mode_could_not_be_changed_refresh" formatted="false">"Airplane mode could not be changed. Refresh the status."</string>
     <string name="text_airplane_mode_readback_differs" formatted="false">"Airplane mode readback differs."</string>
-    <string name="text_gamenative_crt_scanlines" formatted="false">"GameNative CRT scanlines"</string>
-    <string name="text_could_not_save_screenshot_preview_settings" formatted="false">"Could not save screenshot preview settings"</string>
-    <string name="text_open_a_game_then_choose_the_filter" formatted="false">"Open a game, then choose the filter from Quick Settings"</string>
-    <string name="text_auto_compatible_scanlines" formatted="false">"Auto · Compatible scanlines"</string>
-    <string name="text_auto_screenshot_preview" formatted="false">"Auto · Screenshot preview"</string>
-    <string name="text_smpte_color_bars" formatted="false">"SMPTE color bars"</string>
-    <string name="text_alignment_grid" formatted="false">"Alignment grid"</string>
-    <string name="text_retro_pixel_game_scene" formatted="false">"Retro pixel game scene"</string>
-    <string name="text_cannot_read_the_image" formatted="false">"Cannot read the image"</string>
-    <string name="text_choose_a_valid_game_screenshot" formatted="false">"Choose a valid game screenshot"</string>
-    <string name="text_image_too_large" formatted="false">"Image too large"</string>
-    <string name="text_screenshot_import_failed" formatted="false">"Screenshot import failed"</string>
-    <string name="text_back" formatted="false">"Back"</string>
-    <string name="text_import_unfiltered_screenshot" formatted="false">"Import unfiltered screenshot"</string>
-    <string name="text_show_original_x" formatted="false">"Show original · X"</string>
-    <string name="text_live_integration_status" formatted="false">"Live integration status"</string>
-    <string name="text_import_a_game_screenshot_with_all_filters" formatted="false">"Import a game screenshot with all filters disabled. The preview uses the screen resolution."</string>
-    <string name="text_value_value_source_value_screen_resolution_preview">"%1$d × %2$d source · %3$s · Screen-resolution preview · X to compare"</string>
-    <string name="text_show_filter_x" formatted="false">"Show filter · X"</string>
-    <string name="text_live_rendering_integration" formatted="false">"Live rendering integration"</string>
-    <string name="text_this_preview_processes_your_imported_screenshot_on" formatted="false">"This preview processes your imported screenshot on the GPU and supports all filter combinations.\n\nLive game integration is not implemented. Effects must be integrated into the target app\'s Vulkan or OpenGL rendering. Enabling a desktop setting cannot inject a shader into an arbitrary app.\n\nThe lightweight overlay supports only Vulkan-family CRT. Other effects are available in screenshot previews until live integration is implemented; settings are saved per app."</string>
-    <string name="text_got_it" formatted="false">"Got it"</string>
-    <string name="text_gpu_error_0xvalue">"GPU error 0x%1$s"</string>
-    <string name="text_filter_rendering_failed_value">"Filter rendering failed: %1$s"</string>
-    <string name="text_exported_value_gpu_comparisons_press_x_to">"Exported %1$d GPU comparisons. Press X to compare the current settings with the original."</string>
-    <string name="text_game_filter" formatted="false">"Game filter"</string>
-    <string name="text_on_hold_to_adjust" formatted="false">"On · Hold to adjust"</string>
-    <string name="text_off_hold_to_adjust" formatted="false">"Off · Hold to adjust"</string>
-    <string name="text_return_to_the_game_before_toggling_its" formatted="false">"Return to the game before toggling its filter"</string>
-    <string name="text_could_not_save_the_filter_switch" formatted="false">"Could not save the filter switch"</string>
-    <string name="text_this_combination_needs_game_frame_integration_saved" formatted="false">"This combination needs game-frame integration; saved for preview only"</string>
     <string name="text_off" formatted="false">"Off"</string>
-    <string name="text_on" formatted="false">"[ ● On ]"</string>
-    <string name="text_off_2" formatted="false">"[ ○ Off ]"</string>
-    <string name="text_standalone_calibration" formatted="false">"Standalone calibration"</string>
-    <string name="text_ready" formatted="false">"Ready"</string>
-    <string name="text_trinitron_crt" formatted="false">"Trinitron CRT"</string>
-    <string name="text_retro_arcade" formatted="false">"Retro arcade"</string>
-    <string name="text_vivid_game" formatted="false">"Vivid game"</string>
-    <string name="text_hd_fxaa" formatted="false">"HD FXAA"</string>
-    <string name="text_unfiltered" formatted="false">"Unfiltered"</string>
-    <string name="text_custom" formatted="false">"Custom"</string>
-    <string name="text_smpte_calibration_bars" formatted="false">"SMPTE calibration bars"</string>
-    <string name="text_retro_pixel_scene" formatted="false">"Retro pixel scene"</string>
-    <string name="text_game_screenshot" formatted="false">"Game screenshot"</string>
-    <string name="text_loading_screenshot" formatted="false">"Loading screenshot…"</string>
-    <string name="text_choose_a_valid_screenshot" formatted="false">"Choose a valid screenshot"</string>
-    <string name="text_screenshot_loaded" formatted="false">"Screenshot loaded"</string>
-    <string name="text_could_not_read_screenshot_value">"Could not read screenshot: %1$s"</string>
-    <string name="text_saved_automatically" formatted="false">"Saved automatically"</string>
-    <string name="text_save_failed_value">"Save failed: %1$s"</string>
-    <string name="text_enabled_for_this_game" formatted="false">"Saved for this game"</string>
-    <string name="text_disabled_for_this_game" formatted="false">"Disabled for this game"</string>
-    <string name="text_preset_value">"Preset %1$d"</string>
-    <string name="text_filter_preset_value">"Filter preset: %1$s"</string>
-    <string name="text_bypass_raw_source" formatted="false">"⚡ BYPASS · RAW SOURCE"</string>
-    <string name="text_select_item" formatted="false">"Select item"</string>
-    <string name="text_adjust_value" formatted="false">"Adjust value"</string>
-    <string name="text_change_preset" formatted="false">"Change preset"</string>
-    <string name="text_hold_to_compare" formatted="false">"Hold to compare"</string>
-    <string name="text_hide_menu" formatted="false">"Hide menu"</string>
-    <string name="text_show_menu" formatted="false">"Show menu"</string>
-    <string name="text_save_and_exit" formatted="false">"Save and exit"</string>
-    <string name="text_target_value">"Target: %1$s"</string>
-    <string name="text_grayscale_reference" formatted="false">"Grayscale reference"</string>
-    <string name="text_left_barely_visible_right_clear" formatted="false">"Left barely visible · Right clear"</string>
-    <string name="text_04_faint" formatted="false">"04% Faint"</string>
-    <string name="text_50_reference" formatted="false">"50% Reference"</string>
-    <string name="text_96_clear" formatted="false">"96% Clear"</string>
-    <string name="text_picture_preset" formatted="false">"Picture preset"</string>
-    <string name="text_value">"◄ %1$s ►"</string>
-    <string name="text_contrast" formatted="false">"Contrast"</string>
-    <string name="text_brightness" formatted="false">"Brightness"</string>
-    <string name="text_gamma" formatted="false">"Gamma"</string>
-    <string name="text_crt_scanlines" formatted="false">"CRT scanlines"</string>
     <string name="text_level" formatted="false">"Level"</string>
-    <string name="text_vivid_color_enhancement" formatted="false">"Vivid color enhancement"</string>
-    <string name="text_fxaa_anti_aliasing" formatted="false">"FXAA anti-aliasing"</string>
-    <string name="text_test_signal" formatted="false">"Test signal"</string>
-    <string name="text_enable_for_this_game" formatted="false">"Enable for this game"</string>
-    <string name="text_enable_for_game_no_running_game_detected" formatted="false">"Enable for game (no running game detected)"</string>
-    <string name="text_screenshot_too_large" formatted="false">"Screenshot too large"</string>
     <string name="text_all_apps" formatted="false">"All apps"</string>
     <string name="text_cannot_launch_value">"Cannot launch %1$s"</string>
     <string name="text_you_can_create_up_to_10_tabs" formatted="false">"You can create up to 10 tabs"</string>
@@ -270,7 +190,6 @@
     <string name="text_files" formatted="false">"Files"</string>
     <string name="text_system_settings" formatted="false">"System settings"</string>
     <string name="text_odin_settings" formatted="false">"Odin settings"</string>
-    <string name="text_filters" formatted="false">"Filters"</string>
     <string name="text_dashboard_internal_storage" formatted="false">"Dashboard · Internal storage"</string>
     <string name="text_dashboard_internal_and_external_storage" formatted="false">"Dashboard · Internal and external storage"</string>
     <string name="text_sd_card" formatted="false">"SD card"</string>
@@ -326,10 +245,8 @@
     <string name="text_open_source_acknowledgements_n" formatted="false">"Open-source acknowledgements:\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"Up/Down: select • A: confirm • B: back"</string>
     <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"B or tap the background to return"</string>
-    <string name="text_write_error" formatted="false">"Write error"</string>
     <string name="page_dashboard" formatted="false">"Dashboard"</string>
     <string name="page_config" formatted="false">"⚙️ Settings"</string>
-    <string name="shader_calibration_title" formatted="false">"TV DISPLAY CALIBRATION"</string>
     <string name="language_section" formatted="false">"6. Language"</string>
     <string name="text_7_about" formatted="false">"7. About"</string>
     <string name="language_title" formatted="false">"App language"</string>
@@ -339,29 +256,10 @@
     <string name="language_english" translatable="false">English</string>
     <string name="language_japanese" translatable="false">日本語</string>
     <string name="hardware_oem_service_unavailable">The firmware hardware service is unavailable. Try again after the device finishes starting.</string>
-    <string name="shader_status_no_target">Screenshot preview · no current game</string>
-    <string name="shader_status_disabled">Game filter request off</string>
-    <string name="shader_status_checking">Checking · game effect unconfirmed</string>
-    <string name="shader_status_preview_only">Preview only · this combination needs game frame access</string>
-    <string name="shader_status_no_effect">No effect selected</string>
-    <string name="shader_status_permission">Not applied · overlay permission required</string>
-    <string name="shader_status_system">Preview only · Android 13 or later required</string>
-    <string name="shader_status_paused">Preview/system UI · game effect paused</string>
-    <string name="shader_status_overlay">CRT mask drawn · game effect unconfirmed</string>
-    <string name="shader_status_unknown">Game effect unknown · foreground/visibility unconfirmed</string>
-    <string name="shader_status_failed">Apply failed · cause unknown; retry</string>
-    <string name="shader_request_saved_on">Enable request saved</string>
-    <string name="shader_request_saved_off">Disable request saved</string>
-    <string name="shader_enable_request">Enable for game (request)</string>
     <string name="header_battery">Battery %1$s%%</string>
     <string name="header_charging">Charging</string>
     <string name="header_on_battery">Not charging</string>
     <string name="header_unread">Not read</string>
     <string name="header_full">Fully charged</string>
     <string name="header_fan">Fan %1$s RPM</string>
-    <string name="shader_tile_unconfirmed">Unconfirmed · CRT mask</string>
-    <string name="shader_tile_preview">Screenshot preview only</string>
-    <string name="shader_tile_paused">Game effect paused</string>
-    <string name="shader_tile_unknown">Game effect unconfirmed</string>
-    <string name="shader_target_permission">Allow usage access or app monitoring in system settings to identify the foreground game.</string>
 </resources>
