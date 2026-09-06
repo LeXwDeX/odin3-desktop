@@ -262,4 +262,5 @@
     <string name="header_unread">Not read</string>
     <string name="header_full">Fully charged</string>
     <string name="header_fan">Fan %1$s RPM</string>
+    <string name="afk_countdown_hint">"Entering idle screen in %1$d seconds\nDouble-tap to cancel or exit"</string>
 </resources>

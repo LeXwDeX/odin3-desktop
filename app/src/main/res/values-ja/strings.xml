@@ -260,4 +260,5 @@
     <string name="header_unread">未取得</string>
     <string name="header_full">満充電</string>
     <string name="header_fan">ファン %1$s RPM</string>
+    <string name="afk_countdown_hint">"%1$d 秒後に画面保護を開始\nダブルタップでキャンセル・終了"</string>
 </resources>

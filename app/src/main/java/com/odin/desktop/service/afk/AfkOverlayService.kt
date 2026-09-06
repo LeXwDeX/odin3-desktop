@@ -44,6 +44,33 @@ class AfkOverlayService : Service() {
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     private var lastClickTime = 0L
+    private var countdownEndsAt = 0L
+    private val countdownRunnable = object : Runnable {
+        override fun run() {
+            val root = overlayView ?: return
+            val remaining = countdownEndsAt - SystemClock.uptimeMillis()
+            if (remaining > 0L) {
+                statusTextView?.text = getString(R.string.afk_countdown_hint, (remaining + 999L) / 1000L)
+                handler.postDelayed(this, minOf(1000L, remaining))
+                return
+            }
+            countdownEndsAt = 0L
+            try {
+                root.setBackgroundColor(Color.BLACK)
+                statusTextView?.apply {
+                    setBackgroundColor(Color.TRANSPARENT)
+                    setTextColor(Color.parseColor("#333333"))
+                }
+                val params = root.layoutParams as WindowManager.LayoutParams
+                params.screenBrightness = 0.01f
+                windowManager.updateViewLayout(root, params)
+                handler.post(shiftRunnable)
+            } catch (error: RuntimeException) {
+                android.util.Log.e("AfkOverlayService", "Could not finish AFK countdown", error)
+                stopAfk()
+            }
+        }
+    }
 
     private val shiftRunnable = object : Runnable {
         override fun run() {
@@ -117,17 +144,20 @@ class AfkOverlayService : Service() {
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
             format = PixelFormat.TRANSLUCENT
             gravity = Gravity.CENTER
-            screenBrightness = 0.01f
+            screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
             layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setFitInsetsTypes(0)
         }
 
         val root = FrameLayout(this).apply {
-            setBackgroundColor(Color.BLACK)
+            setBackgroundColor(Color.TRANSPARENT)
         }
 
         val textView = TextView(this).apply {
-            setTextColor(Color.parseColor("#333333")) // 极暗灰，防烧屏
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.argb(230, 32, 32, 32))
+            val padding = (16 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, padding)
             textSize = 14f
             gravity = Gravity.CENTER
             text = getString(R.string.afk_overlay_unlock_hint)
@@ -159,7 +189,8 @@ class AfkOverlayService : Service() {
         windowManager.addView(root, layoutParams)
         isAfkRunning = true
         AfkTileService.requestRefresh(this)
-        handler.post(shiftRunnable)
+        countdownEndsAt = SystemClock.uptimeMillis() + 6000L
+        countdownRunnable.run()
     }
 
     private fun updateStatusText() {
@@ -173,6 +204,8 @@ class AfkOverlayService : Service() {
     }
 
     private fun removeOverlay() {
+        handler.removeCallbacks(countdownRunnable)
+        countdownEndsAt = 0L
         handler.removeCallbacks(shiftRunnable)
         overlayView?.let {
             try {

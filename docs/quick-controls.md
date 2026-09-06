@@ -99,3 +99,13 @@ adb -s a782c9a1 shell pm default-state --user 0 com.odin.gameassistant
 包含该版磁贴截图及 CSV、独立调参截图、`offline-database-check.json`、`final-database-check.json`、`quick-toggle-verification.log` 和原版助手审计。`rollback/` 保存该次修改前的 APK、schema 3 数据库快照及原磁贴顺序。回退前应额外备份当前 APK 与设置，并匹配 APK 所需 schema，避免覆盖之后用户新调整的数据；不要直接用更早的 `shader-comparison/rollback` schema 2 数据库替换当前数据库。
 
 磁贴顺序的恢复同样使用系统编辑界面，避免依赖会被系统覆盖的 `settings put`。上述历史操作未进行 root、解锁、刷机或数据清除。
+
+## 2026-09-06 开启前倒计时
+
+- 开启本应用的【息屏挂机】后，先保留游戏画面并显示 6→1 秒提示：“双击屏幕可取消或退出”，满 6 秒后才切换为黑色遮罩和低亮度。倒计时不打开额外的确认页面，仍使用不获取键盘/手柄焦点的悬浮窗口。
+- 倒计时和黑屏期间都可双击退出，也可通过磁贴或常驻通知停止。停止、服务销毁和启动失败会移除倒计时回调、遮罩与唤醒锁；重复启动不会重新计时。
+- 保持唤醒依赖可见窗口的 `FLAG_KEEP_SCREEN_ON`，另有最长 12 小时的 CPU partial WakeLock；不是物理关闭显示屏，也不是阻止系统关机。按电源键、低电量/过热关机、系统终止服务，以及游戏自身断线或暂停策略不在保证范围内。
+- 遮罩使用 `FLAG_NOT_FOCUSABLE`，触摸被遮罩接收用于退出，手柄/键盘焦点留给下层窗口。打开快捷面板与临时入口时仍可能产生短暂焦点变化；这与挂机期间持续保持游戏窗口是不同阶段。此前 SkyEmu 前台验收见上文，不能推断所有游戏的长时间运行效果。
+- 本轮设备列表为空，尚未安装或实机验收新版倒计时。Robolectric 回归覆盖 6 秒切换、重复启动、窗口标志、双击取消、停止/销毁后不再遮黑及唤醒锁释放；不把这些检查当作固件休眠或游戏焦点的实测。
+
+Android API 依据：[窗口焦点与保持亮屏标志](https://developer.android.com/reference/android/view/WindowManager.LayoutParams)、[CPU 唤醒锁](https://developer.android.com/reference/android/os/PowerManager)。

@@ -259,4 +259,5 @@
     <string name="header_unread">未读取</string>
     <string name="header_full">已充满</string>
     <string name="header_fan">风扇 %1$s RPM</string>
+    <string name="afk_countdown_hint">"%1$d 秒后进入息屏挂机\n双击屏幕可取消或退出"</string>
 </resources>
