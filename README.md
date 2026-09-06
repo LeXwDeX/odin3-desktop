@@ -191,6 +191,8 @@ tools/android adb -s <设备序列号> shell am start -n com.odin.desktop/.ui.Ma
 
 旧版 Shader 的来源与许可记录保留在 [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md)。仓库尚未包含第一方代码的统一 LICENSE 文本。
 
+按用户要求，Shader 原始 GLSL 文件、来源记录和许可证另行保存在 [shaders/](shaders/README.md)，不打包进 APK。本次只保留源码，PSP / PS2 模拟器导入适配尚未进行。
+
 
 ## 顶部状态
 

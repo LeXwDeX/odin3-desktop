@@ -1,8 +1,4 @@
-# Historical third-party shader sources
-
-Shader functionality and its bundled assets were removed in version 0.1.2. The following notice describes earlier releases; it is retained with the license texts for their provenance. Refer to the [v0.1.1 source tree](https://github.com/LeXwDeX/odin3-desktop/tree/v0.1.1) for the historical paths below. This removal does not change the licensing of those earlier sources.
-
-At the user's request, the pre-removal shader assets are also preserved verbatim in [shaders/original/gamenative](shaders/original/gamenative/), outside the APK. Their existing licenses and attribution remain intact. See the [archive notes](shaders/README.md) for the exact source commit and checksums.
+# Third-party shader sources
 
 The shaders in `app/src/main/assets/shaders/gamenative/opengl/` and
 `app/src/main/assets/shaders/gamenative/vulkan/` are adapted from
