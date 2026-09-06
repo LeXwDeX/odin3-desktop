@@ -28,6 +28,9 @@ interface TabDao {
     @Update
     suspend fun updateTab(tab: TabEntity)
 
+    @Query("UPDATE tabs SET name = :name, usesDefaultName = 0 WHERE id = :id")
+    suspend fun renameTab(id: Long, name: String)
+
     @Update
     suspend fun updateTabs(tabs: List<TabEntity>)
 

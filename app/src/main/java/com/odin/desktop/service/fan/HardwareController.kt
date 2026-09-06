@@ -57,44 +57,14 @@ object HardwareController {
     /**
      * 读取 Odin 3 硬件 SoC (CPU 与 GPU) 实时最高温度 (°C)
      */
-    fun getMaxCpuGpuTemp(): Float {
-        var maxCpuTemp = Float.NaN
-        var maxGpuTemp = Float.NaN
-        try {
-            val dir = java.io.File("/sys/class/thermal")
-            val files = dir.listFiles() ?: return Float.NaN
-            for (file in files) {
-                if (file.name.startsWith("thermal_zone")) {
-                    val typeFile = java.io.File(file, "type")
-                    if (!typeFile.exists()) continue
-                    val type = typeFile.readText().trim()
-                    val isCpu = type.contains("cpu", ignoreCase = true)
-                    val isGpu = type.contains("gpu", ignoreCase = true)
-                    if (isCpu || isGpu) {
-                        val tempFile = java.io.File(file, "temp")
-                        if (tempFile.exists()) {
-                            val raw = tempFile.readText().trim().toLongOrNull() ?: continue
-                            val temp = if (raw > 1000) raw / 1000f else raw.toFloat()
-                            if (temp in 10f..120f) {
-                                if (isCpu) {
-                                    maxCpuTemp = if (maxCpuTemp.isNaN()) temp else maxOf(maxCpuTemp, temp)
-                                }
-                                if (isGpu) {
-                                    maxGpuTemp = if (maxGpuTemp.isNaN()) temp else maxOf(maxGpuTemp, temp)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (_: Exception) {
-            return Float.NaN
-        }
-        // Require both CPU and GPU to have at least one valid reading to prevent partial success
-        if (maxCpuTemp.isNaN() || maxGpuTemp.isNaN()) {
-            return Float.NaN
-        }
-        return maxOf(maxCpuTemp, maxGpuTemp)
+    private val temperatureReader = SocTemperatureReader(java.io.File("/sys/class/thermal")) {
+        android.os.SystemClock.elapsedRealtime()
+    }
+
+    fun getMaxCpuGpuTemp(): Float = temperatureReader.read().maximum()
+
+    fun getCpuGpuTemperatures(): Pair<Float?, Float?> = temperatureReader.read().let {
+        it.cpu.takeIf { value -> value.isFinite() } to it.gpu.takeIf { value -> value.isFinite() }
     }
 
     fun isAutoFanControlEnabled(context: Context): Boolean {
@@ -104,7 +74,8 @@ object HardwareController {
 
     @Synchronized
     fun setAutoFanControlEnabled(context: Context, enabled: Boolean) {
-        fanControl.setAutoEnabled(fanBackend(context), enabled)
+        try { fanControl.setAutoEnabled(fanBackend(context), enabled) }
+        finally { FanWatchdogService.sync(context) }
     }
 
     private fun systemValue(context: Context, key: String): String? =
@@ -193,8 +164,12 @@ object HardwareController {
     }
 
     @Synchronized
-    fun setManualFanMode(context: Context, mode: Int): Int =
-        fanControl.setManualFan(fanBackend(context), mode)
+    fun setManualFanMode(context: Context, mode: Int): Int {
+        try { return fanControl.setManualFan(fanBackend(context), mode) }
+        finally { FanWatchdogService.sync(context) }
+    }
+
+    fun hasPendingFanRecovery(): Boolean = fanControl.hasPendingRecovery()
 
     @Synchronized
     fun getFanPolicySnapshot(context: Context): FanControlCoordinator.Snapshot =

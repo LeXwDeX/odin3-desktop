@@ -831,7 +831,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     fun renameTab(tab: TabEntity, newName: String) {
         viewModelScope.launch {
-            appRepository.updateTab(tab.copy(name = newName, usesDefaultName = false))
+            appRepository.renameTab(tab.id, newName)
         }
     }
 
@@ -876,10 +876,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
         }
         viewModelScope.launch {
-            if (currentTab != null && currentTab.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS) {
-                appRepository.removeAppFromTab(currentTab.id, app.packageName)
+            val sourceId = currentTab?.takeUnless { it.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS }?.id
+            if (!appRepository.moveAppToTab(sourceId, targetTabId, app.packageName)) {
+                filterAppsForCurrentTab()
+                closeAppActionDialog()
+                return@launch
             }
-            appRepository.addAppToTab(targetTabId, app.packageName)
             closeAppActionDialog()
             val targetName = _tabs.value.find { it.id == targetTabId }?.displayName(context) ?: context.getString(R.string.text_target_category)
             Toast.makeText(context, context.getString(R.string.text_added_value_to_the_start_of_value, app.label, targetName), Toast.LENGTH_SHORT).show()

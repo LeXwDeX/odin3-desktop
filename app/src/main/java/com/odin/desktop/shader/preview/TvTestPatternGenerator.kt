@@ -161,7 +161,7 @@ object TvTestPatternGenerator {
     }
 
     /**
-     * 生成经典 240p 风格复古像素游戏画面 (用于直观测试 CRT 扫描线、RGB 磷光管、FSR 锐化)
+     * 生成经典 240p 风格复古像素游戏画面 (用于直观测试 CRT 扫描线、RGB 磷光管)
      */
     private fun createRetroPixelPattern(w: Int, h: Int): Bitmap {
         val pw = 320

@@ -11,7 +11,7 @@ import com.odin.desktop.shader.pipeline.OverlayShaderConfig
 
 /**
  * 掌机专属低延迟着色器覆盖层画布视图
- * 承载硬件加速 Shader 渲染管线，支持动态扫描线循环刷新与静态 0 功耗保持
+ * 承载静态 CRT 兼容遮罩；参数改变时重绘，不主动运行逐帧动画。
  */
 class ShaderOverlayView(
     context: Context,

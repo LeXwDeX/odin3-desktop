@@ -7,7 +7,7 @@
     <string name="afk_notification_title" formatted="false">"OLED idle protection is active"</string>
     <string name="afk_notification_text" formatted="false">"Black overlay enabled. Tap to restore the picture."</string>
     <string name="fan_notification_title" formatted="false">"Charging fan monitor"</string>
-    <string name="fan_notification_text" formatted="false">"No game running; fan is quiet"</string>
+    <string name="fan_notification_text" formatted="false">"Automatic fan control is enabled"</string>
     <string name="tab_games" formatted="false">"Games &amp; emulators"</string>
     <string name="tab_system" formatted="false">"System apps"</string>
     <string name="tab_all_apps" formatted="false">"All apps"</string>
@@ -160,7 +160,6 @@
     <string name="text_brightness" formatted="false">"Brightness"</string>
     <string name="text_gamma" formatted="false">"Gamma"</string>
     <string name="text_crt_scanlines" formatted="false">"CRT scanlines"</string>
-    <string name="text_amd_fsr_sharpness" formatted="false">"AMD FSR sharpness"</string>
     <string name="text_level" formatted="false">"Level"</string>
     <string name="text_vivid_color_enhancement" formatted="false">"Vivid color enhancement"</string>
     <string name="text_fxaa_anti_aliasing" formatted="false">"FXAA anti-aliasing"</string>
@@ -303,7 +302,7 @@
     <string name="text_dark_gray" formatted="false">"Dark gray"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"Choose a stick LED color (A to apply):"</string>
     <string name="text_automatic_fan_policy" formatted="false">"Automatic fan policy:"</string>
-    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"The fan can stop while charging outside games when CPU and GPU temperatures are at most 60°C."</string>
+    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"On external power, normal performance and outside games, the fan can stop. Brief temperature spikes are ignored; stable cooldown restores quiet mode."</string>
     <string name="text_automatic_fan_control" formatted="false">"Automatic fan control"</string>
     <string name="text_automatic_control_enabled_a_or_tap_to" formatted="false">"Automatic control enabled (A or tap to toggle)"</string>
     <string name="text_automatic_control_disabled_manual_mode_retained" formatted="false">"Automatic control disabled (manual mode retained)"</string>
@@ -311,10 +310,10 @@
     <string name="text_off_3" formatted="false">"✕ [ Off ]"</string>
     <string name="text_temperature_and_cooling_status" formatted="false">"Temperature and cooling status"</string>
     <string name="text_highest_chip_temperature_soc" formatted="false">"• Highest chip temperature (SoC):"</string>
-    <string name="text_cooling_threshold" formatted="false">"• Cooling threshold:"</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60.0 °C (cooling required above this)"</string>
+    <string name="text_cooling_threshold" formatted="false">"• Cooling trigger:"</string>
+    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"Above 60°C for 16s; 75°C immediately"</string>
     <string name="text_automatic_stop_conditions" formatted="false">"• Automatic stop conditions:"</string>
-    <string name="text_charging_no_game_temperature_60_c" formatted="false">"Charging + no game + temperature ≤ 60°C"</string>
+    <string name="text_charging_no_game_temperature_60_c" formatted="false">"Return to quiet after 24s at or below 55°C"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"No apps. Press X to manage this category."</string>
     <string name="text_picked_up_left_right_to_move_a" formatted="false">"Picked up: Left/Right to move • A to place"</string>
     <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"Sorting: A to pick up • Left/Right to select • B to finish"</string>

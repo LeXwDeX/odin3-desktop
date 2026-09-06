@@ -4,6 +4,8 @@ import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,10 +39,10 @@ internal fun AutoFanSection(
 ) {
     val palette = LocalOdinPalette.current
     val strings = LocalContext.current
-    Column {
-        Text(strings.getString(R.string.text_automatic_fan_policy), color = palette.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text(strings.getString(R.string.text_the_fan_can_stop_while_charging_outside), color = palette.textDim, fontSize = 12.sp)
-        Spacer(modifier = Modifier.height(18.dp))
+    Column(Modifier.verticalScroll(rememberScrollState())) {
+        Text(strings.getString(R.string.text_automatic_fan_policy), color = palette.text, fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.Bold)
+        Text(strings.getString(R.string.text_the_fan_can_stop_while_charging_outside), color = palette.textDim, fontSize = 12.sp, lineHeight = 16.sp)
+        Spacer(modifier = Modifier.height(12.dp))
 
         val isFocused = inSubMenu && subFocusIndex == 0
 
@@ -59,7 +61,7 @@ internal fun AutoFanSection(
                     shape = RoundedCornerShape(10.dp)
                 )
                 .clickable { onToggleAutoFan() }
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -70,26 +72,26 @@ internal fun AutoFanSection(
                     Text(
                         text = strings.getString(R.string.text_automatic_fan_control),
                         color = if (isFocused) palette.accent else palette.text,
-                        fontSize = 16.sp,
+                        fontSize = 16.sp, lineHeight = 20.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = if (autoFanControlEnabled) strings.getString(R.string.text_automatic_control_enabled_a_or_tap_to) else strings.getString(R.string.text_automatic_control_disabled_manual_mode_retained),
                         color = palette.textDim,
-                        fontSize = 12.sp
+                        fontSize = 12.sp, lineHeight = 16.sp
                     )
                 }
                 Text(
                     text = if (autoFanControlEnabled) strings.getString(R.string.text_on_3) else strings.getString(R.string.text_off_3),
                     color = if (autoFanControlEnabled) palette.active else palette.textDim,
-                    fontSize = 15.sp,
+                    fontSize = 15.sp, lineHeight = 19.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // 实时状态监控与保护机制
         Column(
@@ -98,29 +100,29 @@ internal fun AutoFanSection(
                 .clip(RoundedCornerShape(10.dp))
                 .background(palette.card)
                 .border(1.dp, palette.border, RoundedCornerShape(10.dp))
-                .padding(18.dp),
+                .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(strings.getString(R.string.text_temperature_and_cooling_status), color = palette.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(strings.getString(R.string.text_temperature_and_cooling_status), color = palette.accent, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Bold)
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(strings.getString(R.string.text_highest_chip_temperature_soc), color = palette.text, fontSize = 13.sp)
+                Text(strings.getString(R.string.text_highest_chip_temperature_soc), color = palette.text, fontSize = 13.sp, lineHeight = 17.sp)
                 Text(
                     text = if (socTemp.isFinite()) "${"%.1f".format(socTemp)} °C" else "— °C",
                     color = if (!socTemp.isFinite()) palette.textDim else if (socTemp <= 60f) palette.active else palette.warning,
-                    fontSize = 13.sp,
+                    fontSize = 13.sp, lineHeight = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(strings.getString(R.string.text_cooling_threshold), color = palette.text, fontSize = 13.sp)
-                Text(strings.getString(R.string.text_60_0_c_cooling_required_above_this), color = palette.warning, fontSize = 13.sp)
+                Text(strings.getString(R.string.text_cooling_threshold), color = palette.text, fontSize = 13.sp, lineHeight = 17.sp)
+                Text(strings.getString(R.string.text_60_0_c_cooling_required_above_this), color = palette.warning, fontSize = 13.sp, lineHeight = 17.sp)
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(strings.getString(R.string.text_automatic_stop_conditions), color = palette.text, fontSize = 13.sp)
-                Text(strings.getString(R.string.text_charging_no_game_temperature_60_c), color = palette.textDim, fontSize = 12.sp)
+                Text(strings.getString(R.string.text_automatic_stop_conditions), color = palette.text, fontSize = 13.sp, lineHeight = 17.sp)
+                Text(strings.getString(R.string.text_charging_no_game_temperature_60_c), color = palette.textDim, fontSize = 12.sp, lineHeight = 16.sp)
             }
         }
     }

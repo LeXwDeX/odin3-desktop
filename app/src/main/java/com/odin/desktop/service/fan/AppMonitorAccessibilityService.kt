@@ -66,7 +66,7 @@ class AppMonitorAccessibilityService : AccessibilityService() {
         }
 
         // MainActivity can clear the engine independently of this service's cache.
-        if (foreground == currentForegroundPackage && foreground == VideoShaderEngine.currentTargetPackage(this) &&
+        if (foreground == currentForegroundPackage && foreground == VideoShaderEngine.state.value.packageName &&
             !VideoShaderEngine.needsForegroundRefresh()) return
         Log.d("AppMonitor", "Foreground package changed to: $foreground (focused application window)")
         currentForegroundPackage = foreground
@@ -121,10 +121,10 @@ class AppMonitorAccessibilityService : AccessibilityService() {
         const val ACTION_FOREGROUND_CHANGED = "com.odin.desktop.action.FOREGROUND_CHANGED"
         const val EXTRA_PACKAGE_NAME = "extra_package_name"
 
-        var isRunning: Boolean = false
+        @Volatile var isRunning: Boolean = false
             private set
 
-        var currentForegroundPackage: String? = null
+        @Volatile var currentForegroundPackage: String? = null
             private set
     }
 }

@@ -2,8 +2,6 @@ package com.odin.desktop.shader.preview
 
 import com.odin.desktop.R
 import android.app.AlertDialog
-import android.graphics.BitmapFactory
-import android.graphics.ColorSpace
 import android.os.Bundle
 import android.view.Gravity
 import android.view.KeyEvent
@@ -37,14 +35,7 @@ class ShaderPreviewActivity : AppCompatActivity() {
         if (uri != null) lifecycleScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    val bitmap = contentResolver.openInputStream(uri).use { input ->
-                        requireNotNull(input) { getString(R.string.text_cannot_read_the_image) }
-                        BitmapFactory.decodeStream(input, null, sourceDecodeOptions()) ?: error(getString(R.string.text_choose_a_valid_game_screenshot))
-                    }
-                    require(bitmap.width.toLong() * bitmap.height <= 32_000_000L) { getString(R.string.text_image_too_large) }
-                    sourceFile.parentFile?.mkdirs()
-                    sourceFile.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
-                    bitmap.recycle()
+                    ShaderSourceImage.import(this@ShaderPreviewActivity, uri, sourceFile).recycle()
                 }
                 loadSource()
             }.onFailure { status.text = it.message ?: getString(R.string.text_screenshot_import_failed) }
@@ -99,19 +90,13 @@ class ShaderPreviewActivity : AppCompatActivity() {
 
     private suspend fun loadSource() {
         val bitmap = withContext(Dispatchers.IO) {
-            BitmapFactory.decodeFile(sourceFile.absolutePath, sourceDecodeOptions())
+            ShaderSourceImage.read(this@ShaderPreviewActivity, sourceFile)
         }
         if (bitmap == null) status.text = getString(R.string.text_import_a_game_screenshot_with_all_filters)
         else {
             preview.setImage(bitmap)
             status.text = getString(R.string.text_value_value_source_value_screen_resolution_preview, bitmap.width, bitmap.height, effects.family)
         }
-    }
-
-    // ADB screenshots can be Display P3. Match the preview surface and exported PNGs to sRGB.
-    private fun sourceDecodeOptions() = BitmapFactory.Options().apply {
-        inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
-        inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
     }
 
     private fun toggleOriginal() {

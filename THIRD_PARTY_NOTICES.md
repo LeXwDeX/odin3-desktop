@@ -14,16 +14,12 @@ Per-file upstream paths and SHA-256 hashes are recorded in
 `app/src/main/assets/shaders/gamenative/upstream.json`. New integration code is
 in `app/src/main/java/com/odin/desktop/shader/gl/GameNativeGlRenderer.kt`.
 
-## AMD FidelityFX Super Resolution
+## Removed AMD FidelityFX Super Resolution integration
 
-The EASU and RCAS algorithms in `FSR1EasuEffect.frag`, `FSR1RcasEffect.frag`
-and the EASU section of `vulkan/window.frag` derive from AMD FidelityFX FSR 1.0.
-Copyright (c) 2021 Advanced Micro Devices, Inc. AMD released these algorithms
-under the MIT license; the full notice is retained in
-`third_party_licenses/AMD-FidelityFX-FSR-MIT.txt`.
-
-Upstream algorithm source:
-[GPUOpen FidelityFX-FSR](https://github.com/GPUOpen-Effects/FidelityFX-FSR/blob/master/ffx-fsr/ffx_fsr1.h).
+The former EASU/RCAS passes and the FSR section of the Vulkan-family shader
+were removed on 2026-09-06 at the user's request. They are no longer compiled
+or exposed by this app. The historical AMD MIT notice remains in
+`third_party_licenses/AMD-FidelityFX-FSR-MIT.txt` for provenance.
 
 ## Adaptations and rendering behavior
 
@@ -33,18 +29,13 @@ Upstream algorithm source:
   As in GameNative's `EffectComposer`, GL effects sample with nearest filtering;
   only the explicit bilinear/fill/stretch scaling pass uses linear filtering.
   The Vulkan family uses linear filtering except for its nearest scaling option.
-- FSR on the OpenGL path runs EASU followed by the original RCAS second pass.
-  GameNative's Vulkan FSR path instead uses EASU plus its existing lightweight
-  contrast sharpen. That difference is retained, including the original comment
-  identifying it; Vulkan FSR is not described as full RCAS.
 - The Vulkan-family shader is executed as a single GLES pass for screenshot
   preview. Push constants become ordinary uniforms. FXAA still re-reads the
   source and replaces the earlier base effect, and NTSC still samples red and
   blue from the source. It is not a native Vulkan backend or an application hook.
 - Screen-effect `resolution`, `TextureSize`, `resW` and `resH` values use output
-  screen pixels. Actual source dimensions are retained separately for FSR's
-  reconstruction and aspect-ratio calculations. Nearest and bilinear fit,
-  fill/crop, stretch and FSR aspect-preserving scaling remain distinct.
+  screen pixels. Actual source dimensions are retained for aspect-ratio calculations.
+  Nearest and bilinear fit, fill/crop and stretch remain distinct.
 - OpenGL CRT retains GameNative's color-channel offset and scanline intensity.
   Its fixed `1024.0` horizontal/vertical phase becomes
   `resolution.x * (1024.0 / 1920.0)` and

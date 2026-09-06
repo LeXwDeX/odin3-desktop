@@ -155,7 +155,7 @@ fun main() {
     check(!crt.requiresFrameInput)
     check(crt.copy(family = ShaderFamily.OPENGL).requiresFrameInput)
     check(crt.copy(contrast = 10f).requiresFrameInput)
-    check(crt.copy(scaling = ShaderScaling.FSR).requiresFrameInput)
+    check(crt.copy(scaling = ShaderScaling.LINEAR).requiresFrameInput)
     check(crt.copy(enableFXAA = true).requiresFrameInput)
     check(crt.copy(gamma = Float.NaN).normalized().gamma == 1f)
     check(crt.copy(family = ShaderFamily.OPENGL, scaling = ShaderScaling.DLS).normalized().scaling == ShaderScaling.NONE)
@@ -165,7 +165,7 @@ fun main() {
             val config = preset.settings(family)
             check(config.family == family)
             check(ShaderPresets.indexOf(config) == index)
-            check(ShaderPresets.indexOf(config.copy(scaling = ShaderScaling.FSR)) == -1)
+            check(ShaderPresets.indexOf(config.copy(scaling = ShaderScaling.LINEAR)) == -1)
             check(ShaderPresets.indexOf(config.copy(enableNTSC = true)) == -1)
         }
     }

@@ -151,7 +151,11 @@ object HardwareController {
     fun isBootAutoStartEnabled(context: android.content.Context) = true
 }
 class AppMonitorAccessibilityService { companion object { const val isRunning = true } }
-class FanWatchdogService
+class FanWatchdogService { companion object {
+    var syncCalls = 0
+    fun sync(context: android.content.Context) { syncCalls++ }
+    fun setLauncherVisible(context: android.content.Context, visible: Boolean) {}
+} }
 ''',
     "dashboard": '''package com.odin.desktop.dashboard
 class DashboardActions(context: android.content.Context) { fun execute(action: Any) {} }
@@ -208,11 +212,11 @@ fun main() {
             check(bootContext.activityStarts == 0) { "Boot must never launch UI, including legacy startup-enabled installs" }
         }
     }
-    check(bootContext.serviceStarts == 6) { "Boot must preserve cooling service startup attempts" }
+    check(com.odin.desktop.service.fan.FanWatchdogService.syncCalls == 6) { "Boot delegates to the conditional service policy" }
     receiver.onReceive(bootContext, android.content.Intent().apply { action = "unrelated" })
     receiver.onReceive(bootContext, null)
     receiver.onReceive(null, android.content.Intent())
-    check(bootContext.serviceStarts == 6 && bootContext.activityStarts == 0)
+    check(com.odin.desktop.service.fan.FanWatchdogService.syncCalls == 6 && bootContext.activityStarts == 0)
     println("PASS: three boot broadcasts never start UI, including legacy enabled preference and service failures")
     val activity = MainActivity()
     activity.onCreate(null)

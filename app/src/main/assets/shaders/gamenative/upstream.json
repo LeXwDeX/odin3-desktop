@@ -13,16 +13,6 @@
       "adapted_asset": "opengl/ColorEffect.frag"
     },
     {
-      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/FSR1EasuEffect.java",
-      "source_sha256": "c4a9680a68b53c99bd0c833dfe7958a5c7b98f34f95be8376be1801feb9c6412",
-      "adapted_asset": "opengl/FSR1EasuEffect.frag"
-    },
-    {
-      "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/FSR1RcasEffect.java",
-      "source_sha256": "dabc0eadc2b5d9f7626e43a413da331eca2cb5fa1057ba8f52802ce7423b4d9c",
-      "adapted_asset": "opengl/FSR1RcasEffect.frag"
-    },
-    {
       "source": "GameNative/app/src/main/java/com/winlator/renderer/effects/FXAAEffect.java",
       "source_sha256": "bf8396e761b1a315ca133e477c8cd501a862d66c4cd5d4028926ee2993f97fa1",
       "adapted_asset": "opengl/FXAAEffect.frag"

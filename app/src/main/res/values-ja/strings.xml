@@ -8,7 +8,7 @@
     <string name="afk_notification_title" formatted="false">"OLED画面保護が動作中です"</string>
     <string name="afk_notification_text" formatted="false">"黒いオーバーレイを表示しています。タップすると画面が戻ります。"</string>
     <string name="fan_notification_title" formatted="false">"充電中のファン監視"</string>
-    <string name="fan_notification_text" formatted="false">"ゲーム未実行・ファン静音"</string>
+    <string name="fan_notification_text" formatted="false">"自動ファン制御が有効です"</string>
     <string name="tab_games" formatted="false">"ゲーム・エミュレーター"</string>
     <string name="tab_system" formatted="false">"システムアプリ"</string>
     <string name="tab_all_apps" formatted="false">"すべてのアプリ"</string>
@@ -161,7 +161,6 @@
     <string name="text_brightness" formatted="false">"明るさ"</string>
     <string name="text_gamma" formatted="false">"ガンマ"</string>
     <string name="text_crt_scanlines" formatted="false">"CRT走査線"</string>
-    <string name="text_amd_fsr_sharpness" formatted="false">"AMD FSRシャープネス"</string>
     <string name="text_level" formatted="false">"レベル"</string>
     <string name="text_vivid_color_enhancement" formatted="false">"鮮やかさ補正"</string>
     <string name="text_fxaa_anti_aliasing" formatted="false">"FXAAアンチエイリアス"</string>
@@ -304,7 +303,7 @@
     <string name="text_dark_gray" formatted="false">"ダークグレー"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"スティックLEDの色を選択（Aで適用）："</string>
     <string name="text_automatic_fan_policy" formatted="false">"自動ファン制御の動作："</string>
-    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"充電中でゲームを実行しておらず、CPUとGPUがともに60°C以下のときはファンを停止できます。"</string>
+    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"外部電源・通常性能・ゲーム未実行時に自動停止します。短い温度上昇を無視し、安定して冷えた後に再び停止します。"</string>
     <string name="text_automatic_fan_control" formatted="false">"自動ファン制御"</string>
     <string name="text_automatic_control_enabled_a_or_tap_to" formatted="false">"自動制御が有効（Aまたはタップで切替）"</string>
     <string name="text_automatic_control_disabled_manual_mode_retained" formatted="false">"自動制御が無効（手動モードを保持）"</string>
@@ -312,10 +311,10 @@
     <string name="text_off_3" formatted="false">"✕ [ オフ ]"</string>
     <string name="text_temperature_and_cooling_status" formatted="false">"温度と冷却の状態"</string>
     <string name="text_highest_chip_temperature_soc" formatted="false">"• チップ最高温度（SoC）："</string>
-    <string name="text_cooling_threshold" formatted="false">"• 冷却開始温度："</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60.0 °C（この温度を超えると冷却）"</string>
+    <string name="text_cooling_threshold" formatted="false">"• 冷却開始："</string>
+    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60°C 超が16秒継続、75°C は即時"</string>
     <string name="text_automatic_stop_conditions" formatted="false">"• 自動停止の条件："</string>
-    <string name="text_charging_no_game_temperature_60_c" formatted="false">"充電中 ＋ ゲーム未実行 ＋ 温度 ≤ 60°C"</string>
+    <string name="text_charging_no_game_temperature_60_c" formatted="false">"55°C 以下が24秒続くと再び停止"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"アプリがありません。Xでこのカテゴリを管理できます。"</string>
     <string name="text_picked_up_left_right_to_move_a" formatted="false">"選択中：左右で移動・Aで配置"</string>
     <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"並べ替え：Aで選択・左右で移動・Bで終了"</string>

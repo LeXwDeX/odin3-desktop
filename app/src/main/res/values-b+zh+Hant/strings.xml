@@ -7,7 +7,7 @@
     <string name="afk_notification_title" formatted="false">"OLED 防烧屏挂机运行中"</string>
     <string name="afk_notification_text" formatted="false">"纯黑遮罩已开启，点击恢复画面"</string>
     <string name="fan_notification_title" formatted="false">"充电风扇智能守护"</string>
-    <string name="fan_notification_text" formatted="false">"未运行游戏，风扇保持静音停转"</string>
+    <string name="fan_notification_text" formatted="false">"自动风扇调度已开启"</string>
     <string name="tab_games" formatted="false">"游戏与模拟器"</string>
     <string name="tab_system" formatted="false">"系统应用"</string>
     <string name="tab_all_apps" formatted="false">"全部应用"</string>
@@ -160,7 +160,6 @@
     <string name="text_brightness" formatted="false">"画面亮度"</string>
     <string name="text_gamma" formatted="false">"色彩伽马"</string>
     <string name="text_crt_scanlines" formatted="false">"CRT 显像管扫描线"</string>
-    <string name="text_amd_fsr_sharpness" formatted="false">"AMD FSR 超分锐度"</string>
     <string name="text_level" formatted="false">"档"</string>
     <string name="text_vivid_color_enhancement" formatted="false">"Vivid 鲜艳色彩增强"</string>
     <string name="text_fxaa_anti_aliasing" formatted="false">"FXAA 平滑抗锯齿"</string>
@@ -303,7 +302,7 @@
     <string name="text_dark_gray" formatted="false">"暗夜灰"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"选择摇杆 LED 灯光色彩预设（A键即时确认）："</string>
     <string name="text_automatic_fan_policy" formatted="false">"自动风扇控制策略："</string>
-    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"掌机在充电且未处于游戏状态，且 CPU &amp; GPU 温度 &lt;= 60°C 时将自动关闭风扇，保持安静。"</string>
+    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"外接电源、默认性能且未运行游戏时可自动停转。过滤短暂温升，稳定降温后恢复停转；手动选档会关闭自动调度。"</string>
     <string name="text_automatic_fan_control" formatted="false">"自动风扇控制"</string>
     <string name="text_automatic_control_enabled_a_or_tap_to" formatted="false">"自动调度已开启 (按 A 键或点击切换)"</string>
     <string name="text_automatic_control_disabled_manual_mode_retained" formatted="false">"自动调度已停用 (保留手动风扇档位)"</string>
@@ -311,10 +310,10 @@
     <string name="text_off_3" formatted="false">"✕ [ 关闭 ]"</string>
     <string name="text_temperature_and_cooling_status" formatted="false">"实时状态与温控保护监控"</string>
     <string name="text_highest_chip_temperature_soc" formatted="false">"• 芯片实时最高温度 (SoC)："</string>
-    <string name="text_cooling_threshold" formatted="false">"• 安全硬温控阈值："</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60.0 °C (高于此温度强制散热)"</string>
+    <string name="text_cooling_threshold" formatted="false">"• 开扇条件："</string>
+    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"超过 60°C 持续 16 秒；75°C 立即"</string>
     <string name="text_automatic_stop_conditions" formatted="false">"• 调度执行条件："</string>
-    <string name="text_charging_no_game_temperature_60_c" formatted="false">"充电中 + 无游戏 + 温度 &lt;= 60°C"</string>
+    <string name="text_charging_no_game_temperature_60_c" formatted="false">"降至 55°C 及以下持续 24 秒后恢复停转"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"暂无应用，按 X 键可管理或添加应用至此分类"</string>
     <string name="text_picked_up_left_right_to_move_a" formatted="false">"【已抓起】按方向键左右移动位置 • 按 A 键放下"</string>
     <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"【排序模式】按 A 键抓起图标 • 方向键左右选应用 • 按 B 键完成退出"</string>

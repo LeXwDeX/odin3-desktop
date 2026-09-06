@@ -41,9 +41,11 @@ public final class FanControlCoordinatorSelfTest {
         performanceTargets();
         elevatedPerformanceCooling();
         policyOwnership();
+        adoptAlreadyStoppedFan();
         outdatedDecisions();
         partialWriteRecovery();
         serializedUserActions();
+        thermalStability();
         System.out.println("PASS FanControlCoordinatorSelfTest (" + checks + " checks)");
     }
 
@@ -60,7 +62,7 @@ public final class FanControlCoordinatorSelfTest {
             backend.fan = backend.configuredFan = 0;
             for (boolean charging : new boolean[]{false, true}) {
                 for (boolean known : new boolean[]{false, true}) {
-                    Integer target = FanControlCoordinator.policyTarget(controller.snapshot(backend), 40, charging, false, known);
+                    Integer target = FanControlCoordinator.policyTarget(controller.snapshot(backend), FanControlCoordinator.ThermalDecision.ALLOW_QUIET, charging, false, known);
                     check(target != null && target == 4, "elevated performance always requests SMART regardless of charging or foreground");
                 }
             }
@@ -143,6 +145,23 @@ public final class FanControlCoordinatorSelfTest {
         check(backend.fan == 4, "superseded foreground request leaves fan unchanged");
     }
 
+    private static void adoptAlreadyStoppedFan() {
+        FakeBackend backend = new FakeBackend();
+        FanControlCoordinator controller = new FanControlCoordinator();
+        controller.setManualFan(backend, 0);
+        controller.setAutoEnabled(backend, true);
+        check(controller.hasPendingRecovery(), "enabling automation adopts OFF before the first sensor evaluation");
+        controller.applyPolicy(backend, controller.snapshot(backend), 0, () -> true);
+        check(controller.snapshot(backend).mutedByPolicy, "enabled policy adopts an already stopped fan when quiet is allowed");
+        Integer target = FanControlCoordinator.policyTarget(controller.snapshot(backend),
+            FanControlCoordinator.ThermalDecision.ALLOW_QUIET, true, false, false);
+        check(target != null && target == 4, "leaving known idle foreground recovers the adopted OFF");
+        controller.applyPolicy(backend, controller.snapshot(backend), target, () -> true);
+        check(backend.fan == 4, "adopted quiet mode restores SMART in background");
+        controller.setManualFan(backend, 0);
+        check(!controller.hasPendingRecovery(), "a new manual choice still releases automatic ownership");
+    }
+
     private static void partialWriteRecovery() {
         FakeBackend backend = new FakeBackend();
         FanControlCoordinator controller = new FanControlCoordinator();
@@ -193,6 +212,48 @@ public final class FanControlCoordinatorSelfTest {
         manual.join(5000);
         check(!performance.isAlive() && !manual.isAlive() && failure.get() == null, "serialized transactions complete");
         check(backend.performance == 1 && backend.fan == 5 && !backend.auto, "latest manual maximum wins after performance");
+    }
+
+    private static void thermalStability() {
+        var gate = new FanControlCoordinator.ThermalGate();
+        var hold = FanControlCoordinator.ThermalDecision.HOLD;
+        var cool = FanControlCoordinator.ThermalDecision.COOL;
+        var quiet = FanControlCoordinator.ThermalDecision.ALLOW_QUIET;
+        check(gate.evaluate(50, 0) == quiet, "cool startup permits quiet");
+        check(gate.evaluate(61, 8_000) == hold, "single spike does not start cooling");
+        for (int i = 0; i < 100; i++) check(gate.evaluate(61, 8_000) == hold, "broadcast burst cannot accelerate heat window");
+        check(gate.evaluate(59, 16_000) == quiet, "spike recovery preserves quiet");
+        check(gate.evaluate(61, 24_000) == hold, "new heat starts fresh window");
+        check(gate.evaluate(64, 32_000) == hold, "eight seconds is not sustained heat");
+        check(gate.evaluate(61, 40_000) == cool, "sixteen seconds starts cooling");
+        check(gate.evaluate(54, 48_000) == cool, "single cool sample cannot toggle back");
+        check(gate.evaluate(56, 56_000) == cool, "warm bounce resets recovery");
+        for (long t = 64_000; t < 88_000; t += 8_000) check(gate.evaluate(55, t) == cool, "wait for stable cooldown");
+        check(gate.evaluate(55, 88_000) == quiet, "stable cooldown restores quiet automatically");
+        check(gate.evaluate(75, 96_000) == cool, "high temperature bypasses debounce");
+        gate.reset();
+        check(gate.evaluate(61, 0) == hold, "fresh heat");
+        check(gate.evaluate(61, 30_000) == hold, "missing samples do not count as sustained heat");
+        check(gate.evaluate(61, 1) == hold, "clock reversal resets timer");
+        try { gate.evaluate(Float.NaN, 2); throw new AssertionError("invalid sensor accepted"); }
+        catch (IllegalArgumentException expected) { checks++; }
+        check(gate.evaluate(54, 3) == cool, "sensor recovery needs fresh stable cooldown");
+
+        FakeBackend backend = new FakeBackend();
+        FanControlCoordinator controller = new FanControlCoordinator();
+        controller.applyPolicy(backend, controller.snapshot(backend), 0, () -> true);
+        check(FanControlCoordinator.policyTarget(controller.snapshot(backend), hold, true, false, true) == null, "spike retains an already stopped fan");
+        Integer target = FanControlCoordinator.policyTarget(controller.snapshot(backend), cool, true, false, true);
+        controller.applyPolicy(backend, controller.snapshot(backend), target, () -> true);
+        check(backend.fan == 4, "sustained heat restores SMART");
+        target = FanControlCoordinator.policyTarget(controller.snapshot(backend), quiet, true, false, true);
+        controller.applyPolicy(backend, controller.snapshot(backend), target, () -> true);
+        check(backend.fan == 0, "after cooling the enabled policy returns to OFF");
+        check(FanControlCoordinator.policyTarget(controller.snapshot(backend), quiet, false, false, true) == 4, "unplugging restores policy-owned cooling");
+        check(FanControlCoordinator.policyTarget(controller.snapshot(backend), quiet, true, false, false) == 4, "unknown app cannot be trusted as idle");
+        check(FanControlCoordinator.policyTarget(controller.snapshot(backend), hold, true, true, true) == 4, "game cooling is immediate");
+        controller.setManualFan(backend, 0);
+        check(FanControlCoordinator.policyTarget(controller.snapshot(backend), cool, true, false, true) == null, "manual OFF disables application automation even when hot");
     }
 
     private static void await(CountDownLatch latch) {

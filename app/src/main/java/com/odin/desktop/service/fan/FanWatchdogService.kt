@@ -43,10 +43,10 @@ class FanWatchdogService : Service() {
     private val resetBackoffRequested = AtomicBoolean()
     private lateinit var appRepository: AppRepository
     private var receiverRegistered = false
-    @Volatile private var isCharging = false
+    @Volatile private var isConnectedToPower = false
     private var failureCount = 0
     private var retryAfterMillis = 0L
-    private var nextAccessibilityAttemptMillis = 0L
+    private val thermalGate = FanControlCoordinator.ThermalGate()
 
     private data class PolicyRequest(val version: Long)
     private class FanModeWriteException(val target: Int, cause: Exception) : Exception("Fan mode write failed", cause)
@@ -55,21 +55,24 @@ class FanWatchdogService : Service() {
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 Intent.ACTION_POWER_CONNECTED -> {
-                    isCharging = true
+                    isConnectedToPower = true
                     requestEvaluation()
                 }
                 Intent.ACTION_POWER_DISCONNECTED -> {
-                    isCharging = false
+                    isConnectedToPower = false
                     requestEvaluation()
                 }
                 Intent.ACTION_BATTERY_CHANGED -> {
-                    val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-                    isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                        status == BatteryManager.BATTERY_STATUS_FULL
-                    requestEvaluation()
+                    // Bypass charging / a full battery can report DISCHARGING while plugged in.
+                    val connected = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+                    if (connected != isConnectedToPower) {
+                        isConnectedToPower = connected
+                        requestEvaluation()
+                    }
                 }
                 AppMonitorAccessibilityService.ACTION_FOREGROUND_CHANGED -> requestEvaluation()
                 HardwareController.ACTION_AUTO_FAN_CONFIG_CHANGED -> requestEvaluation(resetBackoff = true)
+                ACTION_LAUNCHER_VISIBILITY_CHANGED -> requestEvaluation()
             }
         }
     }
@@ -89,6 +92,7 @@ class FanWatchdogService : Service() {
                 addAction(Intent.ACTION_BATTERY_CHANGED)
                 addAction(AppMonitorAccessibilityService.ACTION_FOREGROUND_CHANGED)
                 addAction(HardwareController.ACTION_AUTO_FAN_CONFIG_CHANGED)
+                addAction(ACTION_LAUNCHER_VISIBILITY_CHANGED)
             }
             ContextCompat.registerReceiver(this, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
             receiverRegistered = true
@@ -104,7 +108,6 @@ class FanWatchdogService : Service() {
         serviceScope.launch {
             while (isActive) {
                 delay(8_000)
-                ensureAccessibilityAlive()
                 requestEvaluation()
             }
         }
@@ -122,6 +125,7 @@ class FanWatchdogService : Service() {
             if (resetBackoffRequested.getAndSet(false)) {
                 failureCount = 0
                 retryAfterMillis = 0L
+                thermalGate.reset()
             }
             if (SystemClock.elapsedRealtime() < retryAfterMillis) return
             val snapshot = HardwareController.getFanPolicySnapshot(this)
@@ -131,21 +135,27 @@ class FanWatchdogService : Service() {
                 }
                 failureCount = 0
                 retryAfterMillis = 0L
+                if (!HardwareController.hasPendingFanRecovery()) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
                 return
             }
             val maxTemp = HardwareController.getMaxCpuGpuTemp()
             check(maxTemp.isFinite() && maxTemp > 0f) { "CPU/GPU temperature is unavailable" }
             val isAccessibilityActive = AppMonitorAccessibilityService.isRunning
-            val foreground = if (isAccessibilityActive) AppMonitorAccessibilityService.currentForegroundPackage else null
+            val foreground = if (launcherVisible) packageName
+                else if (isAccessibilityActive) AppMonitorAccessibilityService.currentForegroundPackage else null
             val isGame = foreground != null && foreground != packageName && appRepository.isGamePackage(foreground)
-            val isUnknownForeground = !isAccessibilityActive || foreground == null
-            val target = FanControlCoordinator.policyTarget(snapshot, maxTemp, isCharging, isGame, !isUnknownForeground)
+            val thermal = thermalGate.evaluate(maxTemp, SystemClock.elapsedRealtime())
+            val target = FanControlCoordinator.policyTarget(snapshot, thermal, isConnectedToPower, isGame, foreground != null)
             if (target != null) applyPolicyMode(target, snapshot, request.version)
             failureCount = 0
             retryAfterMillis = 0L
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
+            thermalGate.sensorFailed()
             // A missing sensor or failed game query must never leave our own silent mode trusted.
             if (error !is FanModeWriteException || error.target == HardwareController.FAN_OFF) {
                 try {
@@ -176,28 +186,6 @@ class FanWatchdogService : Service() {
             }
         } catch (error: Exception) {
             throw FanModeWriteException(target, error)
-        }
-    }
-
-    private fun ensureAccessibilityAlive() {
-        if (AppMonitorAccessibilityService.isRunning) return
-        val now = SystemClock.elapsedRealtime()
-        if (now < nextAccessibilityAttemptMillis) return
-        nextAccessibilityAttemptMillis = now + 60_000
-        try {
-            val serviceName = "$packageName/${AppMonitorAccessibilityService::class.java.name}"
-            val enabled = android.provider.Settings.Secure.getString(contentResolver,
-                android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
-            val without = enabled.split(":").filter { it.isNotEmpty() && it != serviceName }.joinToString(":")
-            check(android.provider.Settings.Secure.putString(contentResolver,
-                android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, without))
-            val targetList = if (without.isEmpty()) serviceName else "$without:$serviceName"
-            check(android.provider.Settings.Secure.putString(contentResolver,
-                android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, targetList))
-            check(android.provider.Settings.Secure.putString(contentResolver,
-                android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, "1"))
-        } catch (error: Exception) {
-            Log.w(TAG, "Accessibility restart unavailable; waiting before retry", error)
         }
     }
 
@@ -237,5 +225,27 @@ class FanWatchdogService : Service() {
     companion object {
         private const val TAG = "FanWatchdogService"
         private const val NOTIFICATION_ID = 2002
+        private const val ACTION_LAUNCHER_VISIBILITY_CHANGED = "com.odin.desktop.action.LAUNCHER_VISIBILITY_CHANGED"
+        @Volatile private var launcherVisible = false
+
+        fun setLauncherVisible(context: Context, visible: Boolean) {
+            if (launcherVisible == visible) return
+            launcherVisible = visible
+            context.sendBroadcast(Intent(ACTION_LAUNCHER_VISIBILITY_CHANGED).setPackage(context.packageName))
+        }
+
+        /** Manual hardware controls do not require a foreground service. */
+        fun sync(context: Context) {
+            val intent = Intent(context, FanWatchdogService::class.java)
+            if (!HardwareController.isAutoFanControlEnabled(context) && !HardwareController.hasPendingFanRecovery()) {
+                context.stopService(intent)
+                return
+            }
+            try {
+                ContextCompat.startForegroundService(context, intent)
+            } catch (failure: RuntimeException) {
+                Log.w(TAG, "Cannot start automatic fan service from this context", failure)
+            }
+        }
     }
 }

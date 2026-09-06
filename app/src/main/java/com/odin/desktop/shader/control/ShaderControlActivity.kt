@@ -6,11 +6,7 @@ import com.odin.desktop.shader.model.ShaderPresets
 import com.odin.desktop.shader.repository.ShaderConfigWrites
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.ColorSpace
 import android.os.Bundle
-import android.util.AtomicFile
 import android.view.KeyEvent
 import android.view.Window
 import android.view.WindowManager
@@ -68,7 +64,7 @@ import com.odin.desktop.shader.engine.VideoShaderEngine
 import com.odin.desktop.shader.model.AppShaderConfigEntity
 import com.odin.desktop.shader.model.GameNativeShaderSettings
 import com.odin.desktop.shader.model.ShaderFamily
-import com.odin.desktop.shader.model.ShaderScaling
+import com.odin.desktop.shader.preview.ShaderSourceImage
 import com.odin.desktop.shader.preview.ShaderPreviewView
 import com.odin.desktop.shader.preview.TvTestPatternGenerator
 import com.odin.desktop.shader.repository.ShaderConfigRepository
@@ -127,23 +123,7 @@ class ShaderControlActivity : AppCompatActivity() {
                 uiSaveStatus.value = getString(R.string.text_loading_screenshot)
                 runCatching {
                     withContext(Dispatchers.IO) {
-                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        contentResolver.openInputStream(uri).use { BitmapFactory.decodeStream(it, null, bounds) }
-                        checkImageSize(bounds, this@ShaderControlActivity)
-                        val bitmap = contentResolver.openInputStream(uri).use {
-                            BitmapFactory.decodeStream(it, null, decodeOptions()) ?: error(getString(R.string.text_choose_a_valid_screenshot))
-                        }
-                        sourceFile.parentFile?.mkdirs()
-                        val file = AtomicFile(sourceFile)
-                        val output = file.startWrite()
-                        try {
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
-                            file.finishWrite(output)
-                        } catch (e: Throwable) {
-                            file.failWrite(output)
-                            throw e
-                        }
-                        bitmap
+                        ShaderSourceImage.import(this@ShaderControlActivity, uri, sourceFile)
                     }
                 }.onSuccess { bmp ->
                     uiSelectedSignalSource.intValue = 3
@@ -286,7 +266,7 @@ class ShaderControlActivity : AppCompatActivity() {
                 2 -> TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.RETRO_PIXEL_SCENE)
                 3 -> {
                     if (sourceFile.exists()) {
-                        runCatching { BitmapFactory.decodeFile(sourceFile.absolutePath, decodeOptions()) }.getOrNull()
+                        ShaderSourceImage.read(this@ShaderControlActivity, sourceFile)
                             ?: TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.SMPTE_COLOR_BARS)
                     } else {
                         TvTestPatternGenerator.generate(TvTestPatternGenerator.PatternType.SMPTE_COLOR_BARS)
@@ -475,7 +455,7 @@ class ShaderControlActivity : AppCompatActivity() {
 
         // 仅在 OSD 显示时处理导航和微调
         if (uiIsOsdVisible.value && event.action == KeyEvent.ACTION_DOWN) {
-            val totalMenuItems = 10
+            val totalMenuItems = 9
             when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_UP -> {
                     uiSelectedMenuIndex.intValue = (uiSelectedMenuIndex.intValue - 1 + totalMenuItems) % totalMenuItems
@@ -510,64 +490,30 @@ class ShaderControlActivity : AppCompatActivity() {
             2 -> updateEffectsAndSave { it.copy(brightness = (it.brightness + delta * 2f).coerceIn(-100f, 100f)) }
             3 -> updateEffectsAndSave { it.copy(gamma = (it.gamma + delta * 0.05f).coerceIn(0.5f, 2.5f)) }
             4 -> updateEffectsAndSave { it.copy(enableCRT = !it.enableCRT) }
-            5 -> {
-                // AMD FSR 超分与锐度联动
-                updateEffectsAndSave { current ->
-                    val isFsrActive = current.scaling == ShaderScaling.FSR || current.scaling == ShaderScaling.FSR_ASPECT
-                    if (!isFsrActive) {
-                        if (delta > 0) {
-                            current.copy(scaling = ShaderScaling.FSR, fsrSharpnessLevel = 3)
-                        } else {
-                            current
-                        }
-                    } else {
-                        val nextLevel = current.fsrSharpnessLevel + delta
-                        if (nextLevel < 1) {
-                            current.copy(scaling = ShaderScaling.NONE)
-                        } else {
-                            current.copy(scaling = ShaderScaling.FSR, fsrSharpnessLevel = nextLevel.coerceAtMost(5))
-                        }
-                    }
-                }
-            }
-            6 -> updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
-            7 -> updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
-            8 -> {
+            5 -> updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
+            6 -> updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
+            7 -> {
                 val next = (uiSelectedSignalSource.intValue + delta + signalSources.size) % signalSources.size
                 uiSelectedSignalSource.intValue = next
                 loadSignalSource(next)
             }
-            9 -> toggleAppFilter()
+            8 -> toggleAppFilter()
         }
     }
 
     private fun confirmCurrentItem() {
         when (uiSelectedMenuIndex.intValue) {
             4 -> updateEffectsAndSave { it.copy(enableCRT = !it.enableCRT) }
-            5 -> {
-                // A 键切换 FSR 开关
-                updateEffectsAndSave { current ->
-                    val isFsrActive = current.scaling == ShaderScaling.FSR || current.scaling == ShaderScaling.FSR_ASPECT
-                    if (isFsrActive) {
-                        current.copy(scaling = ShaderScaling.NONE)
-                    } else {
-                        current.copy(
-                            scaling = ShaderScaling.FSR,
-                            fsrSharpnessLevel = if (current.fsrSharpnessLevel in 1..5) current.fsrSharpnessLevel else 3
-                        )
-                    }
-                }
-            }
-            6 -> updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
-            7 -> updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
-            8 -> {
+            5 -> updateEffectsAndSave { it.copy(enableVivid = !it.enableVivid) }
+            6 -> updateEffectsAndSave { it.copy(enableFXAA = !it.enableFXAA) }
+            7 -> {
                 if (uiSelectedSignalSource.intValue == 3) {
                     imagePicker.launch("image/*")
                 } else {
                     adjustCurrentItem(delta = 1)
                 }
             }
-            9 -> toggleAppFilter()
+            8 -> toggleAppFilter()
             else -> adjustCurrentItem(delta = 1)
         }
     }
@@ -672,7 +618,7 @@ class ShaderControlActivity : AppCompatActivity() {
                     saveStatus = saveStatus,
                     onItemClick = { index ->
                         uiSelectedMenuIndex.intValue = index
-                        if (index == 4 || index == 5 || index == 6 || index == 7 || index == 8 || index == 9) {
+                        if (index in 4..8) {
                             confirmCurrentItem()
                         }
                     },
@@ -916,62 +862,46 @@ class ShaderControlActivity : AppCompatActivity() {
                     )
                 }
 
-                // 5. AMD FSR 超分与锐度级别
-                item {
-                    val isFsrActive = effects.scaling == ShaderScaling.FSR || effects.scaling == ShaderScaling.FSR_ASPECT
-                    OsdSliderRow(
-                        title = getString(R.string.text_amd_fsr_sharpness),
-                        value = if (isFsrActive) effects.fsrSharpnessLevel else 0,
-                        min = 0,
-                        max = 5,
-                        unit = if (isFsrActive) getString(R.string.text_level) else getString(R.string.text_off),
-                        isSelected = selectedIndex == 5,
-                        onClick = { onItemClick(5) },
-                        onLeft = { onItemAdjust(5, -1) },
-                        onRight = { onItemAdjust(5, 1) }
-                    )
-                }
-
-                // 6. 鲜艳增强 (VIVID)
+                // 5. 鲜艳增强 (VIVID)
                 item {
                     OsdToggleRow(
                         title = getString(R.string.text_vivid_color_enhancement),
                         enabled = effects.enableVivid,
+                        isSelected = selectedIndex == 5,
+                        onClick = { onItemClick(5) }
+                    )
+                }
+
+                // 6. FXAA 平滑抗锯齿
+                item {
+                    OsdToggleRow(
+                        title = getString(R.string.text_fxaa_anti_aliasing),
+                        enabled = effects.enableFXAA,
                         isSelected = selectedIndex == 6,
                         onClick = { onItemClick(6) }
                     )
                 }
 
-                // 7. FXAA 平滑抗锯齿
-                item {
-                    OsdToggleRow(
-                        title = getString(R.string.text_fxaa_anti_aliasing),
-                        enabled = effects.enableFXAA,
-                        isSelected = selectedIndex == 7,
-                        onClick = { onItemClick(7) }
-                    )
-                }
-
-                // 8. 测试信号源切换
+                // 7. 测试信号源切换
                 item {
                     OsdRow(
                         title = getString(R.string.text_test_signal),
                         valueText = "◄ ${signalSources[signalSourceIndex]} ►",
-                        isSelected = selectedIndex == 8,
+                        isSelected = selectedIndex == 7,
                         valueColor = palette.warning,
-                        onClick = { onItemClick(8) },
-                        onLeft = { onItemAdjust(8, -1) },
-                        onRight = { onItemAdjust(8, 1) }
+                        onClick = { onItemClick(7) },
+                        onLeft = { onItemAdjust(7, -1) },
+                        onRight = { onItemAdjust(7, 1) }
                     )
                 }
 
-                // 9. 应用到当前游戏
+                // 8. 应用到当前游戏
                 item {
                     OsdToggleRow(
                         title = if (isGame) getString(R.string.shader_enable_request) else getString(R.string.text_enable_for_game_no_running_game_detected),
                         enabled = appFilterEnabled && isGame,
-                        isSelected = selectedIndex == 9,
-                        onClick = { onItemClick(9) }
+                        isSelected = selectedIndex == 8,
+                        onClick = { onItemClick(8) }
                     )
                 }
             }
@@ -981,14 +911,5 @@ class ShaderControlActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_PREVIEW_ONLY = "preview_only"
 
-        private fun decodeOptions() = BitmapFactory.Options().apply {
-            inPreferredConfig = Bitmap.Config.ARGB_8888
-            inPreferredColorSpace = ColorSpace.get(ColorSpace.Named.SRGB)
-        }
-
-        private fun checkImageSize(bounds: BitmapFactory.Options, context: android.content.Context) {
-            require(bounds.outWidth > 0 && bounds.outHeight > 0) { context.getString(R.string.text_choose_a_valid_screenshot) }
-            require(bounds.outWidth.toLong() * bounds.outHeight <= 32_000_000L) { context.getString(R.string.text_screenshot_too_large) }
-        }
     }
 }

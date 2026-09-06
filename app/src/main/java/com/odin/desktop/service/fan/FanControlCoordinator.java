@@ -35,7 +35,70 @@ public final class FanControlCoordinator {
     }
 
     private long revision;
-    private boolean mutedByPolicy;
+    private volatile boolean mutedByPolicy;
+
+    // Lifecycle hint only: never block the main thread behind a hardware transaction.
+    public boolean hasPendingRecovery() { return mutedByPolicy; }
+
+    public enum ThermalDecision { HOLD, COOL, ALLOW_QUIET }
+
+    /** Monotonic time, not event counts: battery broadcasts cannot accelerate a decision. */
+    public static final class ThermalGate {
+        public static final float WARM_C = 60;
+        public static final float COOL_C = 55;
+        public static final float IMMEDIATE_COOLING_C = 75;
+        public static final long WARM_DURATION_MS = 16_000;
+        public static final long COOL_DURATION_MS = 24_000;
+        private static final long MAX_SAMPLE_GAP_MS = 20_000;
+        private long warmSince = -1, coolSince = -1, lastSample = -1;
+        private boolean cooling;
+
+        public void reset() {
+            warmSince = coolSince = lastSample = -1;
+            cooling = false;
+        }
+
+        public void sensorFailed() {
+            reset();
+            cooling = true;
+        }
+
+        public ThermalDecision evaluate(float temperature, long now) {
+            if (!Float.isFinite(temperature) || temperature <= 0 || now < 0) {
+                sensorFailed();
+                throw new IllegalArgumentException("CPU/GPU temperature is unavailable");
+            }
+            if (lastSample >= 0 && (now < lastSample || now - lastSample > MAX_SAMPLE_GAP_MS)) {
+                warmSince = coolSince = -1;
+            }
+            lastSample = now;
+            if (temperature >= IMMEDIATE_COOLING_C) {
+                cooling = true;
+                warmSince = coolSince = -1;
+            }
+            if (cooling) {
+                if (temperature <= COOL_C) {
+                    if (coolSince < 0) coolSince = now;
+                    if (now - coolSince >= COOL_DURATION_MS) {
+                        cooling = false;
+                        warmSince = coolSince = -1;
+                        return ThermalDecision.ALLOW_QUIET;
+                    }
+                } else coolSince = -1;
+                return ThermalDecision.COOL;
+            }
+            if (temperature > WARM_C) {
+                if (warmSince < 0) warmSince = now;
+                if (now - warmSince >= WARM_DURATION_MS) {
+                    cooling = true;
+                    return ThermalDecision.COOL;
+                }
+                return ThermalDecision.HOLD;
+            }
+            warmSince = -1;
+            return ThermalDecision.ALLOW_QUIET;
+        }
+    }
 
     public synchronized Snapshot snapshot(Backend backend) {
         return new Snapshot(revision, backend.readPerformance(), backend.readFan(),
@@ -83,6 +146,10 @@ public final class FanControlCoordinator {
             int target = safeCoolingMode(current);
             if (current != target) backend.writeFan(target);
             mutedByPolicy = false;
+        } else {
+            // Enabling automation explicitly hands an existing OFF to the policy, including
+            // the gap before its first evaluation or a sensor-read failure during startup.
+            mutedByPolicy = backend.readFan() == OFF;
         }
     }
 
@@ -90,19 +157,17 @@ public final class FanControlCoordinator {
         return current == MAX ? MAX : SMART;
     }
 
-    public static Integer policyTarget(Snapshot snapshot, float temperature, boolean charging,
+    public static Integer policyTarget(Snapshot snapshot, ThermalDecision thermal, boolean connectedToPower,
             boolean game, boolean knownForeground) {
         if (!snapshot.autoEnabled) return snapshot.mutedByPolicy ? SMART : null;
-        if (!Float.isFinite(temperature) || temperature <= 0) {
-            throw new IllegalArgumentException("CPU/GPU temperature is unavailable");
-        }
-        if (temperature > 60 || game || snapshot.performanceMode != 0) {
+        if (thermal == null) throw new IllegalArgumentException("Missing thermal decision");
+        if (thermal == ThermalDecision.COOL || game || snapshot.performanceMode != 0) {
             return safeCoolingMode(snapshot.fanMode);
         }
-        if (!charging || !knownForeground) {
+        if (!connectedToPower || !knownForeground) {
             return snapshot.mutedByPolicy ? safeCoolingMode(snapshot.fanMode) : null;
         }
-        return OFF;
+        return thermal == ThermalDecision.ALLOW_QUIET ? OFF : null;
     }
 
     /** Returns false when a newer user action, OEM change, or policy write superseded the snapshot. */
@@ -127,7 +192,9 @@ public final class FanControlCoordinator {
         // A stale or erroneous policy must never mute an elevated performance mode.
         if (target == OFF && performance != 0) return false;
         if (fan == target) {
-            if (target != OFF) mutedByPolicy = false;
+            // Once automation accepts quiet conditions it owns OFF, even if no write is
+            // needed. Otherwise re-enabling automation after manual OFF cannot recover it.
+            mutedByPolicy = target == OFF;
             return true;
         }
         revision++;

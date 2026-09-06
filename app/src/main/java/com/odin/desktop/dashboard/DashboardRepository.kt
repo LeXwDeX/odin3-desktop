@@ -309,36 +309,7 @@ private class LiveSampler(private val app: Context) {
 }
 
 private class TemperatureSampler {
-    private var sensors = emptyList<Pair<File, Boolean>>()
-    private var scannedAt: Long? = null
-
-    fun read(): Pair<Float?, Float?> {
-        val now = SystemClock.elapsedRealtime()
-        if (scannedAt == null || now - scannedAt!! >= 60_000L) {
-            sensors = readOrNull {
-                File("/sys/class/thermal").listFiles().orEmpty().filter { it.name.startsWith("thermal_zone") }
-                    .mapNotNull { zone ->
-                        val type = readOrNull { File(zone, "type").readText().trim().lowercase() }
-                            ?: return@mapNotNull null
-                        when {
-                            type.startsWith("cpu") -> File(zone, "temp") to true
-                            type.startsWith("gpu") -> File(zone, "temp") to false
-                            else -> null
-                        }
-                    }
-            }.orEmpty()
-            scannedAt = now
-        }
-        var cpu: Float? = null
-        var gpu: Float? = null
-        sensors.forEach { (file, isCpu) ->
-            val value = readOrNull { (file.readText().trim().toFloat() / 1000f).takeIf { it.isFinite() && it in -10f..150f } }
-                ?: return@forEach
-            if (isCpu) cpu = cpu?.let { maxOf(it, value) } ?: value
-            else gpu = gpu?.let { maxOf(it, value) } ?: value
-        }
-        return cpu to gpu
-    }
+    fun read(): Pair<Float?, Float?> = com.odin.desktop.service.fan.HardwareController.getCpuGpuTemperatures()
 }
 
 private data class PssSample(val bytes: Long?, val note: String)

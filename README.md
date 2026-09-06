@@ -51,7 +51,7 @@
 * **广播级测试信号源**：内置 75% SMPTE 标准彩条标定信号、几何交叉安全框网格（Crosshatch）、240p 复古像素游戏场景、游戏原生画面截图；
 * **灰阶标定基准块**：集成 `04% 隐约`（暗部黑电平）、`50% 基准`（中灰伽马）、`96% 清晰`（高光对比度）标定基准，复刻专业调机流程；
 * **经典图像预设**：特丽珑 CRT、复古街机、鲜艳游戏、高清 FXAA、纯净原画、自定义（已彻底移除 NTSC 杂波）；
-* **实时硬件级参数调节**：对比度、亮度、色彩伽马、CRT 显像管扫描线、FSR 硬件锐化、Vivid 鲜艳色彩增强、FXAA 抗锯齿；
+* **实时硬件级参数调节**：对比度、亮度、色彩伽马、CRT 显像管扫描线、Vivid 鲜艳色彩增强、FXAA 抗锯齿；
 * **全手柄沉浸盲操**：D-Pad 上下选条目、左右 **0ms 实时无级微调**，L1/R1 切换预设，**按住 X 瞬时原画对比**，**Y 键一键隐藏菜单全屏沉浸**，B 键保存并退出。
 
 ![TVGAME 电视画面校准台](docs/screenshots/03_video_shader_config.png)
@@ -193,20 +193,14 @@ odin3_desktop/
 * AYN Odin 3 掌机设备 (开启 USB 调试)
 
 ### 本地编译与安装
+Apple Silicon Mac 可直接使用项目内环境，无需 Homebrew。SDK、JDK、缓存和签名留在忽略目录，不进入 Git；其他环境见 [开发说明](docs/development.md)。
+
 ```bash
-# 1. 进入工程目录
-cd odin3_desktop
-
-# 2. 编译生成 Debug APK
-export JAVA_HOME=/opt/homebrew/opt/openjdk@17
-export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
-./gradlew assembleDebug
-
-# 3. 安装到已连接的 Odin 3 掌机
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-
-# 4. 启动启动台
-adb shell am start -n com.odin.desktop/.ui.MainActivity
+python3 tools/setup-android.py
+tools/android ./gradlew :app:assembleDebug
+tools/android adb devices -l
+tools/android adb -s <设备序列号> install -r app/build/outputs/apk/debug/app-debug.apk
+tools/android adb -s <设备序列号> shell am start -n com.odin.desktop/.ui.MainActivity
 ```
 
 ---
@@ -224,6 +218,14 @@ adb shell am start -n com.odin.desktop/.ui.MainActivity
 设置按钮左侧显示电池电量、充电状态、风扇转速和 PWM，占用固定区域；TAB 列表相应缩窄，底部 Dock 保持原布局。桌面不可见时停止采样，不可读的数据显示“—”。
 
 VIDEO SHADER 分开显示启用意愿与实际运行状态。完整游戏帧处理尚未接入的组合只显示“仅预览”；CRT 兼容遮罩完成绘制也不代表游戏最终画面已经生效，会明确显示“游戏效果未确认”。详见 [状态与设备验收](docs/completion-validation.md)。
+
+## 风扇策略与后台运行
+
+手动选择风扇档位会关闭自动控制，手动关闭不会被本应用因 60°C 温度尖峰改回智能。自动控制开启时，外接电源、默认性能且已确认不在游戏中，允许安静停转；超过 60°C 连续 16 秒才恢复智能散热，达到 75°C 则立即恢复。温控触发后，需要降至 55°C 或以下并持续 24 秒才再次停转。游戏运行、高性能及传感器不可用时采用保守散热处理；原厂固件自身保护保持有效。
+
+外接电源依据插电状态识别，因此充满电或分离供电不会被误认为拔线。桌面可见时可直接确认前台；在其他应用中需用户启用应用监控，未知前台不主动停风扇。游戏身份仍以用户的游戏分类为准。
+
+关闭自动控制且完成必要恢复后，风扇前台服务退出。手动硬件按钮无需常驻服务；开启自动风扇或息屏挂机时，Android 仍会按系统规则显示“运行中的应用”。这项提示表示前台服务在运行，并不等于耗电异常。桌面隐藏后停止顶部和仪表盘采样，共享温度缓存减少重复传感器扫描。验证范围与结果见 [代码审计及优化验收](docs/optimization-audit.md)。
 
 ## 硬件服务如何启用
 

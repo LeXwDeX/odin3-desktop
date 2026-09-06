@@ -21,10 +21,8 @@
     <!-- Hardware & Fan Management permissions -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
-    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
-        tools:ignore="ProtectedPermissions" />
 
-    <!-- Foreground services & boot auto-start -->
+    <!-- Optional background features; boot never launches the desktop UI. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -143,7 +141,7 @@
                 android:value="Charging smart fan cooling watchdog" />
         </service>
 
-        <!-- Foreground App Monitor Accessibility Service (Zero-permission foreground detector) -->
+        <!-- Foreground package monitor, explicitly enabled by the user in system accessibility. -->
         <service
             android:name=".service.fan.AppMonitorAccessibilityService"
             android:exported="false"

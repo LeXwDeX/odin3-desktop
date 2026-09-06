@@ -2,6 +2,9 @@ package com.odin.desktop.ui.screens
 
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.odin.desktop.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -89,11 +92,16 @@ fun LauncherScreen(
         onOrientationChange(orientationMode)
     }
 
-    // 硬件温度与风扇保护周期轮询 (仅当弹窗打开时活跃，减少后台功耗)
-    androidx.compose.runtime.LaunchedEffect(isConfigOpen) {
-        while (isConfigOpen) {
-            viewModel.hardware.refreshSocTemp()
-            kotlinx.coroutines.delay(1500)
+    // Poll only the visible temperature section, and cancel when the Activity stops.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    androidx.compose.runtime.LaunchedEffect(isConfigOpen, configSectionIndex, lifecycleOwner) {
+        if (isConfigOpen && configSectionIndex == 3) {
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    viewModel.hardware.refreshSocTemp()
+                    kotlinx.coroutines.delay(1500)
+                }
+            }
         }
     }
 

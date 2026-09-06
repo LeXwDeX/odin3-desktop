@@ -29,55 +29,46 @@ class AppRepository(
 
     suspend fun getInstalledLaunchableApps(): List<InstalledApp> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
+        launchableActivities().distinctBy { it.activityInfo?.packageName }.mapNotNull { resolveInfo ->
+            val activity = resolveInfo.activityInfo ?: return@mapNotNull null
+            val packageName = activity.packageName
+            if (packageName == context.packageName) return@mapNotNull null
+            val label = runCatching { resolveInfo.loadLabel(pm).toString() }.getOrDefault(packageName)
+            val icon = runCatching { resolveInfo.loadIcon(pm) }.getOrElse { pm.defaultActivityIcon }
+            val appInfo = activity.applicationInfo
+            InstalledApp(packageName, activity.name, label, icon,
+                (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
+                appInfo.category == ApplicationInfo.CATEGORY_GAME)
+        }.sortedBy { it.label }
+    }
+
+    private fun launchableActivities(): List<android.content.pm.ResolveInfo> {
+        val pm = context.packageManager
         val intent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
 
-        val resolveInfos = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
         } else {
             @Suppress("DEPRECATION")
             pm.queryIntentActivities(intent, 0)
         }
 
-        resolveInfos.mapNotNull { resolveInfo ->
-            val packageName = resolveInfo.activityInfo.packageName
-            // 过滤自身桌面
-            if (packageName == context.packageName) return@mapNotNull null
-
-            val label = resolveInfo.loadLabel(pm).toString()
-            val icon = resolveInfo.loadIcon(pm)
-            val appInfo = resolveInfo.activityInfo.applicationInfo
-            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
-            val isGame = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                appInfo.category == ApplicationInfo.CATEGORY_GAME
-            } else {
-                false
-            }
-
-            InstalledApp(
-                packageName = packageName,
-                activityName = resolveInfo.activityInfo.name,
-                label = label,
-                icon = icon,
-                isSystemApp = isSystem,
-                isGame = isGame
-            )
-        }.sortedBy { it.label }
     }
 
-    suspend fun createTab(name: String, isGameTab: Boolean = false): Long {
-        val currentCount = tabDao.getTabCount()
+    suspend fun createTab(name: String, isGameTab: Boolean = false): Long = database.withTransaction {
+        val nextOrder = (tabDao.getAllTabs().maxOfOrNull { it.sortOrder } ?: -1) + 1
         val tab = TabEntity(
             name = name,
-            sortOrder = currentCount,
+            sortOrder = nextOrder,
             isGameTab = isGameTab
         )
-        return tabDao.insertTab(tab)
+        tabDao.insertTab(tab)
     }
 
-    suspend fun updateTab(tab: TabEntity) {
-        tabDao.updateTab(tab)
+    suspend fun renameTab(tabId: Long, name: String) {
+        tabDao.renameTab(tabId, name)
     }
 
     suspend fun moveTabUp(tab: TabEntity) = database.withTransaction {
@@ -110,7 +101,8 @@ class AppRepository(
         tabDao.deleteTabById(tabId)
     }
 
-    suspend fun addAppToTab(tabId: Long, packageName: String) {
+    suspend fun addAppToTab(tabId: Long, packageName: String) = database.withTransaction {
+        if (tabDao.getTabById(tabId) == null) return@withTransaction
         val existing = appMappingDao.getAppsForTab(tabId)
         val updated = mutableListOf<AppMappingEntity>()
         // 默认将新添加的应用置于列表最左侧 (sortOrder = 0)，原有应用依次向右顺延
@@ -127,6 +119,15 @@ class AppRepository(
         appMappingDao.removeAppFromTab(tabId, packageName)
     }
 
+    suspend fun moveAppToTab(sourceTabId: Long?, targetTabId: Long, packageName: String): Boolean = database.withTransaction {
+        if (tabDao.getTabById(targetTabId) == null) return@withTransaction false
+        addAppToTab(targetTabId, packageName)
+        if (sourceTabId != null && sourceTabId != targetTabId) {
+            appMappingDao.removeAppFromTab(sourceTabId, packageName)
+        }
+        true
+    }
+
     suspend fun removeAppFromAllTabs(packageName: String) {
         appMappingDao.removeAppFromAllTabs(packageName)
     }
@@ -135,16 +136,21 @@ class AppRepository(
         return appMappingDao.getAppsForTabFlow(tabId)
     }
 
-    suspend fun updateAppOrder(tabId: Long, packageNames: List<String>) {
+    suspend fun updateAppOrder(tabId: Long, packageNames: List<String>) = database.withTransaction {
+        val tab = tabDao.getTabById(tabId) ?: return@withTransaction
         val existing = appMappingDao.getAppsForTab(tabId)
-        val updated = mutableListOf<AppMappingEntity>()
-        packageNames.forEachIndexed { index, pkg ->
-            val match = existing.find { it.packageName == pkg }
-            if (match != null) {
-                updated.add(match.copy(sortOrder = index))
-            } else {
-                updated.add(AppMappingEntity(tabId = tabId, packageName = pkg, sortOrder = index))
+        val byPackage = existing.associateBy { it.packageName }.toMutableMap()
+        // The automatic All Apps tab has no membership rows until its first reorder.
+        if (tab.kind == TabKind.ALL_APPS) {
+            val installed = launchableActivities().mapNotNull { it.activityInfo?.packageName }.toSet() - context.packageName
+            packageNames.distinct().filter { it in installed }.forEach { pkg ->
+                byPackage.putIfAbsent(pkg, AppMappingEntity(tabId = tabId, packageName = pkg))
             }
+        }
+        // A stale drag result must neither resurrect removed apps nor lose concurrent additions.
+        val order = (packageNames + existing.map { it.packageName }).distinct().filter { it in byPackage }
+        val updated = order.mapIndexed { index, pkg ->
+            byPackage.getValue(pkg).copy(sortOrder = index)
         }
         appMappingDao.insertMappings(updated)
     }

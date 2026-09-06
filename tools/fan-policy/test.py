@@ -16,10 +16,13 @@ def main() -> None:
     sources = [
         root / "app/src/main/java/com/odin/desktop/service/fan/FanControlCoordinator.java",
         root / "tools/fan-policy/FanControlCoordinatorSelfTest.java",
+        root / "app/src/main/java/com/odin/desktop/service/fan/SocTemperatureReader.java",
+        root / "tools/fan-policy/SocTemperatureReaderSelfTest.java",
     ]
     with tempfile.TemporaryDirectory(prefix="odin-fan-policy-") as output:
         subprocess.run([javac, "-d", output, *map(str, sources)], check=True)
         subprocess.run([java, "-cp", output, "FanControlCoordinatorSelfTest"], check=True)
+        subprocess.run([java, "-cp", output, "SocTemperatureReaderSelfTest"], check=True)
 
 
 if __name__ == "__main__":

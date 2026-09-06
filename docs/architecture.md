@@ -1,6 +1,6 @@
 # 架构审计与首版扩展接口
 
-本轮以 `763ff15` 为审计起点。范围是应用源码、资源、Gradle 配置、硬件桥协议及现有回归脚本；采用图谱 Tier 2 查询，并核对实际源码。Shader 文件的图谱解析缺口集中在精度声明，已直接读取。图谱调用关系包含启发式匹配，因此结论以源码为准。本轮包含审计修复，不是仅提出改造计划。
+首轮以 `763ff15` 为审计起点；后续全项目检查与优化见 [2026-09-06 审计记录](optimization-audit.md)。范围是应用源码、资源、Gradle 配置、硬件桥协议及现有回归脚本；采用图谱 Tier 2 查询，并核对实际源码。Shader 文件的图谱解析缺口集中在精度声明，已直接读取。图谱调用关系包含启发式匹配，因此结论以源码为准。本轮包含审计修复，不是仅提出改造计划。
 
 当前支持中文、英文和日文，并在 CONFIG 中选择语言；详见 [多语言说明](languages.md)。皮肤、更多 Shader 和第三方适配先留可用接口。保留单个 `:app` Gradle 模块，以包和实际调用接口隔离职责，暂不引入插件 APK、动态代码加载或资源包安装器。
 
@@ -30,7 +30,12 @@ flowchart TD
     App --> Repo[AppRepository：分类与映射事务]
     VM --> Controls[LauncherHardwareControls：界面状态与操作队列]
     Controls --> Hardware[HardwareController / FanControlCoordinator]
-    Hardware --> Bridge[认证硬件桥：固定协议与读回事务]
+    Hardware --> Native[HardwareControlClient：原厂 Binder 适配]
+    Native --> Operations[HardwareOperations：固定协议、读回与回滚]
+    Operations --> OEM[固件 PServerBinder]
+    Watchdog[FanWatchdogService：按需启动与事件合并] --> Hardware
+    Watchdog --> Thermal[ThermalGate：持续温度与降温回差]
+    Hardware --> Sensors[SocTemperatureReader：共享短缓存]
     VM --> Repo
     Repo --> Classifier[AppClassifier：内置应用分类适配]
     Repo --> Room[Room 数据持久化]
@@ -83,8 +88,8 @@ python3 tools/fan-state-completion-regression.py
 
 首次架构审计的验证结果（多语言后续结果见 [多语言说明](languages.md)）：Debug 和 Release 构建通过；Lint 为 0 个错误、60 个警告。警告主要涉及依赖版本、旧版本兼容判断、专用掌机固定横屏以及未使用资源等。`dispatchKeyEvent` 的 AndroidX Core 1.13.1 基类限制，以及 API 29–33 的磁贴 Intent 重载，均已核对依赖与版本分支后作局部说明；没有建立整库 Lint baseline。两种语言各 333 个字符串 key 校验通过；迁移、DAO 保护、预设与输入要求、91 项风扇协调器检查、高频 Home/Back、风扇完成通知和 9 组硬件 UI 回归通过，其中新增了灯光颜色/开关两种输入顺序的保留测试。
 
-设备重连后需验证：中英日桌面/设置/OSD 的实际布局、长应用名及用户自定义分类名、切语言后的通知和磁贴；旧安装覆盖升级后的分类和排序；已有 Home/Back 与风扇自动策略待验项。使用相同 sRGB 基准图复验 GPU 截图效果与原画对比。本轮没有连接设备，因此本地构建和回归不等于完成这些验收。
+首轮审计时的待验范围（后续结果见本页开头的审计记录）：中英日桌面/设置/OSD 的实际布局、长应用名及用户自定义分类名、切语言后的通知和磁贴；旧安装覆盖升级后的分类和排序；已有 Home/Back 与风扇自动策略待验项。使用相同 sRGB 基准图复验 GPU 截图效果与原画对比。本轮没有连接设备，因此本地构建和回归不等于完成这些验收。
 
-实际发行还需沿用 [硬件桥说明](../tools/hardware-bridge/README.md) 中的配对范围：目前管理脚本依赖 debuggable 应用的 `run-as`，正式 Release 的配对方案尚未实现。第三方 Shader 的来源与许可分别见 [来源说明](../THIRD_PARTY_NOTICES.md)，仓库目前没有第一方代码的统一 LICENSE 文本；本轮不改变第三方许可证。
+当前 Debug / Release 使用相同原厂服务适配，不依赖旧桥配对；`run-as` 仅用于开发探针与历史桥诊断。原厂接口适配范围见 [硬件接入记录](hardware-standalone-investigation.md)。第三方 Shader 的来源与许可分别见 [来源说明](../THIRD_PARTY_NOTICES.md)，仓库目前没有第一方代码的统一 LICENSE 文本；本轮不改变第三方许可证。
 
 设计参考：[Android 本地化资源](https://developer.android.com/guide/topics/resources/localization)、[Compose 自定义设计系统](https://developer.android.com/develop/ui/compose/designsystems/custom)、[AGSL](https://developer.android.com/develop/ui/views/graphics/agsl)。

@@ -139,7 +139,7 @@ class GameNativeGlRenderer(context: Context) : com.odin.desktop.shader.pipeline.
                 GLES30.glUseProgram(program.id)
                 GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, texture)
                 // EffectComposer resets every GL source to NEAREST, except ScalingModeEffect's
-                // explicit LINEAR/FILL/STRETCH override. FSR, FXAA and CRT also use NEAREST there.
+                // explicit LINEAR/FILL/STRETCH override. FXAA and CRT also use NEAREST there.
                 val nearest = when {
                     normalized.family == ShaderFamily.VULKAN -> normalized.scaling == ShaderScaling.NEAREST
                     asset == "opengl/ScalingModeEffect.frag" ->
@@ -191,13 +191,7 @@ class GameNativeGlRenderer(context: Context) : com.odin.desktop.shader.pipeline.
             listOf("vulkan/window.frag")
         } else {
             buildList {
-                when (settings.scaling) {
-                    ShaderScaling.FSR, ShaderScaling.FSR_ASPECT -> {
-                        add("opengl/FSR1EasuEffect.frag")
-                        add("opengl/FSR1RcasEffect.frag")
-                    }
-                    else -> add("opengl/ScalingModeEffect.frag")
-                }
+                add("opengl/ScalingModeEffect.frag")
                 if (abs(settings.brightness) > 0.001f || abs(settings.contrast) > 0.001f ||
                     abs(settings.gamma - 1f) > 0.001f
                 ) add("opengl/ColorEffect.frag")
@@ -231,11 +225,9 @@ class GameNativeGlRenderer(context: Context) : com.odin.desktop.shader.pipeline.
         program.vec2("TextureSize", outW, outH)
         program.float("scaleMode", when (settings.scaling) {
             ShaderScaling.FILL -> 1f
-            ShaderScaling.STRETCH, ShaderScaling.FSR -> 2f
+            ShaderScaling.STRETCH -> 2f
             else -> 0f
         })
-        program.float("preserveAspect", if (settings.scaling == ShaderScaling.FSR_ASPECT) 1f else 0f)
-        program.float("sharpnessStops", (5 - settings.fsrSharpnessLevel) * 0.5f)
         program.float("brightness", settings.brightness / 100f)
         program.float("contrast", settings.contrast / 100f)
         program.float("gamma", settings.gamma)
@@ -243,12 +235,11 @@ class GameNativeGlRenderer(context: Context) : com.odin.desktop.shader.pipeline.
         program.int("FrameCount", ((time * 60.0).toLong() % 4L).toInt())
         program.int("pc.useTexAlpha", 0)
         program.int("pc.effectId", when (settings.scaling) {
-            ShaderScaling.FSR, ShaderScaling.FSR_ASPECT -> 1
             ShaderScaling.DLS -> 2
             ShaderScaling.NATURAL -> 5
             else -> 0
         })
-        program.float("pc.sharpness", (settings.fsrSharpnessLevel - 1) / 4f)
+        program.float("pc.sharpness", (settings.sharpnessLevel - 1) / 4f)
         program.float("pc.resW", outW)
         program.float("pc.resH", outH)
         program.float("pc.outW", outW)

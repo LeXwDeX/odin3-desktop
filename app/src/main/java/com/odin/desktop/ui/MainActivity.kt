@@ -16,6 +16,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.odin.desktop.service.fan.HardwareController
+import com.odin.desktop.service.fan.FanWatchdogService
 import com.odin.desktop.ui.navigation.GamepadKeyHandler
 import com.odin.desktop.ui.screens.LauncherScreen
 import com.odin.desktop.ui.theme.OdinDesktopTheme
@@ -98,39 +99,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun ensureAccessibilityServiceEnabled() {
-        try {
-            val serviceName = "$packageName/${com.odin.desktop.service.fan.AppMonitorAccessibilityService::class.java.name}"
-            val enabled = android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
-            if (!com.odin.desktop.service.fan.AppMonitorAccessibilityService.isRunning) {
-                val without = enabled.split(":").filter { it.isNotEmpty() && it != serviceName }.joinToString(":")
-                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, without)
-                val targetList = if (without.isEmpty()) serviceName else "$without:$serviceName"
-                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, targetList)
-                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, "1")
-            } else if (!enabled.contains(serviceName)) {
-                val newEnabled = if (enabled.isEmpty()) serviceName else "$enabled:$serviceName"
-                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, newEnabled)
-                android.provider.Settings.Secure.putString(contentResolver, android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, "1")
-            }
-        } catch (_: Exception) {}
-    }
-
     override fun onStart() {
         super.onStart()
-        try {
-            val fanIntent = android.content.Intent(this, com.odin.desktop.service.fan.FanWatchdogService::class.java)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                startForegroundService(fanIntent)
-            } else {
-                startService(fanIntent)
-            }
-        } catch (_: Exception) {}
+        FanWatchdogService.setLauncherVisible(this, true)
+        FanWatchdogService.sync(this)
         // A HOME intent can pause/resume this singleTask Activity while it stays visible.
         // Tie expensive refreshes and dashboard collection to actual visibility changes.
         viewModel.refreshAppLanguage()
         viewModel.setLauncherVisible(true)
-        ensureAccessibilityServiceEnabled()
         // 回到桌面时刷新硬件状态与应用列表，并确保隐藏 VideoShader 遮罩 (Shader 仅在应用内生效)
         viewModel.hardware.loadHardwareStates()
         viewModel.scanInstalledApps()
@@ -138,6 +114,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        FanWatchdogService.setLauncherVisible(this, false)
         viewModel.setLauncherVisible(false)
         super.onStop()
     }

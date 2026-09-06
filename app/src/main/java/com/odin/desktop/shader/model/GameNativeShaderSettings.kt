@@ -5,13 +5,13 @@ import kotlin.math.abs
 
 enum class ShaderFamily { VULKAN, OPENGL }
 
-enum class ShaderScaling { NONE, NEAREST, LINEAR, FILL, STRETCH, FSR, FSR_ASPECT, DLS, NATURAL }
+enum class ShaderScaling { NONE, NEAREST, LINEAR, FILL, STRETCH, DLS, NATURAL }
 
 /** GameNative screen-effect values, using its original percentage and sharpness units. */
 data class GameNativeShaderSettings(
     val family: ShaderFamily = ShaderFamily.VULKAN,
     val scaling: ShaderScaling = ShaderScaling.NONE,
-    val fsrSharpnessLevel: Int = 3,
+    val sharpnessLevel: Int = 3,
     val brightness: Float = 0f,
     val contrast: Float = 0f,
     val gamma: Float = 1f,
@@ -28,7 +28,7 @@ data class GameNativeShaderSettings(
 
     fun normalized(): GameNativeShaderSettings = copy(
         scaling = scaling.takeIf { it in availableScalingModes } ?: ShaderScaling.NONE,
-        fsrSharpnessLevel = fsrSharpnessLevel.coerceIn(1, 5),
+        sharpnessLevel = sharpnessLevel.coerceIn(1, 5),
         brightness = brightness.finiteOr(0f).coerceIn(-100f, 100f),
         contrast = contrast.finiteOr(0f).coerceIn(-100f, 100f),
         gamma = gamma.finiteOr(1f).coerceIn(0.5f, 2.5f)
@@ -48,10 +48,10 @@ data class GameNativeShaderSettings(
     fun toJson(): String {
         val value = normalized()
         return JSONObject().apply {
-            put("version", 1)
+            put("version", 2)
             put("family", value.family.name)
             put("scaling", value.scaling.name)
-            put("fsrSharpnessLevel", value.fsrSharpnessLevel)
+            put("sharpnessLevel", value.sharpnessLevel)
             put("brightness", value.brightness.toDouble())
             put("contrast", value.contrast.toDouble())
             put("gamma", value.gamma.toDouble())
@@ -73,7 +73,7 @@ data class GameNativeShaderSettings(
                         ?: ShaderFamily.VULKAN,
                     scaling = ShaderScaling.entries.firstOrNull { it.name == value.optString("scaling") }
                         ?: ShaderScaling.NONE,
-                    fsrSharpnessLevel = value.optInt("fsrSharpnessLevel", 3),
+                    sharpnessLevel = value.optInt("sharpnessLevel", value.optInt("fsrSharpnessLevel", 3)),
                     brightness = value.optDouble("brightness", 0.0).toFloat(),
                     contrast = value.optDouble("contrast", 0.0).toFloat(),
                     gamma = value.optDouble("gamma", 1.0).toFloat(),
