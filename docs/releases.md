@@ -50,3 +50,9 @@ tools/android ./gradlew -PreleaseVersion=0.1.1 :app:assembleDebug :app:assembleR
 私钥只在签名步骤从加密 Secrets 写入 runner 临时目录，用完删除；密码通过环境变量传给签名工具。私钥、密码和原始签名文件不进入 Git、构建缓存或上传附件。只把 Secrets 配置在维护者控制的仓库，fork 需要自己的配置。
 
 官方参考：[APK 签名工具](https://developer.android.com/tools/apksigner)、[GitHub Secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets)、[GitHub CLI 创建 Release](https://cli.github.com/manual/gh_release_create)。
+
+## 首次云端验收
+
+2026-09-06 的 [Release APK 运行](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34007765571) 已通过构建、单元测试、Lint 和所有共享回归，生成 `v0.1.1` Release 草稿及 `odin3-desktop-v0.1.1.apk`、对应 `.sha256` 文件。下载 GitHub 实际附件后，再次核对 `com.odin.desktop / 0.1.1 / 1002`、Android 10+、不可调试标记和与当前掌机安装版相同的证书，均通过。
+
+该 APK SHA-256 为 `e6f0be783ee27990c3844b7ccb2131c963b202548d2bea68403fe74133681660`。Git 历史没有 keystore/JKS/P12 文件，当前提交与实际 APK 也未包含签名密钥文件；五项配置已保存为仓库加密 Secrets，clone 仓库不会下载这些 Secrets。后续发布仍需保护仓库写权限及维护者账户。
