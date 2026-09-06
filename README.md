@@ -202,6 +202,10 @@ tools/android adb -s <设备序列号> install -r app/build/outputs/apk/debug/ap
 tools/android adb -s <设备序列号> shell am start -n com.odin.desktop/.ui.MainActivity
 ```
 
+### GitHub 自动发布 APK
+
+推送 `v主版本.次版本.修订号` 标签后，GitHub Actions 自动构建、测试、签名，并将 APK 和 SHA-256 校验文件发布到 [Releases](https://github.com/LeXwDeX/odin3-desktop/releases)。也可以在 [Release APK](https://github.com/LeXwDeX/odin3-desktop/actions/workflows/release-apk.yml) 中手动运行，默认先生成草稿。用户下载 APK 即可安装，无需开发环境或连接电脑。签名、版本规则和操作步骤见 [发布说明](docs/releases.md)。
+
 ---
 
 ## 📜 许可与致谢 (Credits & License)

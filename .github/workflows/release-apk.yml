@@ -1,0 +1,104 @@
+name: Release APK
+run-name: Release APK ${{ inputs.tag || github.ref_name }}
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag (vMAJOR.MINOR.PATCH)'
+        required: true
+        default: v0.1.1
+        type: string
+      draft:
+        description: 'Create a draft for review before publishing'
+        default: true
+        type: boolean
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+jobs:
+  release:
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate version and commit
+        id: version
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 tools/release-apk.py prepare "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
+            test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$GITHUB_SHA"
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'This release already exists; refusing to replace its APK.' >&2
+            exit 1
+          fi
+      - name: Check signing configuration
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_SIGNING_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          python3 - <<'PY'
+          import os
+          names = ('ANDROID_KEYSTORE_BASE64', 'ANDROID_STORE_PASSWORD', 'ANDROID_KEY_ALIAS',
+                   'ANDROID_KEY_PASSWORD', 'ANDROID_SIGNING_CERT_SHA256')
+          missing = [name for name in names if not os.environ.get(name)]
+          if missing:
+              raise SystemExit('Configure repository Actions secrets: ' + ', '.join(missing))
+          PY
+      - uses: ./.github/actions/android-build
+        with:
+          version: ${{ steps.version.outputs.version }}
+      - name: Sign and verify release APK
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_SIGNING_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
+        run: python3 tools/release-apk.py sign "$RELEASE_TAG"
+      - name: Upload signed APK and checksum
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: odin3-desktop-${{ steps.version.outputs.tag }}
+          path: |
+            dist/*.apk
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          CREATE_DRAFT: ${{ github.event_name == 'workflow_dispatch' && inputs.draft }}
+        run: |
+          args=()
+          if [ "$CREATE_DRAFT" = true ]; then args+=(--draft); fi
+          gh release create "$RELEASE_TAG" dist/*.apk dist/*.sha256 \
+            --target "$GITHUB_SHA" --title "Odin 3 Desktop $RELEASE_TAG" \
+            --generate-notes --notes-file dist/release-notes.md "${args[@]}"
+      - name: Upload test and lint reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-check-reports-${{ github.run_id }}
+          path: app/build/reports/
+          retention-days: 14

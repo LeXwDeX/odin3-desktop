@@ -5,6 +5,15 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
 }
 
+// Stable version tags map to increasing Android versions, independent of CI reruns.
+val releaseVersion = providers.gradleProperty("releaseVersion").getOrElse("0.1.0")
+require(releaseVersion.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) {
+    "releaseVersion must be MAJOR.MINOR.PATCH without leading zeroes"
+}
+val versionParts = releaseVersion.split('.').map { it.toInt() }
+require(versionParts[0] in 0..2099 && versionParts[1] in 0..999 && versionParts[2] in 0..999)
+val releaseVersionCode = versionParts[0] * 1_000_000 + versionParts[1] * 1_000 + versionParts[2] + 1
+
 android {
     namespace = "com.odin.desktop"
     compileSdk = 35
@@ -13,8 +22,8 @@ android {
         applicationId = "com.odin.desktop"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = releaseVersionCode
+        versionName = releaseVersion
         resourceConfigurations += listOf("en", "b+zh+Hans", "b+zh+Hant", "ja")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

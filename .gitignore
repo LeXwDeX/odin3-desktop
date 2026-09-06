@@ -12,3 +12,7 @@ captures
 *.aab
 /.android-local/
 /.agents/skills/android-cli/
+/dist/
+*.keystore
+*.jks
+__pycache__/
