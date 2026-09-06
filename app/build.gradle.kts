@@ -6,7 +6,7 @@ plugins {
 }
 
 // Stable version tags map to increasing Android versions, independent of CI reruns.
-val releaseVersion = providers.gradleProperty("releaseVersion").getOrElse("0.1.0")
+val releaseVersion = providers.gradleProperty("releaseVersion").getOrElse("0.1.1")
 require(releaseVersion.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) {
     "releaseVersion must be MAJOR.MINOR.PATCH without leading zeroes"
 }

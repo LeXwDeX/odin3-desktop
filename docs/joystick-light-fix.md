@@ -9,3 +9,5 @@
 `tools/android python3 tools/cooling-ui-regression.py` 直接提取生产方法，以真实协程和单线程 Main dispatcher 验证延迟读回、写入交错、失败恢复及连续 1,001 次新输入。新增四组灯光回归通过；`--unguarded-light-variant` 只在临时编译副本中移除保护，会在“Observer replaced a pending light selection”处按预期失败，证明确实检出了旧问题。
 
 这些测试证明应用状态与请求队列的一致性，不能证明实体灯的瞬时发光行为。若实体灯仍闪烁，需要继续核对原厂灯光服务的时序。
+
+修复版 `0.1.1 / 1002` 已在 Odin3 上保留数据覆盖安装。通过应用底部按钮执行关闭→开启→关闭，界面分别显示开启/关闭，`joystick_light_enabled` 与 `joystick_handle_light_enabled` 分别读回 `1,1` / `0,0`；结束恢复初始关闭。该次操作没有 `OdinHardware` 警告或 `AndroidRuntime` 错误。Debug/Release 构建、24 项单元测试通过，Lint 无错误（保留 90 条警告）。
