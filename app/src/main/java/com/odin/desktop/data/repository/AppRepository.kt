@@ -36,9 +36,14 @@ class AppRepository(
             val label = runCatching { resolveInfo.loadLabel(pm).toString() }.getOrDefault(packageName)
             val icon = runCatching { resolveInfo.loadIcon(pm) }.getOrElse { pm.defaultActivityIcon }
             val appInfo = activity.applicationInfo
+            val firstInstallTime = runCatching {
+                @Suppress("DEPRECATION")
+                pm.getPackageInfo(packageName, 0).firstInstallTime
+            }.getOrDefault(0L)
             InstalledApp(packageName, activity.name, label, icon,
                 (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
-                appInfo.category == ApplicationInfo.CATEGORY_GAME)
+                appInfo.category == ApplicationInfo.CATEGORY_GAME,
+                firstInstallTime)
         }.sortedBy { it.label }
     }
 

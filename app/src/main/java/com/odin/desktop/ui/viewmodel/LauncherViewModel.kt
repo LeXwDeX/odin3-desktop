@@ -18,6 +18,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.model.InstalledApp
+import com.odin.desktop.data.model.orderAllApps
 import com.odin.desktop.service.fan.HardwareController
 import com.odin.desktop.ui.navigation.FocusZone
 import com.odin.desktop.ui.components.AppActionType
@@ -255,11 +256,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
                 mappings.collectLatest { mappingList ->
                     if (_isReorderingApps.value) return@collectLatest
-                    val appMap = allApps.associateBy { it.packageName }
-                    val orderedApps = mappingList.mapNotNull { appMap[it.packageName] }
-                    val orderedPkgSet = orderedApps.map { it.packageName }.toSet()
-                    val remainingApps = allApps.filter { !orderedPkgSet.contains(it.packageName) }
-                    _currentTabApps.value = orderedApps + remainingApps
+                    _currentTabApps.value = orderAllApps(allApps, mappingList.map { it.packageName })
                     _currentTabAppPackages.value = allApps.map { it.packageName }.toSet()
                     if (_selectedAppIndex.value >= _currentTabApps.value.size) {
                         _selectedAppIndex.value = 0
