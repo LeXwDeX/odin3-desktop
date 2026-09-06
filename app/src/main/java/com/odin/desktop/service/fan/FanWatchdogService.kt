@@ -128,6 +128,9 @@ class FanWatchdogService : Service() {
                 thermalGate.reset()
             }
             if (SystemClock.elapsedRealtime() < retryAfterMillis) return
+            // OEM Settings commands start short-lived processes. Sample BEFORE those queries,
+            // otherwise the watchdog can measure its own CPU boost and keep cooling latched.
+            val maxTemp = HardwareController.getMaxCpuGpuTemp()
             val snapshot = HardwareController.getFanPolicySnapshot(this)
             if (!snapshot.autoEnabled) {
                 if (snapshot.mutedByPolicy) {
@@ -141,7 +144,6 @@ class FanWatchdogService : Service() {
                 }
                 return
             }
-            val maxTemp = HardwareController.getMaxCpuGpuTemp()
             check(maxTemp.isFinite() && maxTemp > 0f) { "CPU/GPU temperature is unavailable" }
             val isAccessibilityActive = AppMonitorAccessibilityService.isRunning
             val foreground = if (launcherVisible) packageName
@@ -150,7 +152,7 @@ class FanWatchdogService : Service() {
             val thermal = thermalGate.evaluate(maxTemp, SystemClock.elapsedRealtime())
             nextSampleDelayMillis = thermalGate.nextSampleDelayMs()
             val target = FanControlCoordinator.policyTarget(snapshot, thermal, isConnectedToPower, isGame, foreground != null)
-            if (com.odin.desktop.BuildConfig.DEBUG && target != null && target != snapshot.fanMode) {
+            if (com.odin.desktop.BuildConfig.DEBUG) {
                 Log.d(TAG, "Fan ${snapshot.fanMode} -> $target; temp=$maxTemp thermal=$thermal power=$isConnectedToPower game=$isGame foreground=$foreground")
             }
             if (target != null) applyPolicyMode(target, snapshot, request.version)
