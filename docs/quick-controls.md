@@ -109,3 +109,7 @@ adb -s a782c9a1 shell pm default-state --user 0 com.odin.gameassistant
 - 本轮设备列表为空，尚未安装或实机验收新版倒计时。Robolectric 回归覆盖 6 秒切换、重复启动、窗口标志、双击取消、停止/销毁后不再遮黑及唤醒锁释放；不把这些检查当作固件休眠或游戏焦点的实测。
 
 Android API 依据：[窗口焦点与保持亮屏标志](https://developer.android.com/reference/android/view/WindowManager.LayoutParams)、[CPU 唤醒锁](https://developer.android.com/reference/android/os/PowerManager)。
+
+### 同日重连实机补验
+
+新版已覆盖安装，6 秒提示、双击取消/退出、15 秒超时下保持唤醒及《终末地》资源下载持续增长均已实测；同时完成原厂桌面禁用后的重启和硬件控制测试。恢复状态、数值与证据边界见[联合实机验证](afk-launcher-device-validation.md)。
