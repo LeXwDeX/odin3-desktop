@@ -27,6 +27,7 @@ def main():
         parser.error("Require a JDK, Android build-tools 35.0.0, and platform android-35.")
     subprocess.run([javac, "--release", "8", "-d", str(classes), str(root / "src/OdinHardwareBridge.java"),
                     str(root.parents[1] / "app/src/main/java/com/odin/hardware/HardwareOperations.java"),
+                    str(root.parents[1] / "app/src/main/java/com/odin/hardware/OrientationOperations.java"),
                     str(root.parents[1] / "app/src/main/java/com/odin/hardware/OemCommandCodec.java")], check=True)
     subprocess.run([javac, "--release", "8", "-cp", str(classes), "-d", str(tests), str(root / "test/HardwareBridgeSelfTest.java")], check=True)
     subprocess.run([java, "-cp", os.pathsep.join((str(classes), str(tests))), "com.odin.hardware.HardwareBridgeSelfTest"], check=True)

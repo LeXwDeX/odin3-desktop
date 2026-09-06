@@ -19,11 +19,13 @@ import org.json.JSONObject
 class ShaderProbeInstrumentation : Instrumentation() {
     private var verify = false
     private var pauseAt = ""
+    private var verifyUsage = false
     private val target = "com.odin.desktop.validationtarget"
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
         verify = arguments?.getString("verify") == "true"
         pauseAt = arguments?.getString("pause_at").orEmpty()
+        verifyUsage = arguments?.getString("verify_usage") == "true"
         start()
     }
 
@@ -47,6 +49,10 @@ class ShaderProbeInstrumentation : Instrumentation() {
         targetContext.startActivity(Intent().setClassName(target, "$target.TargetActivity")
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             .putExtra("hide_overlays", blocked))
+        if (verifyUsage) {
+            SystemClock.sleep(1_000)
+            runOnMainSync { VideoShaderEngine.refreshForegroundForUserAction(targetContext) }
+        }
     }
 
     private fun shell(command: String): String = getUiAutomation(android.app.UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES).executeShellCommand(command).use {
@@ -82,18 +88,26 @@ class ShaderProbeInstrumentation : Instrumentation() {
                     val enabled = android.provider.Settings.Secure.getString(context.contentResolver,
                         android.provider.Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
                     val component = "com.odin.desktop/com.odin.desktop.service.fan.AppMonitorAccessibilityService"
-                    check(component in enabled.split(":")) { "App monitoring must already be enabled" }
-                    check(enabled.matches(Regex("[A-Za-z0-9_./:$]*")))
-                    val without = enabled.split(":").filter { it != component }.joinToString(":")
-                    try {
-                        shell("settings put secure enabled_accessibility_services '$without'")
-                        SystemClock.sleep(500)
-                    } finally {
-                        shell("settings put secure enabled_accessibility_services '$enabled'")
+                    if (verifyUsage) {
+                        check(com.odin.desktop.shader.runtime.ForegroundAppResolver.hasUsageAccess(context)) {
+                            "Usage access must already be authorized"
+                        }
+                        check(!AppMonitorAccessibilityService.isRunning) { "Usage fallback requires monitor to be off" }
+                        report.put("usage_fallback_without_monitor", true)
+                    } else {
+                        check(component in enabled.split(":")) { "App monitoring must already be enabled" }
+                        check(enabled.matches(Regex("[A-Za-z0-9_./:$]*")))
+                        val without = enabled.split(":").filter { it != component }.joinToString(":")
+                        try {
+                            shell("settings put secure enabled_accessibility_services '$without'")
+                            SystemClock.sleep(500)
+                        } finally {
+                            shell("settings put secure enabled_accessibility_services '$enabled'")
+                        }
+                        val deadline = SystemClock.uptimeMillis() + 8_000
+                        while (!AppMonitorAccessibilityService.isRunning && SystemClock.uptimeMillis() < deadline) SystemClock.sleep(100)
+                        check(AppMonitorAccessibilityService.isRunning) { "Enable app monitoring before this test" }
                     }
-                    val deadline = SystemClock.uptimeMillis() + 8_000
-                    while (!AppMonitorAccessibilityService.isRunning && SystemClock.uptimeMillis() < deadline) SystemClock.sleep(100)
-                    check(AppMonitorAccessibilityService.isRunning) { "Enable app monitoring before this test" }
                     save(enabled = false)
                     launchFixture()
                     record("disabled", ShaderStatus.DISABLED)
@@ -101,7 +115,8 @@ class ShaderProbeInstrumentation : Instrumentation() {
                     // Returning from a system window must clear coverage even while disabled.
                     runOnMainSync {
                         VideoShaderEngine.onSystemWindowForeground(context)
-                        AppMonitorAccessibilityService.requestRefresh()
+                        if (verifyUsage) VideoShaderEngine.refreshForegroundForUserAction(context)
+                        else AppMonitorAccessibilityService.requestRefresh()
                     }
                     val refreshDeadline = SystemClock.uptimeMillis() + 8_000
                     var needsRefresh = true
@@ -136,8 +151,9 @@ class ShaderProbeInstrumentation : Instrumentation() {
                     report.put("foreground_lost", true)
                     launchFixture()
                     record("foreground_restored", ShaderStatus.OVERLAY_UNCONFIRMED)
-                    context.startActivity(Intent().setClassName(context, "com.odin.desktop.ui.MainActivity")
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    // This is a user return, not a background Activity launch from the probe's
+                    // app UID (which Android correctly blocks when accessibility is off).
+                    shell("am start -W -n com.odin.desktop/.ui.MainActivity")
                     waitFor("home") { it.status == ShaderStatus.NO_TARGET }
                     report.put("home_clears_game", true)
                 } finally {

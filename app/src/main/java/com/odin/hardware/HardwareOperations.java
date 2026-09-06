@@ -22,6 +22,10 @@ public class HardwareOperations {
     public synchronized String execute(String body) {
         String[] parts = body.split("\t", -1);
         if (body.length() > 384 || body.indexOf('\n') >= 0 || body.indexOf('\r') >= 0) return "ERR\tBAD_REQUEST";
+        if (parts.length == 2 && "ORIENTATION".equals(parts[0]) && parts[1].matches("[01]")) {
+            try { return store.orientation(parts[1]); }
+            catch (Exception unavailable) { return "ERR\tREAD_UNAVAILABLE"; }
+        }
         if (parts.length == 2 && "AIRPLANE".equals(parts[0]) && parts[1].matches("[01]")) {
             String previous;
             try { previous = store.airplane(); }
@@ -233,6 +237,7 @@ public class HardwareOperations {
     }
 
     public interface Store {
+        default String orientation(String mode) throws Exception { throw new IOException("Orientation unavailable"); }
         default String airplane() throws Exception { throw new IOException("Airplane status unavailable"); }
         default void airplane(String value) throws Exception { throw new IOException("Airplane control unavailable"); }
         default String[] fanTelemetry() throws Exception { throw new IOException("Telemetry unavailable"); }
@@ -255,6 +260,7 @@ public class HardwareOperations {
 
     public abstract static class CommandStore implements Store {
         protected abstract String command(String... arguments) throws Exception;
+        public String orientation(String mode) { return new OrientationOperations(this::command).apply(mode); }
         public String airplane() throws Exception {
             String state = command("/system/bin/cmd", "connectivity", "airplane-mode");
             if ("enabled".equals(state)) return "1";

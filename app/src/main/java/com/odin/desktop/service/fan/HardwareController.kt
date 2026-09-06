@@ -305,55 +305,22 @@ object HardwareController {
     fun toggleAirplaneMode(context: Context): Boolean =
         setAirplaneMode(context, !isAirplaneModeOn(context))
 
-    // --- 屏幕方向规则 (支持固定横屏与传感器横屏，并对全局其他应用生效) ---
+    // --- 固定握持方向；第三方应用请求竖屏仍被允许 ---
     fun getOrientationMode(context: Context): Int {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getInt(KEY_ORIENTATION_MODE, ORIENTATION_LANDSCAPE)
     }
 
     fun setOrientationMode(context: Context, mode: Int) {
-        // 保存偏好设置
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putInt(KEY_ORIENTATION_MODE, mode)
-            .apply()
-
-        // 1. 系统级强制横屏开关（触发 com.odin.settings OEM 服务生成全局顶层横屏浮层，拦截并纠正所有第三方应用方向）
-        runCatching {
-            Settings.System.putInt(
-                context.contentResolver,
-                SYSTEM_KEY_FORCE_LANDSCAPE,
-                if (mode == ORIENTATION_LANDSCAPE) 1 else 0
-            )
-        }
-
-        // 2. 系统重力感应与屏幕旋转设置 (ACCELEROMETER_ROTATION 与 USER_ROTATION)
-        runCatching {
-            if (mode == ORIENTATION_LANDSCAPE) {
-                // 固定横屏：关闭重力感应自动翻转，并固定为默认横屏 (Surface.ROTATION_90 即 1)
-                Settings.System.putInt(
-                    context.contentResolver,
-                    Settings.System.ACCELEROMETER_ROTATION,
-                    0
-                )
-                Settings.System.putInt(
-                    context.contentResolver,
-                    Settings.System.USER_ROTATION,
-                    1
-                )
-            } else {
-                // 传感器横屏：开启重力传感器自适应旋转
-                Settings.System.putInt(
-                    context.contentResolver,
-                    Settings.System.ACCELEROMETER_ROTATION,
-                    1
-                )
-            }
-        }
+        require(mode == ORIENTATION_LANDSCAPE || mode == ORIENTATION_SENSOR_LANDSCAPE)
+        val reply = HardwareControlClient.request(context, "ORIENTATION\t$mode")
+        check(reply == listOf("ORIENTATION", mode.toString())) { "Orientation readback failed" }
+        // Persist only after native settings and properties have been verified.
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putInt(KEY_ORIENTATION_MODE, mode).apply()
     }
 
     fun applyOrientation(activity: Activity, mode: Int) {
-        setOrientationMode(activity, mode)
         activity.requestedOrientation = when (mode) {
             ORIENTATION_SENSOR_LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             else -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE

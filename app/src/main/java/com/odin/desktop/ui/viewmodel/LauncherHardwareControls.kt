@@ -80,7 +80,7 @@ class LauncherHardwareControls(
     private val _airplaneMode = MutableStateFlow(false)
     val airplaneMode: StateFlow<Boolean> = _airplaneMode.asStateFlow()
 
-    private val _orientationMode = MutableStateFlow(HardwareController.ORIENTATION_LANDSCAPE)
+    private val _orientationMode = MutableStateFlow(-1)
     val orientationMode: StateFlow<Int> = _orientationMode.asStateFlow()
 
     private val _autoFanControlEnabled = MutableStateFlow(true)
@@ -96,6 +96,7 @@ class LauncherHardwareControls(
     val requestRoleEvent: SharedFlow<Unit> = _requestRoleEvent.asSharedFlow()
 
     init {
+        setOrientationMode(HardwareController.getOrientationMode(context))
         ContextCompat.registerReceiver(context, fanStateReceiver,
             IntentFilter(HardwareController.ACTION_FAN_STATE_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED)
         context.contentResolver.registerContentObserver(
@@ -153,7 +154,6 @@ class LauncherHardwareControls(
         runCatching { HardwareController.isChargePowerLimit5V(context) }.onSuccess { _chargePowerLimit.value = it }
         runCatching { HardwareController.isChargeLimit80Enabled(context) }.onSuccess { _chargeLimit80.value = it }
         runCatching { HardwareController.isAirplaneModeOn(context) }.onSuccess { _airplaneMode.value = it }
-        _orientationMode.value = HardwareController.getOrientationMode(context)
         _isDefaultHome.value = HardwareController.isDefaultHome(context)
         _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
     }
@@ -178,9 +178,17 @@ class LauncherHardwareControls(
     }
 
     fun setOrientationMode(mode: Int) {
-        _orientationMode.value = mode
-        viewModelScope.launch(Dispatchers.IO) {
-            HardwareController.setOrientationMode(context, mode)
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    hardwareLock.withLock { HardwareController.setOrientationMode(context, mode) }
+                }
+                _orientationMode.value = mode
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                Toast.makeText(context, failure.message ?: context.getString(R.string.text_hardware_setting_failed_try_again), Toast.LENGTH_LONG).show()
+            }
         }
     }
 

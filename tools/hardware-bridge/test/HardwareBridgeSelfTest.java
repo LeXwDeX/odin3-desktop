@@ -27,8 +27,78 @@ public final class HardwareBridgeSelfTest {
         protocolPrimitives();
         nativeProtocol();
         airplaneControl();
+        orientationControl();
         commandDeadline();
         System.out.println("Hardware bridge self-test passed (" + checks + " checks).");
+    }
+
+    private static void orientationControl() throws Exception {
+        class RotationCommands implements OrientationOperations.Commands {
+            final Map<String, String> settings = new LinkedHashMap<>();
+            final Map<String, String> properties = new LinkedHashMap<>();
+            String fixed = "default", size = "Physical size: 1080x1920 Override size: 900x1600";
+            String reapplied = null, failProperty = null;
+            int writes;
+            RotationCommands() {
+                settings.put("force_landscape", "1"); settings.put("accelerometer_rotation", "1");
+                settings.put("user_rotation", "3");
+                properties.put("persist.demo.rotationlock", "");
+                properties.put("persist.demo.remoterotation", "");
+            }
+            public String run(String... args) throws Exception {
+                // Every command must fit the firmware transport and remain safely quoted.
+                OemCommandCodec.encode(args);
+                switch (args[0]) {
+                    case "/system/bin/settings":
+                        if ("get".equals(args[3])) return settings.getOrDefault(args[5], "null");
+                        writes++;
+                        if ("delete".equals(args[3])) settings.remove(args[5]);
+                        else settings.put(args[5], args[6]);
+                        return "";
+                    case "/system/bin/getprop": return properties.get(args[1]);
+                    case "/system/bin/setprop":
+                        writes++;
+                        properties.put(args[1], args[2]); // Exercise a partial write then failure.
+                        if (args[1].equals(failProperty)) { failProperty = null; throw new IOException("rejected"); }
+                        return "";
+                    case "/system/bin/wm":
+                        if ("size".equals(args[1])) {
+                            if (args.length == 2) return size;
+                            reapplied = args[2]; writes++; return "";
+                        }
+                        if (args.length == 2) return fixed;
+                        fixed = args[2]; writes++; return "";
+                    default: throw new AssertionError("Unexpected command " + Arrays.toString(args));
+                }
+            }
+        }
+        RotationCommands state = new RotationCommands();
+        OrientationOperations operations = new OrientationOperations(state);
+        equal("OK\tORIENTATION\t0", operations.apply("0"));
+        equal("0", state.settings.get("force_landscape"));
+        equal("0", state.settings.get("accelerometer_rotation"));
+        equal("1", state.settings.get("user_rotation"));
+        equal("true", state.properties.get("persist.demo.rotationlock"));
+        equal("landscape", state.properties.get("persist.demo.remoterotation"));
+        equal("disabled", state.fixed);
+        equal("900x1600", state.reapplied); // Custom display size must survive.
+        equal("OK\tORIENTATION\t1", operations.apply("1"));
+        equal("false", state.properties.get("persist.demo.rotationlock"));
+        equal("1", state.settings.get("accelerometer_rotation"));
+        equal("reset", OrientationOperations.existingSize("Physical size: 1080x1920"));
+        state = new RotationCommands();
+        Map<String, String> old = new LinkedHashMap<>(state.settings);
+        state.failProperty = "persist.demo.rotationlock";
+        equal("ERR\tWRITE_REJECTED", new OrientationOperations(state).apply("0"));
+        equal(old, state.settings);
+        equal("", state.properties.get("persist.demo.rotationlock"));
+        equal("", state.properties.get("persist.demo.remoterotation"));
+        equal("default", state.fixed);
+        state = new RotationCommands(); state.size = "unavailable";
+        equal("ERR\tREAD_UNAVAILABLE", new OrientationOperations(state).apply("0"));
+        equal(0, state.writes);
+        equal("ERR\tBAD_REQUEST", new OrientationOperations(state).apply("0; reboot"));
+        equal("ERR\tBAD_REQUEST", new HardwareOperations(new MemoryStore()).execute("ORIENTATION\t2"));
     }
 
     private static void commandDeadline() throws Exception {

@@ -25,3 +25,9 @@ tools/android adb -s <serial> shell am instrument -w -e fault offline com.odin.d
 启动探针应在 35 秒内结束；超过时记录报告缺失，不宣称测试通过，停止本应用后正常重开。`local_cache_restored=true` 只表示应用自己的缓存已恢复；不涉及系统 Binder 注册表。Release manifest 不包含这些 instrumentation。
 
 结束后从系统卸载本次新建的 `com.odin.desktop.validationtarget` 测试 APK，保留 `com.odin.desktop` 及用户数据。最后重新打开桌面并核对前台监控恢复。验收结果见 [记录](../../docs/completion-validation.md)。
+
+## Usage-access fallback and orientation requests
+
+With app monitoring off and usage access already authorized, add `-e verify_usage true` to `-e verify true`. This path does not enable/rebind accessibility or grant usage access. It validates target discovery, switch states, permission recovery, and returning Home with the isolated fixture. Background Activity starts are not a substitute for a user's Home action.
+
+The fixture accepts integer `orientation` values from `ActivityInfo` for testing landscape, reverse/sensor landscape, and portrait requests. Its package remains isolated from installed games. Debug `HardwareProbeInstrumentation -e verify_orientation true` runs application-UID native orientation modes 1 then 0 and restores the saved app preference.

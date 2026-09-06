@@ -19,6 +19,7 @@ import com.odin.desktop.shader.repository.ShaderConfigWrites
 import com.odin.desktop.shader.runtime.ShaderRuntime
 import com.odin.desktop.shader.runtime.ShaderRuntimeState
 import com.odin.desktop.shader.runtime.ShaderStatus
+import com.odin.desktop.shader.runtime.ForegroundAppResolver
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +37,8 @@ object VideoShaderEngine {
     private var systemWindowVisible = false
     private var generation = 0L
     private var loadedConfig: AppShaderConfigEntity? = null
+    private var usageVerifiedTarget: String? = null
+    private var foregroundRequest = 0L
     private val toggleMutex = Mutex()
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val mutableState = MutableStateFlow(ShaderRuntimeState())
@@ -77,6 +80,9 @@ object VideoShaderEngine {
             invalidateOverlay()
             publish(ShaderStatus.UNKNOWN)
             AppMonitorAccessibilityService.requestRefresh()
+            if (!AppMonitorAccessibilityService.isRunning) {
+                scope.launch { delay(250); refreshForegroundForUserAction(context) }
+            }
         }
     }
 
@@ -85,8 +91,10 @@ object VideoShaderEngine {
     }
 
     fun onForegroundUnknown(context: Context) {
+        foregroundRequest++
         applicationContext = context.applicationContext
         currentForegroundPackage = null
+        usageVerifiedTarget = null
         loadedConfig = null
         invalidateOverlay()
         publish(ShaderStatus.UNKNOWN, null)
@@ -100,12 +108,31 @@ object VideoShaderEngine {
     }
 
     fun onForegroundPackageChanged(context: Context, packageName: String) {
+        foregroundRequest++
         applicationContext = context.applicationContext
         // Our control/preview window covers the game but does not become the game target.
         if (controlSessions > 0 && packageName == context.packageName) return
         systemWindowVisible = false
+        if (packageName != usageVerifiedTarget) usageVerifiedTarget = null
         currentForegroundPackage = packageName
         reload(context)
+    }
+
+    /** A tile gesture must resolve today's foreground, not the launcher cached at last onStart. */
+    fun refreshForegroundForUserAction(context: Context, completed: () -> Unit = {}) {
+        scope.launch {
+            if (controlSessions == 0 && !AppMonitorAccessibilityService.isRunning) {
+                val request = ++foregroundRequest
+                val target = withContext(Dispatchers.IO) { ForegroundAppResolver.resolve(context) }
+                if (request != foregroundRequest || controlSessions > 0) return@launch
+                usageVerifiedTarget = target
+                if (target == null) onForegroundUnknown(context)
+                else if (target != currentForegroundPackage || needsForegroundRefresh()) {
+                    onForegroundPackageChanged(context, target)
+                }
+            }
+            completed()
+        }
     }
 
     private fun reload(context: Context) {
@@ -138,9 +165,15 @@ object VideoShaderEngine {
     }
 
     fun toggleCurrentAppShader(context: Context, onToggled: (Boolean) -> Unit) {
+        refreshForegroundForUserAction(context) { toggleResolvedTarget(context, onToggled) }
+    }
+
+    private fun toggleResolvedTarget(context: Context, onToggled: (Boolean) -> Unit) {
         val target = currentTargetPackage(context)
         if (controlSessions > 0 || target == null || !ShaderRuntime.resolve(context, target).hasTarget) {
-            Toast.makeText(context, R.string.text_return_to_the_game_before_toggling_its, Toast.LENGTH_SHORT).show()
+            val message = if (!AppMonitorAccessibilityService.isRunning && !ForegroundAppResolver.hasUsageAccess(context))
+                R.string.shader_target_permission else R.string.text_return_to_the_game_before_toggling_its
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             onToggled(false)
             return
         }
@@ -172,7 +205,7 @@ object VideoShaderEngine {
         if (target == null) return ShaderStatus.NO_TARGET
         return ShaderStatus.evaluate(enabled, effects, Build.VERSION.SDK_INT,
             Settings.canDrawOverlays(context),
-            AppMonitorAccessibilityService.isRunning && currentForegroundPackage == target,
+            (AppMonitorAccessibilityService.isRunning || usageVerifiedTarget == target) && currentForegroundPackage == target,
             controlSessions > 0 || systemWindowVisible)
     }
 
@@ -214,9 +247,17 @@ object VideoShaderEngine {
                 delay(500)
                 var checks = 0
                 while (generation == revision) {
+                    if (!AppMonitorAccessibilityService.isRunning) {
+                        val foreground = withContext(Dispatchers.IO) { ForegroundAppResolver.resolve(context) }
+                        if (generation != revision) return@launch
+                        if (foreground != config.packageName) {
+                            onForegroundUnknown(context)
+                            return@launch
+                        }
+                    }
                     val permission = Settings.canDrawOverlays(context)
                     val interactive = context.getSystemService(android.os.PowerManager::class.java).isInteractive
-                    if (!permission || !AppMonitorAccessibilityService.isRunning || !interactive || !view.isAttachedToWindow) {
+                    if (!permission || !interactive || !view.isAttachedToWindow) {
                         invalidateOverlay()
                         publish(when {
                             !permission -> ShaderStatus.PERMISSION_REQUIRED

@@ -12,9 +12,11 @@ import java.io.File
 /** Read-only by default; fixed write/restore test requires explicit verify_controls=true. Debug only. */
 class HardwareProbeInstrumentation : Instrumentation() {
     private var verifyControls = false
+    private var verifyOrientation = false
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
         verifyControls = arguments?.getString("verify_controls") == "true"
+        verifyOrientation = arguments?.getString("verify_orientation") == "true"
         start()
     }
 
@@ -115,6 +117,21 @@ class HardwareProbeInstrumentation : Instrumentation() {
             record("app.$operation") { HardwareControlClient.request(context, operation).joinToString(",") }
         }
         if (verifyControls) record("control_verification") { verifyAndRestore() }
+        if (verifyOrientation) record("orientation_verification") {
+            val controller = com.odin.desktop.service.fan.HardwareController
+            val old = controller.getOrientationMode(context)
+            val results = JSONObject()
+            try {
+                for (mode in listOf(1, 0)) {
+                    controller.setOrientationMode(context, mode)
+                    results.put(mode.toString(), controller.getOrientationMode(context))
+                }
+            } finally {
+                controller.setOrientationMode(context, old)
+                results.put("restored", controller.getOrientationMode(context) == old)
+            }
+            results
+        }
         finish(0, Bundle().apply { putString("hardware_report", report.toString()) })
     }
 

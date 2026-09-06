@@ -161,8 +161,14 @@ class ShaderControlActivity : AppCompatActivity() {
             }
         })
 
-        val snapshot = targetFromIntent(intent)
-        loadTarget(snapshot)
+        lifecycleScope.launch {
+            val snapshot = targetFromIntent(intent) ?: if (!intent.getBooleanExtra(EXTRA_PREVIEW_ONLY, false)) {
+                withContext(Dispatchers.IO) {
+                    com.odin.desktop.shader.runtime.ForegroundAppResolver.resolve(applicationContext)
+                }
+            } else null
+            loadTarget(snapshot)
+        }
 
         setContent {
             OdinDesktopTheme {
@@ -212,7 +218,8 @@ class ShaderControlActivity : AppCompatActivity() {
 
     private fun targetFromIntent(intent: Intent): String? =
         if (intent.getBooleanExtra(EXTRA_PREVIEW_ONLY, false)) null
-        else intent.getStringExtra("package_name") ?: VideoShaderEngine.currentTargetPackage(this)
+        else intent.getStringExtra("package_name") ?: if (com.odin.desktop.service.fan.AppMonitorAccessibilityService.isRunning)
+            VideoShaderEngine.currentTargetPackage(this) else null
 
     private fun loadTarget(snapshot: String?) {
         val runtime = ShaderRuntime.resolve(applicationContext, snapshot)

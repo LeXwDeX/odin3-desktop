@@ -46,15 +46,17 @@ public final class FanControlCoordinator {
     public static final class ThermalGate {
         public static final float WARM_C = 60;
         public static final float COOL_C = 55;
-        public static final float IMMEDIATE_COOLING_C = 75;
+        public static final float HOT_C = 75;
+        public static final float IMMEDIATE_COOLING_C = 90;
+        public static final long HOT_DURATION_MS = 4_000;
         public static final long WARM_DURATION_MS = 16_000;
         public static final long COOL_DURATION_MS = 24_000;
         private static final long MAX_SAMPLE_GAP_MS = 20_000;
-        private long warmSince = -1, coolSince = -1, lastSample = -1;
+        private long warmSince = -1, hotSince = -1, coolSince = -1, lastSample = -1;
         private boolean cooling;
 
         public void reset() {
-            warmSince = coolSince = lastSample = -1;
+            warmSince = hotSince = coolSince = lastSample = -1;
             cooling = false;
         }
 
@@ -63,18 +65,27 @@ public final class FanControlCoordinator {
             cooling = true;
         }
 
+        /** Confirm active temperature windows more often; an idle desktop still samples every 8s. */
+        public long nextSampleDelayMs() {
+            return cooling || warmSince >= 0 || hotSince >= 0 ? 2_000 : 8_000;
+        }
+
         public ThermalDecision evaluate(float temperature, long now) {
             if (!Float.isFinite(temperature) || temperature <= 0 || now < 0) {
                 sensorFailed();
                 throw new IllegalArgumentException("CPU/GPU temperature is unavailable");
             }
             if (lastSample >= 0 && (now < lastSample || now - lastSample > MAX_SAMPLE_GAP_MS)) {
-                warmSince = coolSince = -1;
+                warmSince = hotSince = coolSince = -1;
             }
             lastSample = now;
-            if (temperature >= IMMEDIATE_COOLING_C) {
+            if (temperature >= HOT_C) {
+                if (hotSince < 0) hotSince = now;
+            } else hotSince = -1;
+            if (temperature >= IMMEDIATE_COOLING_C ||
+                    (hotSince >= 0 && now - hotSince >= HOT_DURATION_MS)) {
                 cooling = true;
-                warmSince = coolSince = -1;
+                warmSince = hotSince = coolSince = -1;
             }
             if (cooling) {
                 if (temperature <= COOL_C) {

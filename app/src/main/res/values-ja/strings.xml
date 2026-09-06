@@ -278,7 +278,7 @@
     <string name="text_example_wi_fi" formatted="false">"サンプルWi-Fi"</string>
     <string name="text_screen_orientation" formatted="false">"画面の向き："</string>
     <string name="text_the_usb_port_is_on_the_bottom" formatted="false">"Odin 3のUSBポートは本体下部にあります。横向き固定またはセンサー連動を選択してください。"</string>
-    <string name="text_fixed_landscape_default_grip" formatted="false">"横向き固定（標準の持ち方）"</string>
+    <string name="text_fixed_landscape_default_grip" formatted="false">"横向き固定（アプリの縦画面を許可）"</string>
     <string name="text_sensor_landscape_either_landscape_direction" formatted="false">"センサー連動（横向き・上下反転）"</string>
     <string name="text_active" formatted="false">"✓ 選択中"</string>
     <string name="text_1_stick_light_color" formatted="false">"1. スティックライト"</string>
@@ -312,7 +312,7 @@
     <string name="text_temperature_and_cooling_status" formatted="false">"温度と冷却の状態"</string>
     <string name="text_highest_chip_temperature_soc" formatted="false">"• チップ最高温度（SoC）："</string>
     <string name="text_cooling_threshold" formatted="false">"• 冷却開始："</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60°C 超が16秒継続、75°C は即時"</string>
+    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60°C 超が16秒、75°C以上が4秒、90°Cで即時"</string>
     <string name="text_automatic_stop_conditions" formatted="false">"• 自動停止の条件："</string>
     <string name="text_charging_no_game_temperature_60_c" formatted="false">"55°C 以下が24秒続くと再び停止"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"アプリがありません。Xでこのカテゴリを管理できます。"</string>
@@ -361,4 +361,5 @@
     <string name="shader_tile_preview">画像プレビューのみ</string>
     <string name="shader_tile_paused">ゲーム効果は一時停止</string>
     <string name="shader_tile_unknown">ゲーム効果は未確認</string>
+    <string name="shader_target_permission">ゲームを識別するには、システム設定で使用状況へのアクセスまたはアプリ監視を許可してください。</string>
 </resources>

@@ -24,10 +24,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -47,6 +47,7 @@ class FanWatchdogService : Service() {
     private var failureCount = 0
     private var retryAfterMillis = 0L
     private val thermalGate = FanControlCoordinator.ThermalGate()
+    private var nextSampleDelayMillis = 8_000L
 
     private data class PolicyRequest(val version: Long)
     private class FanModeWriteException(val target: Int, cause: Exception) : Exception("Fan mode write failed", cause)
@@ -102,13 +103,12 @@ class FanWatchdogService : Service() {
             return
         }
         serviceScope.launch {
-            // One consumer prevents periodic and broadcast evaluations from writing concurrently.
-            for (request in policyRequests) evaluateFanPolicy(request)
-        }
-        serviceScope.launch {
+            // One consumer owns both events and the next sample deadline. A hot sample changes
+            // the very next wait, rather than leaving an old eight-second timer in flight.
             while (isActive) {
-                delay(8_000)
-                requestEvaluation()
+                val request = withTimeoutOrNull(nextSampleDelayMillis) { policyRequests.receive() }
+                    ?: PolicyRequest(requestVersion.incrementAndGet())
+                evaluateFanPolicy(request)
             }
         }
         requestEvaluation()
@@ -148,7 +148,11 @@ class FanWatchdogService : Service() {
                 else if (isAccessibilityActive) AppMonitorAccessibilityService.currentForegroundPackage else null
             val isGame = foreground != null && foreground != packageName && appRepository.isGamePackage(foreground)
             val thermal = thermalGate.evaluate(maxTemp, SystemClock.elapsedRealtime())
+            nextSampleDelayMillis = thermalGate.nextSampleDelayMs()
             val target = FanControlCoordinator.policyTarget(snapshot, thermal, isConnectedToPower, isGame, foreground != null)
+            if (com.odin.desktop.BuildConfig.DEBUG && target != null && target != snapshot.fanMode) {
+                Log.d(TAG, "Fan ${snapshot.fanMode} -> $target; temp=$maxTemp thermal=$thermal power=$isConnectedToPower game=$isGame foreground=$foreground")
+            }
             if (target != null) applyPolicyMode(target, snapshot, request.version)
             failureCount = 0
             retryAfterMillis = 0L

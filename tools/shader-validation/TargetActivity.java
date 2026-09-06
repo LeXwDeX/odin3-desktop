@@ -8,6 +8,9 @@ import android.view.View;
 public class TargetActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        if (getIntent().hasExtra("orientation")) {
+            setRequestedOrientation(getIntent().getIntExtra("orientation", -1));
+        }
         boolean hidden = getIntent().getBooleanExtra("hide_overlays", false);
         if (android.os.Build.VERSION.SDK_INT >= 31) getWindow().setHideOverlayWindows(hidden);
         setContentView(new View(this) {

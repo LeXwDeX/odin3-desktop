@@ -10,6 +10,7 @@ The app reads actual system state after every acknowledgement. Performance comes
 
 | Request | Exact destination | Values |
 | --- | --- | --- |
+| `ORIENTATION` | Fixed System rotation keys, `persist.demo.rotationlock` / `persist.demo.remoterotation`, and `wm` rotation-policy refresh preserving the current size | 0 landscape grip with portrait requests allowed; 1 sensor. Verified with rollback |
 | `PERFORMANCE_GET` | Read-only property `persist.vendor.debug.mode`, with no caller-supplied argument | Returns only validated 0, 1, or 2; inaccessible/invalid state returns an error |
 | `PERFORMANCE` | System `performance_mode`, property `persist.vendor.debug.mode`, then `fan_mode` | 0 normal, 1 performance, 2 high performance; retains configured MAX, otherwise normal OFF / elevated SMART |
 | `PERFORMANCE_FAN` | Same performance destinations, followed by an explicit final fan mode in one transaction | Performance 0/1/2 and fan 0/4/5; elevated performance plus OFF is rejected |

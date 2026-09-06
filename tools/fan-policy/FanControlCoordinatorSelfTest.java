@@ -230,7 +230,15 @@ public final class FanControlCoordinatorSelfTest {
         check(gate.evaluate(56, 56_000) == cool, "warm bounce resets recovery");
         for (long t = 64_000; t < 88_000; t += 8_000) check(gate.evaluate(55, t) == cool, "wait for stable cooldown");
         check(gate.evaluate(55, 88_000) == quiet, "stable cooldown restores quiet automatically");
-        check(gate.evaluate(75, 96_000) == cool, "high temperature bypasses debounce");
+        check(gate.evaluate(79, 96_000) == hold, "brief UI hotspot does not immediately start cooling");
+        check(gate.nextSampleDelayMs() == 2_000, "hotspot schedules prompt confirmation");
+        check(gate.evaluate(50, 98_000) == quiet, "isolated 79C peak leaves automatic quiet enabled");
+        check(gate.nextSampleDelayMs() == 8_000, "idle sampling returns to low frequency");
+        check(gate.evaluate(76, 106_000) == hold, "sustained hot window starts");
+        check(gate.evaluate(77, 108_000) == hold, "hot window needs four seconds");
+        check(gate.evaluate(76, 110_000) == cool, "sustained high heat promptly starts cooling");
+        gate.reset();
+        check(gate.evaluate(90, 0) == cool, "extreme heat remains immediate");
         gate.reset();
         check(gate.evaluate(61, 0) == hold, "fresh heat");
         check(gate.evaluate(61, 30_000) == hold, "missing samples do not count as sustained heat");

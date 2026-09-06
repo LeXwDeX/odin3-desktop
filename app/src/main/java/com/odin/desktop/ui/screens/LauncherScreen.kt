@@ -89,7 +89,7 @@ fun LauncherScreen(
     val pickedAppIndex by viewModel.pickedAppIndex.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(orientationMode) {
-        onOrientationChange(orientationMode)
+        if (orientationMode >= 0) onOrientationChange(orientationMode)
     }
 
     // Poll only the visible temperature section, and cancel when the Activity stops.

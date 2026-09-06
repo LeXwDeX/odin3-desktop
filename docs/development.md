@@ -62,3 +62,5 @@ tools/android adb -s <serial> shell am instrument -w com.odin.desktop/com.odin.d
 固定目标的 Shader 和应用内启动故障探针见 [验收工具](../tools/shader-validation/README.md)，最终范围及原始 Logo 问题的边界见 [验收记录](completion-validation.md)。
 
 温控回差、按需服务、FSR 移除及代码审计的最终验证见 [优化验收](optimization-audit.md)。
+
+握持横屏和无障碍关闭时的 Shader 前台识别回退验收见 [补充记录](grip-fan-shader-fixes.md)，方向矩阵使用 `tools/android python3 tools/orientation-device-regression.py --serial <serial> --output <ignored-report.json>`。

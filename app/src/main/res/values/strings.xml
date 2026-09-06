@@ -277,7 +277,7 @@
     <string name="text_example_wi_fi" formatted="false">"Example Wi-Fi"</string>
     <string name="text_screen_orientation" formatted="false">"Screen orientation:"</string>
     <string name="text_the_usb_port_is_on_the_bottom" formatted="false">"The USB port is on the bottom of Odin 3. Choose fixed or sensor landscape."</string>
-    <string name="text_fixed_landscape_default_grip" formatted="false">"Fixed landscape (default grip)"</string>
+    <string name="text_fixed_landscape_default_grip" formatted="false">"Landscape grip (portrait apps allowed)"</string>
     <string name="text_sensor_landscape_either_landscape_direction" formatted="false">"Sensor landscape (either landscape direction)"</string>
     <string name="text_active" formatted="false">"✓ Active"</string>
     <string name="text_1_stick_light_color" formatted="false">"1. Stick light color"</string>
@@ -311,7 +311,7 @@
     <string name="text_temperature_and_cooling_status" formatted="false">"Temperature and cooling status"</string>
     <string name="text_highest_chip_temperature_soc" formatted="false">"• Highest chip temperature (SoC):"</string>
     <string name="text_cooling_threshold" formatted="false">"• Cooling trigger:"</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"Above 60°C for 16s; 75°C immediately"</string>
+    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"Above 60°C for 16s; 75°C for 4s; 90°C immediately"</string>
     <string name="text_automatic_stop_conditions" formatted="false">"• Automatic stop conditions:"</string>
     <string name="text_charging_no_game_temperature_60_c" formatted="false">"Return to quiet after 24s at or below 55°C"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"No apps. Press X to manage this category."</string>
@@ -363,4 +363,5 @@
     <string name="shader_tile_preview">Screenshot preview only</string>
     <string name="shader_tile_paused">Game effect paused</string>
     <string name="shader_tile_unknown">Game effect unconfirmed</string>
+    <string name="shader_target_permission">Allow usage access or app monitoring in system settings to identify the foreground game.</string>
 </resources>

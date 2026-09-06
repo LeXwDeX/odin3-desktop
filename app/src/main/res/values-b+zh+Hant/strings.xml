@@ -277,7 +277,7 @@
     <string name="text_example_wi_fi" formatted="false">"示例 Wi-Fi"</string>
     <string name="text_screen_orientation" formatted="false">"设置掌机屏幕握持旋转策略："</string>
     <string name="text_the_usb_port_is_on_the_bottom" formatted="false">"AYN Odin 3 底侧为 USB 接口，仅支持固定横屏与传感器横屏两种模式。"</string>
-    <string name="text_fixed_landscape_default_grip" formatted="false">"固定横屏（默认握持方向）"</string>
+    <string name="text_fixed_landscape_default_grip" formatted="false">"握持横屏（允许应用竖屏）"</string>
     <string name="text_sensor_landscape_either_landscape_direction" formatted="false">"传感器横屏（自适应正反横屏）"</string>
     <string name="text_active" formatted="false">"✓ 当前生效"</string>
     <string name="text_1_stick_light_color" formatted="false">"1. 摇杆灯颜色"</string>
@@ -311,7 +311,7 @@
     <string name="text_temperature_and_cooling_status" formatted="false">"实时状态与温控保护监控"</string>
     <string name="text_highest_chip_temperature_soc" formatted="false">"• 芯片实时最高温度 (SoC)："</string>
     <string name="text_cooling_threshold" formatted="false">"• 开扇条件："</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"超过 60°C 持续 16 秒；75°C 立即"</string>
+    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60°C 以上 16 秒；75°C 以上 4 秒；90°C 立即"</string>
     <string name="text_automatic_stop_conditions" formatted="false">"• 调度执行条件："</string>
     <string name="text_charging_no_game_temperature_60_c" formatted="false">"降至 55°C 及以下持续 24 秒后恢复停转"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"暂无应用，按 X 键可管理或添加应用至此分类"</string>
@@ -360,4 +360,5 @@
     <string name="shader_tile_preview">仅截图预览</string>
     <string name="shader_tile_paused">游戏效果暂停</string>
     <string name="shader_tile_unknown">游戏效果无法确认</string>
+    <string name="shader_target_permission">请在系统中启用应用使用情况访问或应用监控，以识别前台游戏。</string>
 </resources>

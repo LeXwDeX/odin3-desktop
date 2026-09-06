@@ -22,6 +22,7 @@ class ShaderTileService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
         updateTileState()
+        VideoShaderEngine.refreshForegroundForUserAction(this) { updateTileState() }
     }
 
     override fun onClick() {
