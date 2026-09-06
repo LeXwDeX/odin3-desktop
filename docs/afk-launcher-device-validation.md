@@ -36,3 +36,11 @@
 原厂桌面已通过 `pm default-state` 恢复原始默认启用状态，默认 HOME 保持本应用；休眠超时恢复 10 分钟，硬件配置恢复，测试应用已移除，CLI instrumentation 已停止。最后重新开启本应用挂机，让《终末地》继续下载。
 
 原始窗口/电源/前台报告、两轮硬件报告、截图、APK 和备份均在 `.android-local/afk-combined-validation/`，不提交到 Git。长达数小时、物理电源键关屏及所有游戏行为不在本轮验收范围。
+
+## 挂机底部手势导航条修复
+
+同日用户报告挂机底部留有白色横条。实机截图复现：黑色遮罩覆盖游戏，但系统手势导航条仍亮。挂机浮层现声明沉浸式系统 UI 标志，并在 Android 11 及以上挂载窗口后通过 `WindowInsetsController` 请求隐藏系统栏，允许边缘滑动临时呼出（[Android 官方说明](https://developer.android.com/develop/ui/views/layout/immersive)）。保留不获取焦点、保持亮屏和双击退出的原有行为；不修改系统导航方式或全局沉浸策略。
+
+Debug 构建与现有 `AfkOverlayServiceTest` 在 API 32 / 35 共 6 项检查通过。核对新旧 APK 签名一致后保留数据覆盖安装。在同一 Odin3 / Android 15 上，从快捷磁贴启动挂机，倒计时后截图确认底部白条消失；窗口焦点和 focused app 仍为《终末地》。双击退出后显示原游戏的服务器选择界面，随后重新开启挂机。本轮没有实际战斗验收，也未验证其他固件或三键导航。
+
+本轮原始截图和窗口报告为本机忽略目录 `.android-local/afk-nav-*`；安装前 APK 备份为 `.android-local/afk-nav-before.apk`。

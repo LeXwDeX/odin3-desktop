@@ -18,6 +18,9 @@ import android.os.SystemClock
 import android.provider.Settings
 import android.view.Gravity
 import android.view.MotionEvent
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -149,8 +152,25 @@ class AfkOverlayService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setFitInsetsTypes(0)
         }
 
-        val root = FrameLayout(this).apply {
+        val root = object : FrameLayout(this) {
+            override fun onAttachedToWindow() {
+                super.onAttachedToWindow()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    windowInsetsController?.apply {
+                        systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                        hide(WindowInsets.Type.systemBars())
+                    }
+                }
+            }
+        }.apply {
             setBackgroundColor(Color.TRANSPARENT)
+            @Suppress("DEPRECATION")
+            systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         }
 
         val textView = TextView(this).apply {
