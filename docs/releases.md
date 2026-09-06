@@ -19,11 +19,11 @@ git push origin v0.1.1
 - `draft` 默认开启：构建完成后创建带 APK 的 Release 草稿，检查后在 Releases 中点击 Publish release。
 - 关闭 `draft`：构建、测试、签名全部通过后直接发布。
 
-手动发布绑定启动工作流时的准确提交；已有标签必须指向同一提交。已有 Release（包括草稿）会被拒绝覆盖，失败时不会悄悄替换用户下载的 APK。若资产上传中断留下草稿，先检查失败日志，再明确删除该草稿后重跑，或使用新版本。
+手动发布绑定启动工作流时的准确提交；尚未发布的已有标签必须指向同一提交。已正式发布的版本直接跳过，保留原有 APK，也能处理发布草稿时创建标签带来的重复触发。已有草稿拒绝覆盖；若资产上传中断留下草稿，先检查失败日志，再明确删除该草稿后重跑，或使用新版本。
 
 ## 构建与版本
 
-每次 `main` 推送和 PR 都运行 Android CI：JDK 17、SDK 35、Debug/Release 构建、单元测试、Lint、风扇/UI/Home/数据库/硬件事务回归。PR 流程不接触发布签名。发布工作流重复同样检查，全部成功才签名与创建 Release。测试报告保存 14 天，签名 APK 在 Actions 保存 30 天，Release 附件不受该期限限制。
+`main` 推送和 PR 运行 Android CI，纯 Markdown/文档更新除外：JDK 17、SDK 35、Debug/Release 构建、单元测试、Lint、风扇/UI/Home/数据库/硬件事务回归。PR 流程不接触发布签名。发布工作流重复同样检查，全部成功才签名与创建 Release。测试报告保存 14 天，签名 APK 在 Actions 保存 30 天，Release 附件不受该期限限制。待发布提交不要使用 `[skip ci]` 等提交消息标记，以免 GitHub 同时跳过标签推送事件。
 
 `versionName` 从标签取得；`versionCode = 主版本 × 1,000,000 + 次版本 × 1,000 + 修订号 + 1`。主版本上限 2099，次版本、修订号上限 999。例如 `v0.1.1` 对应 `0.1.1 / 1002`，高于已有安装版的 `versionCode=1`，重跑同一版本也不会变化。只发布递增版本；本地构建同一版本可运行：
 
@@ -53,6 +53,6 @@ tools/android ./gradlew -PreleaseVersion=0.1.1 :app:assembleDebug :app:assembleR
 
 ## 首次云端验收
 
-2026-09-06 的 [Release APK 运行](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34007765571) 已通过构建、单元测试、Lint 和所有共享回归，生成 `v0.1.1` Release 草稿及 `odin3-desktop-v0.1.1.apk`、对应 `.sha256` 文件。下载 GitHub 实际附件后，再次核对 `com.odin.desktop / 0.1.1 / 1002`、Android 10+、不可调试标记和与当前掌机安装版相同的证书，均通过。
+2026-09-06 的 [Release APK 运行](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34007765571) 已通过构建、单元测试、Lint 和所有共享回归，生成 `odin3-desktop-v0.1.1.apk`、对应 `.sha256` 文件。先创建草稿，下载 GitHub 实际附件，再次核对 `com.odin.desktop / 0.1.1 / 1002`、Android 10+、不可调试标记和与当前掌机安装版相同的证书，均通过后已[正式发布 v0.1.1](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.1)。
 
 该 APK SHA-256 为 `e6f0be783ee27990c3844b7ccb2131c963b202548d2bea68403fe74133681660`。Git 历史没有 keystore/JKS/P12 文件，当前提交与实际 APK 也未包含签名密钥文件；五项配置已保存为仓库加密 Secrets，clone 仓库不会下载这些 Secrets。后续发布仍需保护仓库写权限及维护者账户。

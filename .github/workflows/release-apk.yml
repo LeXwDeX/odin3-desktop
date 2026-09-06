@@ -39,14 +39,20 @@ jobs:
         run: |
           python3 tools/release-apk.py prepare "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          if gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft > "$RUNNER_TEMP/release-is-draft" 2>/dev/null; then
+            if [ "$(cat "$RUNNER_TEMP/release-is-draft")" = false ]; then
+              echo 'already_published=true' >> "$GITHUB_OUTPUT"
+              echo 'This version is already published; keeping its original APK unchanged.'
+              exit 0
+            fi
+            echo 'A draft already exists; inspect it before retrying this version.' >&2
+            exit 1
+          fi
           if git show-ref --verify --quiet "refs/tags/$RELEASE_TAG"; then
             test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$GITHUB_SHA"
           fi
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo 'This release already exists; refusing to replace its APK.' >&2
-            exit 1
-          fi
       - name: Check signing configuration
+        if: steps.version.outputs.already_published != 'true'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
@@ -63,9 +69,11 @@ jobs:
               raise SystemExit('Configure repository Actions secrets: ' + ', '.join(missing))
           PY
       - uses: ./.github/actions/android-build
+        if: steps.version.outputs.already_published != 'true'
         with:
           version: ${{ steps.version.outputs.version }}
       - name: Sign and verify release APK
+        if: steps.version.outputs.already_published != 'true'
         env:
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -75,6 +83,7 @@ jobs:
           ANDROID_SIGNING_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
         run: python3 tools/release-apk.py sign "$RELEASE_TAG"
       - name: Upload signed APK and checksum
+        if: steps.version.outputs.already_published != 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: odin3-desktop-${{ steps.version.outputs.tag }}
@@ -85,6 +94,7 @@ jobs:
           retention-days: 30
           compression-level: 0
       - name: Create GitHub Release
+        if: steps.version.outputs.already_published != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
@@ -96,7 +106,7 @@ jobs:
             --target "$GITHUB_SHA" --title "Odin 3 Desktop $RELEASE_TAG" \
             --generate-notes --notes-file dist/release-notes.md "${args[@]}"
       - name: Upload test and lint reports
-        if: always()
+        if: always() && steps.version.outputs.already_published != 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-check-reports-${{ github.run_id }}
