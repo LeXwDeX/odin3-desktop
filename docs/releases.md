@@ -56,3 +56,7 @@ tools/android ./gradlew -PreleaseVersion=0.1.1 :app:assembleDebug :app:assembleR
 2026-09-06 的 [Release APK 运行](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34007765571) 已通过构建、单元测试、Lint 和所有共享回归，生成 `odin3-desktop-v0.1.1.apk`、对应 `.sha256` 文件。先创建草稿，下载 GitHub 实际附件，再次核对 `com.odin.desktop / 0.1.1 / 1002`、Android 10+、不可调试标记和与当前掌机安装版相同的证书，均通过后已[正式发布 v0.1.1](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.1)。
 
 该 APK SHA-256 为 `e6f0be783ee27990c3844b7ccb2131c963b202548d2bea68403fe74133681660`。Git 历史没有 keystore/JKS/P12 文件，当前提交与实际 APK 也未包含签名密钥文件；五项配置已保存为仓库加密 Secrets，clone 仓库不会下载这些 Secrets。后续发布仍需保护仓库写权限及维护者账户。
+
+公开 APK 链接匿名访问返回 HTTP 200；该 GitHub 附件已通过 `adb install -r` 在 Odin3 上保留数据覆盖安装，设备读回 `0.1.1 / 1002` 且没有 `DEBUGGABLE` 标记。安装后发起 MainActivity 启动没有报错，该次日志检查没有应用崩溃；设备随后断开，未继续完成 Release 界面操作复验。灯光修复的先前实机与用户复测见 [灯光记录](joystick-light-fix.md)。
+
+主分支 [Android CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34008426579) 通过；另一次[重复发布验证](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34008458750) 成功跳过构建、签名和上传，附件 ID、更新时间及摘要均保持不变。
