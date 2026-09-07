@@ -66,7 +66,7 @@ fun AppIconCollection(
     val drop by rememberUpdatedState(onDrop)
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val iconSize = with(density) { (if (isGrid) 96.dp else 128.dp).toPx() }
+    val iconSize = with(density) { (if (isGrid) 88.dp else 128.dp).toPx() }
     val edge = with(density) { 48.dp.toPx() }
     val speed = with(density) { 560.dp.toPx() }
 
@@ -158,8 +158,8 @@ fun AppIconCollection(
                     modifier = Modifier.align(Alignment.Center))
             } else if (isGrid) {
                 LazyVerticalGrid(columns = GridCells.Fixed(columns), state = grid,
-                    contentPadding = PaddingValues(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     userScrollEnabled = drag.app == null, modifier = Modifier.fillMaxSize()) {
                     gridItemsIndexed(visibleApps, key = { _, app -> app.packageName }) { index, app ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {

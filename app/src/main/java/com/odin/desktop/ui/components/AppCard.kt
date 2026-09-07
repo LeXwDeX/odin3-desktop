@@ -93,7 +93,7 @@ fun AppCard(
 
     // 固定外层槽位尺寸 128.dp，保证卡片放大或抖动时绝对不挤压或推移上下左右邻近元素
     Box(
-        modifier = modifier.size(if (compact) 96.dp else 128.dp).graphicsLayer { alpha = if (hidden) 0f else 1f },
+        modifier = modifier.size(if (compact) 88.dp else 128.dp).graphicsLayer { alpha = if (hidden) 0f else 1f },
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -103,7 +103,7 @@ fun AppCard(
                     translationY = if (isPicked) -8f else jiggleTranslationY
                 }
                 .scale(scale)
-                .size(if (compact) 82.dp else 110.dp)
+                .size(if (compact) 76.dp else 110.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(if (isPicked) palette.accent.copy(alpha = 0.15f) else palette.card)
                 .border(
@@ -126,7 +126,7 @@ fun AppCard(
                     contentDescription = app.label
                     if (interactive) onLongClick { onLongClick(); true }
                 }
-                .padding(if (compact) 12.dp else 16.dp),
+                .padding(if (compact) 10.dp else 16.dp),
             contentAlignment = Alignment.Center
         ) {
             AndroidView(
@@ -138,7 +138,7 @@ fun AppCard(
                 update = { imageView ->
                     imageView.setImageDrawable(app.icon)
                 },
-                modifier = Modifier.size(if (compact) 54.dp else 72.dp)
+                modifier = Modifier.size(if (compact) 50.dp else 72.dp)
             )
         }
     }
