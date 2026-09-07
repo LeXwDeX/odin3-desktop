@@ -44,3 +44,21 @@
 Debug 构建与现有 `AfkOverlayServiceTest` 在 API 32 / 35 共 6 项检查通过。核对新旧 APK 签名一致后保留数据覆盖安装。在同一 Odin3 / Android 15 上，从快捷磁贴启动挂机，倒计时后截图确认底部白条消失；窗口焦点和 focused app 仍为《终末地》。双击退出后显示原游戏的服务器选择界面，随后重新开启挂机。本轮没有实际战斗验收，也未验证其他固件或三键导航。
 
 本轮原始截图和窗口报告为本机忽略目录 `.android-local/afk-nav-*`；安装前 APK 备份为 `.android-local/afk-nav-before.apk`。
+
+## Power 休眠自动退出挂机（v0.1.6）
+
+2026-09-07，用户要求主动按 Power 进入休眠后取消挂机。旧 v0.1.5 在同一 Odin3 / Android 15 上复现：注入 `KEYCODE_POWER` 后系统从 Awake 进入 Dozing，挂机服务和 partial WakeLock 仍存在；唤醒后遮罩继续保留。
+
+挂机服务现在动态监听系统 `ACTION_SCREEN_OFF`，收到后复用退出清理，取消倒计时与漂移回调、移除遮罩、释放唤醒锁、清除前台通知并刷新磁贴。销毁时注销监听；如果启动请求到达时设备已处于非交互状态，直接结束服务。该广播表示系统进入非交互状态，由系统发送，不等同于判断像素是否纯黑，也不保证已进入 CPU 深度挂起，语义见 [Android 官方说明](https://developer.android.com/reference/android/content/Intent#ACTION_SCREEN_OFF)。
+
+修改前新增的 3 个场景在 API 32 / 35 共失败 6 次；修复后全部 36 项单元测试通过，其中 AFK 共 12 项，同时通过 Debug / Release 构建和 Lint。既有双击取消、重复启动不重置倒计时、销毁释放锁的用例保持通过。
+
+下载并校验 GitHub 正式 v0.1.6 APK 后保留数据覆盖安装，通过系统已有快捷磁贴实际开启挂机，再注入 Power，独立读取电源、服务、窗口、通知与磁贴状态：
+
+| 场景 | 结果 |
+| --- | --- |
+| 倒计时 1 秒后 Power | 按键前设备 Awake、遮罩透明、唤醒锁持有；按键后 Dozing，服务、窗口与锁清除，磁贴由开启转为未开启。 |
+| 纯黑遮罩后 Power | 按键前窗口亮度为 0.01、锁与前台通知存在；按键后 Dozing，服务、窗口、锁与通知均清除。 |
+| 两轮重新唤醒 | 均恢复 Awake，再等待 7 秒仍无遮罩、服务、锁和通知；磁贴为未开启，原前台应用保持 `com.xiaoji.egggame/.MainActivity`。 |
+
+以上是正式 APK 上的 ADB Power 按键路径验收，不宣称现场手按物理键或 USB 断开后的深度挂起验收。旧 APK、前后读回与可重复脚本保存在忽略目录 `.android-local/device-analysis/afk-power/`；未修改休眠超时、硬件档位或原厂应用状态。安装与版本核对见 [发布记录](releases.md#v016-power-休眠退出挂机)。

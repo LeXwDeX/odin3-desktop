@@ -4,7 +4,7 @@
 
 **专为 AYN Odin 3 安卓掌机深度打造的旗舰级默认桌面启动台与系统增强套件**
 
-[![Release](https://img.shields.io/badge/Release-v0.1.5-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
+[![Release](https://img.shields.io/badge/Release-v0.1.6-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
 [![Platform](https://img.shields.io/badge/Platform-AYN%20Odin%203%20(Android%2013%2B)-black?style=for-the-badge&logo=qualcomm)](https://github.com/LeXwDeX/odin3-desktop)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20%7C%20OLED%20Black-blue?style=for-the-badge&logo=jetpackcompose)](https://github.com/LeXwDeX/odin3-desktop)
 
