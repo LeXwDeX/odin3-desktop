@@ -1,5 +1,7 @@
 # Odin 3 原厂硬件服务接入
 
+充电息屏、原厂充电开关及单一风扇策略所有权的后续调查见 [2026-09-07 诊断记录](fan-controller-ownership-investigation.md)。用户随后选择移除应用自动风扇策略，原厂硬件接入后端不变。
+
 ## 当前方案（2026-09-06）
 
 性能、风扇、摇杆灯、充电和飞行模式由应用直接调用固件自带的 `PServerBinder`。这个 Binder 服务由固件注册，实机对应的 `pservice` 进程使用 root 身份；我们的应用仍是普通应用 UID，不启动 root 进程，不修改系统权限策略，也不复制厂商可执行文件。
@@ -7,7 +9,7 @@
 调用路径：
 
 ```text
-现有 Dock / 自动风扇策略
+现有 Dock / 用户硬件操作
   → HardwareController
   → HardwareControlClient
   → HardwareOperations（固定操作、串行事务、核验与回滚）

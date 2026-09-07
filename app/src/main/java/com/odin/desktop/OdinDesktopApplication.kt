@@ -25,6 +25,9 @@ class OdinDesktopApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Retire the old policy without writing or restoring a hardware fan mode.
+        getSharedPreferences("odin_desktop_prefs", Context.MODE_PRIVATE).edit()
+            .remove("auto_fan_control_enabled").apply()
         createNotificationChannels()
         languageSubscription = AppLanguage.observeLegacyChanges(::refreshLanguageResources)
     }
@@ -57,22 +60,12 @@ class OdinDesktopApplication : Application() {
                 setShowBadge(false)
             }
 
-            val fanChannel = NotificationChannel(
-                CHANNEL_FAN,
-                getString(R.string.text_charging_fan_monitor),
-                NotificationManager.IMPORTANCE_MIN
-            ).apply {
-                description = getString(R.string.text_charging_and_cooling_status_notifications)
-                setShowBadge(false)
-            }
-
+            notificationManager.deleteNotificationChannel("odin_channel_fan")
             notificationManager.createNotificationChannel(afkChannel)
-            notificationManager.createNotificationChannel(fanChannel)
         }
     }
 
     companion object {
         const val CHANNEL_AFK = "odin_channel_afk"
-        const val CHANNEL_FAN = "odin_channel_fan"
     }
 }

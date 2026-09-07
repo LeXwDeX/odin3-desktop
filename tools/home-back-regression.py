@@ -81,7 +81,7 @@ object Settings { object Secure {
     var reads = 0
     const val ENABLED_ACCESSIBILITY_SERVICES = "enabled"
     const val ACCESSIBILITY_ENABLED = "accessibility"
-    fun getString(resolver: Any, key: String): String { reads++; return "com.odin.desktop/com.odin.desktop.service.fan.AppMonitorAccessibilityService" }
+    fun getString(resolver: Any, key: String): String { reads++; return "" }
     fun putString(resolver: Any, key: String, value: String) {}
 } }
 ''',
@@ -147,15 +147,7 @@ object HardwareController {
     fun getOrientationMode(context: android.content.Context) = 0
     fun applyOrientation(context: android.content.Context, mode: Int) {}
     fun requestDefaultHomeRole(context: android.content.Context, launch: (android.content.Intent) -> Unit) {}
-    // An upgrade from the old default-enabled startup preference must be safe.
-    fun isBootAutoStartEnabled(context: android.content.Context) = true
 }
-class AppMonitorAccessibilityService { companion object { const val isRunning = true } }
-class FanWatchdogService { companion object {
-    var syncCalls = 0
-    fun sync(context: android.content.Context) { syncCalls++ }
-    fun setLauncherVisible(context: android.content.Context, visible: Boolean) {}
-} }
 ''',
     "dashboard": '''package com.odin.desktop.dashboard
 class DashboardActions(context: android.content.Context) { fun execute(action: Any) {} }
@@ -195,23 +187,6 @@ import android.view.KeyEvent
 import com.odin.desktop.ui.viewmodel.LauncherViewModel
 
 fun main() {
-    val receiver = com.odin.desktop.receiver.BootCompletedReceiver()
-    val bootContext = android.content.Context()
-    val bootActions = listOf(android.content.Intent.ACTION_BOOT_COMPLETED,
-        android.content.Intent.ACTION_LOCKED_BOOT_COMPLETED, "android.intent.action.QUICKBOOT_POWERON")
-    for (failService in listOf(false, true)) {
-        bootContext.failServiceStart = failService
-        for (action in bootActions) {
-            receiver.onReceive(bootContext, android.content.Intent().apply { this.action = action })
-            check(bootContext.activityStarts == 0) { "Boot must never launch UI, including legacy startup-enabled installs" }
-        }
-    }
-    check(com.odin.desktop.service.fan.FanWatchdogService.syncCalls == 6) { "Boot delegates to the conditional service policy" }
-    receiver.onReceive(bootContext, android.content.Intent().apply { action = "unrelated" })
-    receiver.onReceive(bootContext, null)
-    receiver.onReceive(null, android.content.Intent())
-    check(com.odin.desktop.service.fan.FanWatchdogService.syncCalls == 6 && bootContext.activityStarts == 0)
-    println("PASS: three boot broadcasts never start UI, including legacy enabled preference and service failures")
     val activity = MainActivity()
     activity.onCreate(null)
     activity.onStart()
@@ -269,8 +244,7 @@ fun main() {
 }
 with tempfile.TemporaryDirectory(prefix="odin-home-back-") as folder:
     folder = Path(folder)
-    sources = [main, gamepad, ROOT / "app/src/main/java/com/odin/desktop/ui/navigation/FocusZone.kt",
-               ROOT / "app/src/main/java/com/odin/desktop/receiver/BootCompletedReceiver.kt"]
+    sources = [main, gamepad, ROOT / "app/src/main/java/com/odin/desktop/ui/navigation/FocusZone.kt"]
     for name, source in stubs.items():
         path = folder / f"{name}.kt"
         path.write_text(source)

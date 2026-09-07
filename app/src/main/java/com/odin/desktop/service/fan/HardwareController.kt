@@ -47,11 +47,8 @@ object HardwareController {
     const val KEY_ORIENTATION_MODE = "orientation_mode"
     const val SYSTEM_KEY_FORCE_LANDSCAPE = "force_landscape"
 
-    // 6. 自动风扇调度配置
+    // 应用偏好与用户发起的风扇事务
     const val PREFS_NAME = "odin_desktop_prefs"
-    const val KEY_AUTO_FAN_CONTROL = "auto_fan_control_enabled"
-    const val ACTION_AUTO_FAN_CONFIG_CHANGED = "com.odin.desktop.action.AUTO_FAN_CONFIG_CHANGED"
-    const val ACTION_FAN_STATE_CHANGED = "com.odin.desktop.action.FAN_STATE_CHANGED"
     private val fanControl = FanControlCoordinator()
 
     /**
@@ -65,17 +62,6 @@ object HardwareController {
 
     fun getCpuGpuTemperatures(): Pair<Float?, Float?> = temperatureReader.read().let {
         it.cpu.takeIf { value -> value.isFinite() } to it.gpu.takeIf { value -> value.isFinite() }
-    }
-
-    fun isAutoFanControlEnabled(context: Context): Boolean {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_AUTO_FAN_CONTROL, true)
-    }
-
-    @Synchronized
-    fun setAutoFanControlEnabled(context: Context, enabled: Boolean) {
-        try { fanControl.setAutoEnabled(fanBackend(context), enabled) }
-        finally { FanWatchdogService.sync(context) }
     }
 
     private fun systemValue(context: Context, key: String): String? =
@@ -109,18 +95,12 @@ object HardwareController {
     @Synchronized
     fun setPerformanceMode(context: Context, mode: Int): PerfFanResult {
         val state = fanControl.setPerformance(fanBackend(context), mode)
-        if (state.autoEnabled) {
-            context.sendBroadcast(Intent(ACTION_AUTO_FAN_CONFIG_CHANGED).setPackage(context.packageName))
-        }
         return PerfFanResult(state.performanceMode, state.fanMode)
     }
 
     @Synchronized
     fun setPerformanceAndFan(context: Context, mode: Int, fan: Int): PerfFanResult {
         val state = fanControl.setPerformance(fanBackend(context), mode, fan)
-        if (state.autoEnabled) {
-            context.sendBroadcast(Intent(ACTION_AUTO_FAN_CONFIG_CHANGED).setPackage(context.packageName))
-        }
         return PerfFanResult(state.performanceMode, state.fanMode)
     }
 
@@ -165,31 +145,7 @@ object HardwareController {
 
     @Synchronized
     fun setManualFanMode(context: Context, mode: Int): Int {
-        try { return fanControl.setManualFan(fanBackend(context), mode) }
-        finally { FanWatchdogService.sync(context) }
-    }
-
-    fun hasPendingFanRecovery(): Boolean = fanControl.hasPendingRecovery()
-
-    @Synchronized
-    fun getFanPolicySnapshot(context: Context): FanControlCoordinator.Snapshot =
-        fanControl.snapshot(fanBackend(context))
-
-    @Synchronized
-    fun applyFanPolicy(
-        context: Context,
-        expected: FanControlCoordinator.Snapshot,
-        mode: Int,
-        requestIsCurrent: () -> Boolean
-    ): Boolean {
-        val applied = fanControl.applyPolicy(fanBackend(context), expected, mode, requestIsCurrent)
-        if (applied && expected.fanMode != mode &&
-            (expected.autoEnabled || expected.fanMode == FAN_OFF)) {
-            // Settings notifications precede OEM settling. Publish completion only after the
-            // hardware service has confirmed the driver state, including changes made by the watchdog.
-            context.sendBroadcast(Intent(ACTION_FAN_STATE_CHANGED).setPackage(context.packageName))
-        }
-        return applied
+        return fanControl.setManualFan(fanBackend(context), mode)
     }
 
     private fun fanBackend(context: Context) = object : FanControlCoordinator.Backend {
@@ -197,12 +153,6 @@ object HardwareController {
         override fun readFan(): Int = getFanMode(context)
         override fun readConfiguredFan(): Int = systemValue(context, KEY_FAN_MODE)?.toIntOrNull()
             ?.takeIf { it in 0..6 } ?: throw HardwareControlException(context.getString(R.string.text_cannot_read_the_selected_fan_mode))
-        override fun readAutoEnabled(): Boolean = isAutoFanControlEnabled(context)
-        override fun writeAutoEnabled(enabled: Boolean) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                .putBoolean(KEY_AUTO_FAN_CONTROL, enabled).apply()
-            context.sendBroadcast(Intent(ACTION_AUTO_FAN_CONFIG_CHANGED).setPackage(context.packageName))
-        }
         override fun writeFan(mode: Int) = setSystem(context, KEY_FAN_MODE, mode.toString())
         override fun writePerformanceAndFan(performance: Int, fan: Int) {
             val reply = HardwareControlClient.request(context, "PERFORMANCE_FAN\t$performance\t$fan")

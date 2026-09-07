@@ -16,7 +16,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.odin.desktop.service.fan.HardwareController
-import com.odin.desktop.service.fan.FanWatchdogService
 import com.odin.desktop.ui.navigation.GamepadKeyHandler
 import com.odin.desktop.ui.screens.LauncherScreen
 import com.odin.desktop.ui.theme.OdinDesktopTheme
@@ -101,8 +100,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        FanWatchdogService.setLauncherVisible(this, true)
-        FanWatchdogService.sync(this)
         // A HOME intent can pause/resume this singleTask Activity while it stays visible.
         // Tie expensive refreshes and dashboard collection to actual visibility changes.
         viewModel.refreshAppLanguage()
@@ -113,7 +110,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
-        FanWatchdogService.setLauncherVisible(this, false)
         viewModel.setLauncherVisible(false)
         super.onStop()
     }

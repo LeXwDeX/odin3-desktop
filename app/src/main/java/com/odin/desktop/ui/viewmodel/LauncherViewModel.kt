@@ -130,7 +130,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _isConfigOpen = MutableStateFlow(false)
     val isConfigOpen: StateFlow<Boolean> = _isConfigOpen.asStateFlow()
 
-    private val _configSectionIndex = MutableStateFlow(0) // 0..6 左侧栏
+    private val _configSectionIndex = MutableStateFlow(0) // 0..5 左侧栏
     val configSectionIndex: StateFlow<Int> = _configSectionIndex.asStateFlow()
 
     private val _configInSubMenu = MutableStateFlow(false) // 是否进入右侧内容区
@@ -284,7 +284,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 肩键 Tab 切换 (L1 / R1) ---
     fun onPrevTab() {
-        if (_isConfigOpen.value && _configInSubMenu.value && _configSectionIndex.value == 4) {
+        if (_isConfigOpen.value && _configInSubMenu.value && _configSectionIndex.value == 3) {
             val currentTabs = _tabs.value
             val tab = currentTabs.getOrNull(_configContentFocusIndex.value)
             if (tab != null && _configContentFocusIndex.value > 0) {
@@ -300,7 +300,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun onNextTab() {
-        if (_isConfigOpen.value && _configInSubMenu.value && _configSectionIndex.value == 4) {
+        if (_isConfigOpen.value && _configInSubMenu.value && _configSectionIndex.value == 3) {
             val currentTabs = _tabs.value
             val tab = currentTabs.getOrNull(_configContentFocusIndex.value)
             if (tab != null && _configContentFocusIndex.value < currentTabs.size - 1) {
@@ -369,7 +369,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                                 _configInSubMenu.value = false
                             }
                         }
-                        4 -> { // Tab 编辑
+                        3 -> { // Tab 编辑
                             if (_configTabActionIndex.value > 0) {
                                 _configTabActionIndex.value -= 1
                             } else {
@@ -377,7 +377,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             }
                         }
                         else -> {
-                            // 屏幕方向、默认桌面与自启、自动风扇控制、关于等单项/展示页面直接返回左侧菜单
+                            // 屏幕方向、默认桌面与自启、关于等单项/展示页面直接返回左侧菜单
                             _configInSubMenu.value = false
                         }
                     }
@@ -429,7 +429,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             _configContentFocusIndex.value += 1
                         }
                     }
-                    4 -> { // Tab 编辑行内按钮向右切换
+                    3 -> { // Tab 编辑行内按钮向右切换
                         val currentTabs = _tabs.value
                         val tab = currentTabs.getOrNull(_configContentFocusIndex.value)
                         if (tab != null) {
@@ -439,7 +439,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             }
                         }
                     }
-                    // 屏幕方向、默认桌面、自动风扇控制、关于等右键不执行越界操作
+                    // 屏幕方向、默认桌面、关于等右键不执行越界操作
                 }
             }
             FocusZone.APP_ACTION_MODAL -> {}
@@ -467,16 +467,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         }
                     }
                     2 -> { _configContentFocusIndex.value = 0 }
-                    4 -> { // Tab 列表
+                    3 -> { // Tab 列表
                         if (_configContentFocusIndex.value > 0) {
                             _configContentFocusIndex.value -= 1
                             clampTabActionIndex()
                         }
                     }
-                    5 -> { // Language options
+                    4 -> { // Language options
                         _configContentFocusIndex.value = (_configContentFocusIndex.value - 1).coerceAtLeast(0)
                     }
-                    // 自动风扇控制等不可向上越界
                 }
             }
             FocusZone.APP_ACTION_MODAL -> {
@@ -511,7 +510,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             FocusZone.DOCK -> {}
             FocusZone.CONFIG_MODAL -> {
                 if (!_configInSubMenu.value) {
-                    if (_configSectionIndex.value < 6) {
+                    if (_configSectionIndex.value < 5) {
                         _configSectionIndex.value += 1
                     }
                 } else when (_configSectionIndex.value) {
@@ -521,16 +520,13 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         }
                     }
                     2 -> { _configContentFocusIndex.value = 0 }
-                    3 -> {
-                        // 自动风扇控制：仅可选中控制开关 (index 0)，下方为展示内容，不可被光标选中
-                    }
-                    4 -> { // Tab 列表
+                    3 -> { // Tab 列表
                         if (_configContentFocusIndex.value < _tabs.value.size - 1) {
                             _configContentFocusIndex.value += 1
                             clampTabActionIndex()
                         }
                     }
-                    5 -> { // Language options
+                    4 -> { // Language options
                         _configContentFocusIndex.value = (_configContentFocusIndex.value + 1).coerceAtMost(AppLanguage.entries.lastIndex)
                     }
                     // 摇杆灯、关于等无多行下移
@@ -701,7 +697,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun onOptions() {
         if (_focusZone.value == FocusZone.APPS) {
             openBatchManageDialog()
-        } else if (_focusZone.value == FocusZone.CONFIG_MODAL && _configInSubMenu.value && _configSectionIndex.value == 4) {
+        } else if (_focusZone.value == FocusZone.CONFIG_MODAL && _configInSubMenu.value && _configSectionIndex.value == 3) {
             val tab = _tabs.value.getOrNull(_configContentFocusIndex.value)
             if (tab != null && !tab.isDefault && tab.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS) {
                 deleteTab(tab)
@@ -750,10 +746,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 hardware.setOrientationMode(sel)
             }
             2 -> hardware.requestDefaultHome()
-            3 -> { // 自动风扇控制
-                hardware.toggleAutoFanControl()
-            }
-            4 -> { // Tab 页编辑：执行当前光标左右选中的操作按钮
+            3 -> { // Tab 页编辑：执行当前光标左右选中的操作按钮
                 val currentTabs = _tabs.value
                 val tab = currentTabs.getOrNull(_configContentFocusIndex.value)
                 if (tab != null) {
@@ -786,7 +779,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
             }
-            5 -> AppLanguage.entries.getOrNull(_configContentFocusIndex.value)?.let(::setAppLanguage)
+            4 -> AppLanguage.entries.getOrNull(_configContentFocusIndex.value)?.let(::setAppLanguage)
             else -> {}
         }
     }
@@ -809,7 +802,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setConfigSection(index: Int) {
-        _configSectionIndex.value = index
+        _configSectionIndex.value = index.coerceIn(0, 5)
         _configInSubMenu.value = false
         _configContentFocusIndex.value = 0
     }

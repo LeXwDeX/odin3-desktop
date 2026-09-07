@@ -7,15 +7,11 @@
     <string name="afk_overlay_unlock_hint" formatted="false">"ダブルタップで終了"</string>
     <string name="afk_notification_title" formatted="false">"OLED画面保護が動作中です"</string>
     <string name="afk_notification_text" formatted="false">"黒いオーバーレイを表示しています。タップすると画面が戻ります。"</string>
-    <string name="fan_notification_title" formatted="false">"充電中のファン監視"</string>
-    <string name="fan_notification_text" formatted="false">"自動ファン制御が有効です"</string>
     <string name="tab_games" formatted="false">"ゲーム・エミュレーター"</string>
     <string name="tab_system" formatted="false">"システムアプリ"</string>
     <string name="tab_all_apps" formatted="false">"すべてのアプリ"</string>
     <string name="text_idle_screen_protection" formatted="false">"画面保護"</string>
     <string name="text_foreground_notification_for_oled_idle_protection" formatted="false">"OLED画面保護の常駐通知"</string>
-    <string name="text_charging_fan_monitor" formatted="false">"充電中のファン監視"</string>
-    <string name="text_charging_and_cooling_status_notifications" formatted="false">"充電と冷却の状態通知"</string>
     <string name="text_hardware_control_is_not_connected_reconnect_the" formatted="false">"ハードウェア制御が接続されていません。ADB経由で制御サービスに再接続してください。"</string>
     <string name="text_the_hardware_service_could_not_be_authenticated" formatted="false">"ハードウェアサービスを認証できませんでした。ADB経由で再接続してください。"</string>
     <string name="text_the_hardware_response_could_not_be_verified" formatted="false">"ハードウェアの応答を検証できませんでした。状態を更新して再試行してください。"</string>
@@ -160,7 +156,6 @@
     <string name="text_start_odin_desktop_at_boot" formatted="false">"端末起動時にOdin Desktopを起動"</string>
     <string name="text_on_enabled" formatted="false">"ON 有効"</string>
     <string name="text_off_disabled" formatted="false">"OFF 無効"</string>
-    <string name="text_start_odin_desktop_and_the_cooling_monitor" formatted="false">"端末起動時にOdin Desktopと冷却監視を開始します。"</string>
     <string name="text_start_the_desktop_only_when_opened_by" formatted="false">"ユーザーまたはシステムが開いたときだけデスクトップを起動します。"</string>
     <string name="text_disable_startup_a" formatted="false">"自動起動を無効にする（A）"</string>
     <string name="text_enable_startup_a" formatted="false">"自動起動を有効にする（A）"</string>
@@ -203,8 +198,7 @@
     <string name="text_1_stick_light_color" formatted="false">"1. スティックライト"</string>
     <string name="text_2_screen_orientation" formatted="false">"2. 画面の向き"</string>
     <string name="text_3_home_and_startup" formatted="false">"3. デフォルトホーム"</string>
-    <string name="text_4_automatic_fan" formatted="false">"4. 自動ファン制御"</string>
-    <string name="text_5_edit_tabs" formatted="false">"5. タブの編集"</string>
+    <string name="text_4_edit_tabs" formatted="false">"4. タブの編集"</string>
     <string name="text_b_or_tap_the_background_to_return" formatted="false">"Bまたは背景をタップして戻る"</string>
     <string name="text_manage_category_apps" formatted="false">"カテゴリのアプリ管理"</string>
     <string name="text_up_down_select_app_a_add_remove" formatted="false">"上下：アプリ選択・A：追加／削除・B：完了"</string>
@@ -221,19 +215,6 @@
     <string name="text_white" formatted="false">"白"</string>
     <string name="text_dark_gray" formatted="false">"ダークグレー"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"スティックLEDの色を選択（Aで適用）："</string>
-    <string name="text_automatic_fan_policy" formatted="false">"自動ファン制御の動作："</string>
-    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"外部電源・通常性能・ゲーム未実行時に自動停止します。短い温度上昇を無視し、安定して冷えた後に再び停止します。"</string>
-    <string name="text_automatic_fan_control" formatted="false">"自動ファン制御"</string>
-    <string name="text_automatic_control_enabled_a_or_tap_to" formatted="false">"自動制御が有効（Aまたはタップで切替）"</string>
-    <string name="text_automatic_control_disabled_manual_mode_retained" formatted="false">"自動制御が無効（手動モードを保持）"</string>
-    <string name="text_on_3" formatted="false">"✓ [ オン ]"</string>
-    <string name="text_off_3" formatted="false">"✕ [ オフ ]"</string>
-    <string name="text_temperature_and_cooling_status" formatted="false">"温度と冷却の状態"</string>
-    <string name="text_highest_chip_temperature_soc" formatted="false">"• チップ最高温度（SoC）："</string>
-    <string name="text_cooling_threshold" formatted="false">"• 冷却開始："</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60°C 超が16秒、75°C以上が4秒、90°Cで即時"</string>
-    <string name="text_automatic_stop_conditions" formatted="false">"• 自動停止の条件："</string>
-    <string name="text_charging_no_game_temperature_60_c" formatted="false">"55°C 以下が24秒続くと再び停止"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"アプリがありません。Xでこのカテゴリを管理できます。"</string>
     <string name="text_picked_up_left_right_to_move_a" formatted="false">"選択中：左右で移動・Aで配置"</string>
     <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"並べ替え：Aで選択・左右で移動・Bで終了"</string>
@@ -242,14 +223,14 @@
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• OLED向けの黒背景と焼き付き防止\n"</string>
     <string name="text_full_gamepad_navigation_n" formatted="false">"• 全画面でゲームパッド操作に対応\n"</string>
     <string name="text_default_home_and_startup_integration_n" formatted="false">"• システムのデフォルトホーム\n"</string>
-    <string name="text_charging_fan_control_n_n" formatted="false">"• 充電中のファン制御\n\n"</string>
+    <string name="text_manual_hardware_control" formatted="false">"• 手動ハードウェア制御\n\n"</string>
     <string name="text_open_source_acknowledgements_n" formatted="false">"オープンソースへの謝辞：\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"上下：選択・A：決定・B：戻る"</string>
     <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"Bまたは背景をタップして戻る"</string>
     <string name="page_dashboard" formatted="false">"ダッシュボード"</string>
     <string name="page_config" formatted="false">"⚙️ 設定"</string>
-    <string name="language_section" formatted="false">"6. 言語"</string>
-    <string name="text_7_about" formatted="false">"7. このアプリについて"</string>
+    <string name="language_section" formatted="false">"5. 言語"</string>
+    <string name="text_6_about" formatted="false">"6. このアプリについて"</string>
     <string name="language_title" formatted="false">"アプリの言語"</string>
     <string name="language_description" formatted="false">"端末の言語に従うか、Odin Desktopの言語を選択できます。対応外の言語では英語を使用します。"</string>
     <string name="language_follow_system" formatted="false">"システムに従う"</string>

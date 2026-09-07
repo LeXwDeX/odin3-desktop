@@ -1,16 +1,12 @@
 package com.odin.desktop.ui.viewmodel
 
 import com.odin.desktop.R
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -58,13 +54,6 @@ class LauncherHardwareControls(
     private val hardwareObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
         override fun onChange(selfChange: Boolean) { hardwareRefreshRequests.trySend(Unit) }
     }
-    private val fanStateReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == HardwareController.ACTION_FAN_STATE_CHANGED) {
-                hardwareRefreshRequests.trySend(Unit)
-            }
-        }
-    }
     private var coolingJob: Job? = null
     @Volatile private var coolingIntentPending = false
     private val coolingIntentRevision = java.util.concurrent.atomic.AtomicLong()
@@ -86,12 +75,6 @@ class LauncherHardwareControls(
     private val _orientationMode = MutableStateFlow(-1)
     val orientationMode: StateFlow<Int> = _orientationMode.asStateFlow()
 
-    private val _autoFanControlEnabled = MutableStateFlow(true)
-    val autoFanControlEnabled: StateFlow<Boolean> = _autoFanControlEnabled.asStateFlow()
-
-    private val _currentSocTemp = MutableStateFlow(Float.NaN)
-    val currentSocTemp: StateFlow<Float> = _currentSocTemp.asStateFlow()
-
     private val _isDefaultHome = MutableStateFlow(false)
     val isDefaultHome: StateFlow<Boolean> = _isDefaultHome.asStateFlow()
 
@@ -100,8 +83,6 @@ class LauncherHardwareControls(
 
     init {
         setOrientationMode(HardwareController.getOrientationMode(context))
-        ContextCompat.registerReceiver(context, fanStateReceiver,
-            IntentFilter(HardwareController.ACTION_FAN_STATE_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED)
         context.contentResolver.registerContentObserver(
             Settings.System.getUriFor(HardwareController.KEY_FAN_MODE), false, hardwareObserver)
         context.contentResolver.registerContentObserver(
@@ -128,7 +109,6 @@ class LauncherHardwareControls(
     }
 
     fun close() {
-        context.unregisterReceiver(fanStateReceiver)
         context.contentResolver.unregisterContentObserver(hardwareObserver)
         hardwareRefreshRequests.close()
     }
@@ -140,14 +120,12 @@ class LauncherHardwareControls(
                 runCatching { HardwareController.getPerformanceMode(context) }.getOrDefault(-1)
             } else _performanceMode.value
             val fan = runCatching { HardwareController.getFanMode(context) }.getOrDefault(-1)
-            val auto = HardwareController.isAutoFanControlEnabled(context)
             // Publish on the input thread: checking the revision and changing the visible
             // selection must not race a button press between the check and the assignment.
             withContext(Dispatchers.Main) {
                 if (!coolingIntentPending && revision == coolingIntentRevision.get()) {
                     _performanceMode.value = performance
                     _fanMode.value = fan
-                    _autoFanControlEnabled.value = auto
                 }
             }
         }
@@ -158,7 +136,6 @@ class LauncherHardwareControls(
         runCatching { HardwareController.isChargeLimit80Enabled(context) }.onSuccess { _chargeLimit80.value = it }
         runCatching { HardwareController.isAirplaneModeOn(context) }.onSuccess { _airplaneMode.value = it }
         _isDefaultHome.value = HardwareController.isDefaultHome(context)
-        _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
     }
 
     private fun changeHardware(refreshPerformance: Boolean = false, action: () -> Unit) {
@@ -249,10 +226,9 @@ class LauncherHardwareControls(
         val current = _performanceMode.value
         val next = if (current in 0..2) (current + 1) % 3 else HardwareController.PERF_NORMAL
         _performanceMode.value = next
-        val auto = _autoFanControlEnabled.value
         val currentFan = _fanMode.value
-        val fanTarget = if (!auto && currentFan == HardwareController.FAN_SPORT) HardwareController.FAN_SPORT
-            else if (auto || next != HardwareController.PERF_NORMAL) HardwareController.FAN_SMART
+        val fanTarget = if (currentFan == HardwareController.FAN_SPORT) HardwareController.FAN_SPORT
+            else if (next != HardwareController.PERF_NORMAL) HardwareController.FAN_SMART
             else HardwareController.FAN_OFF
         _fanMode.value = fanTarget
         enqueueCoolingAction("performance") { HardwareController.setPerformanceAndFan(context, next, fanTarget) }
@@ -266,18 +242,9 @@ class LauncherHardwareControls(
             else -> HardwareController.FAN_SMART
         }
         _fanMode.value = targetFan
-        _autoFanControlEnabled.value = false
-        // Manual fan selection includes disabling automation, superseding an earlier toggle.
-        pendingCoolingActions.remove("automation")
         enqueueCoolingAction("fan") {
             HardwareController.setManualFanMode(context, targetFan)
         }
-    }
-
-    fun toggleAutoFanControl() {
-        val next = !(_autoFanControlEnabled.value)
-        _autoFanControlEnabled.value = next
-        enqueueCoolingAction("automation") { HardwareController.setAutoFanControlEnabled(context, next) }
     }
 
     fun toggleJoystickLight() {
@@ -401,12 +368,6 @@ class LauncherHardwareControls(
                     }
                 }
             }
-        }
-    }
-
-    fun refreshSocTemp() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _currentSocTemp.value = runCatching { HardwareController.getMaxCpuGpuTemp() }.getOrDefault(Float.NaN)
         }
     }
 

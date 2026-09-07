@@ -6,15 +6,11 @@
     <string name="afk_overlay_unlock_hint" formatted="false">"Double-tap to exit"</string>
     <string name="afk_notification_title" formatted="false">"OLED idle protection is active"</string>
     <string name="afk_notification_text" formatted="false">"Black overlay enabled. Tap to restore the picture."</string>
-    <string name="fan_notification_title" formatted="false">"Charging fan monitor"</string>
-    <string name="fan_notification_text" formatted="false">"Automatic fan control is enabled"</string>
     <string name="tab_games" formatted="false">"Games &amp; emulators"</string>
     <string name="tab_system" formatted="false">"System apps"</string>
     <string name="tab_all_apps" formatted="false">"All apps"</string>
     <string name="text_idle_screen_protection" formatted="false">"Idle screen protection"</string>
     <string name="text_foreground_notification_for_oled_idle_protection" formatted="false">"Foreground notification for OLED idle protection"</string>
-    <string name="text_charging_fan_monitor" formatted="false">"Charging fan monitor"</string>
-    <string name="text_charging_and_cooling_status_notifications" formatted="false">"Charging and cooling status notifications"</string>
     <string name="text_hardware_control_is_not_connected_reconnect_the" formatted="false">"Hardware control is not connected. Reconnect the control service through ADB."</string>
     <string name="text_the_hardware_service_could_not_be_authenticated" formatted="false">"The hardware service could not be authenticated. Reconnect through ADB."</string>
     <string name="text_the_hardware_response_could_not_be_verified" formatted="false">"The hardware response could not be verified. Refresh the status and try again."</string>
@@ -159,7 +155,6 @@
     <string name="text_start_odin_desktop_at_boot" formatted="false">"Start Odin Desktop at boot"</string>
     <string name="text_on_enabled" formatted="false">"ON Enabled"</string>
     <string name="text_off_disabled" formatted="false">"OFF Disabled"</string>
-    <string name="text_start_odin_desktop_and_the_cooling_monitor" formatted="false">"Start Odin Desktop and the cooling monitor when the device boots."</string>
     <string name="text_start_the_desktop_only_when_opened_by" formatted="false">"Start the desktop only when opened by you or the system."</string>
     <string name="text_disable_startup_a" formatted="false">"Disable startup (A)"</string>
     <string name="text_enable_startup_a" formatted="false">"Enable startup (A)"</string>
@@ -202,8 +197,7 @@
     <string name="text_1_stick_light_color" formatted="false">"1. Stick light color"</string>
     <string name="text_2_screen_orientation" formatted="false">"2. Screen orientation"</string>
     <string name="text_3_home_and_startup" formatted="false">"3. Default home"</string>
-    <string name="text_4_automatic_fan" formatted="false">"4. Automatic fan"</string>
-    <string name="text_5_edit_tabs" formatted="false">"5. Edit tabs"</string>
+    <string name="text_4_edit_tabs" formatted="false">"4. Edit tabs"</string>
     <string name="text_b_or_tap_the_background_to_return" formatted="false">"B or tap the background to return"</string>
     <string name="text_manage_category_apps" formatted="false">"Manage category apps"</string>
     <string name="text_up_down_select_app_a_add_remove" formatted="false">"Up/Down: select app • A: add/remove • B: done"</string>
@@ -220,19 +214,6 @@
     <string name="text_white" formatted="false">"White"</string>
     <string name="text_dark_gray" formatted="false">"Dark gray"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"Choose a stick LED color (A to apply):"</string>
-    <string name="text_automatic_fan_policy" formatted="false">"Automatic fan policy:"</string>
-    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"On external power, normal performance and outside games, the fan can stop. Brief temperature spikes are ignored; stable cooldown restores quiet mode."</string>
-    <string name="text_automatic_fan_control" formatted="false">"Automatic fan control"</string>
-    <string name="text_automatic_control_enabled_a_or_tap_to" formatted="false">"Automatic control enabled (A or tap to toggle)"</string>
-    <string name="text_automatic_control_disabled_manual_mode_retained" formatted="false">"Automatic control disabled (manual mode retained)"</string>
-    <string name="text_on_3" formatted="false">"✓ [ On ]"</string>
-    <string name="text_off_3" formatted="false">"✕ [ Off ]"</string>
-    <string name="text_temperature_and_cooling_status" formatted="false">"Temperature and cooling status"</string>
-    <string name="text_highest_chip_temperature_soc" formatted="false">"• Highest chip temperature (SoC):"</string>
-    <string name="text_cooling_threshold" formatted="false">"• Cooling trigger:"</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"Above 60°C for 16s; 75°C for 4s; 90°C immediately"</string>
-    <string name="text_automatic_stop_conditions" formatted="false">"• Automatic stop conditions:"</string>
-    <string name="text_charging_no_game_temperature_60_c" formatted="false">"Return to quiet after 24s at or below 55°C"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"No apps. Press X to manage this category."</string>
     <string name="text_picked_up_left_right_to_move_a" formatted="false">"Picked up: Left/Right to move • A to place"</string>
     <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"Sorting: A to pick up • Left/Right to select • B to finish"</string>
@@ -241,14 +222,14 @@
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• OLED black background and burn-in protection\n"</string>
     <string name="text_full_gamepad_navigation_n" formatted="false">"• Full gamepad navigation\n"</string>
     <string name="text_default_home_and_startup_integration_n" formatted="false">"• System default home registration\n"</string>
-    <string name="text_charging_fan_control_n_n" formatted="false">"• Charging fan control\n\n"</string>
+    <string name="text_manual_hardware_control" formatted="false">"• Manual hardware controls\n\n"</string>
     <string name="text_open_source_acknowledgements_n" formatted="false">"Open-source acknowledgements:\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"Up/Down: select • A: confirm • B: back"</string>
     <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"B or tap the background to return"</string>
     <string name="page_dashboard" formatted="false">"Dashboard"</string>
     <string name="page_config" formatted="false">"⚙️ Settings"</string>
-    <string name="language_section" formatted="false">"6. Language"</string>
-    <string name="text_7_about" formatted="false">"7. About"</string>
+    <string name="language_section" formatted="false">"5. Language"</string>
+    <string name="text_6_about" formatted="false">"6. About"</string>
     <string name="language_title" formatted="false">"App language"</string>
     <string name="language_description" formatted="false">"Follow the system language or choose a language for Odin Desktop. Other system languages use English."</string>
     <string name="language_follow_system" formatted="false">"Follow system"</string>

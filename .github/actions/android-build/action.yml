@@ -35,6 +35,6 @@ runs:
         python3 tools/fan-policy/test.py
         python3 tools/cooling-ui-regression.py
         python3 tools/home-back-regression.py
-        python3 tools/fan-state-completion-regression.py
+        python3 tools/fan-feature-removal-regression.py
         python3 tools/architecture-regression.py
         python3 tools/hardware-bridge/build.py --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME"

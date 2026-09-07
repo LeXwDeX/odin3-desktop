@@ -1,5 +1,7 @@
 # 性能、风扇与 Home/返回键修复记录
 
+2026-09-07 更新：用户选择移除应用自动风扇策略、守护服务、设置入口和专用无障碍监控，保留手动控制。旧版自动调度与服务验收仅作历史记录；当前行为及升级检查见 [控制器调查与移除](fan-controller-ownership-investigation.md)。
+
 > 历史记录：0.1.2 已按用户要求完整移除 Shader；本文的滤镜功能、命令和验收结果仅适用于旧版。当前范围见 [移除说明](shader-removal.md)。风扇、桌面和方向验证仍保留。
 
 ## 2026-09-06：用户复测后的补充修复
@@ -54,7 +56,7 @@ export ANDROID_HOME=/path/to/android-sdk
 python3 tools/fan-policy/test.py
 python3 tools/home-back-regression.py
 python3 tools/cooling-ui-regression.py
-python3 tools/fan-state-completion-regression.py
+python3 tools/fan-feature-removal-regression.py
 python3 tools/hardware-bridge/build.py --sdk "$ANDROID_HOME" --java-home "$JAVA_HOME"
 ```
 
@@ -120,7 +122,7 @@ export JAVA_HOME=/path/to/jdk17
 python3 tools/fan-policy/test.py
 python3 tools/home-back-regression.py
 python3 tools/cooling-ui-regression.py
-python3 tools/fan-state-completion-regression.py
+python3 tools/fan-feature-removal-regression.py
 python3 tools/hardware-bridge/build.py --sdk /path/to/android-sdk --java-home /path/to/jdk
 ./gradlew :app:assembleDebug --offline
 # 以下命令需要设备重新连接，且测试前先切为手动风扇模式：

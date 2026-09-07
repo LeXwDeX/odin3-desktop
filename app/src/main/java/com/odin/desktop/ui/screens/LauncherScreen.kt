@@ -2,9 +2,6 @@ package com.odin.desktop.ui.screens
 
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.odin.desktop.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -63,8 +60,6 @@ fun LauncherScreen(
     val chargePowerLimit by viewModel.hardware.chargePowerLimit.collectAsState()
     val airplaneMode by viewModel.hardware.airplaneMode.collectAsState()
     val orientationMode by viewModel.hardware.orientationMode.collectAsState()
-    val autoFanControlEnabled by viewModel.hardware.autoFanControlEnabled.collectAsState()
-    val currentSocTemp by viewModel.hardware.currentSocTemp.collectAsState()
     val isDefaultHome by viewModel.hardware.isDefaultHome.collectAsState()
 
     val isConfigOpen by viewModel.isConfigOpen.collectAsState()
@@ -90,19 +85,6 @@ fun LauncherScreen(
 
     androidx.compose.runtime.LaunchedEffect(orientationMode) {
         if (orientationMode >= 0) onOrientationChange(orientationMode)
-    }
-
-    // Poll only the visible temperature section, and cancel when the Activity stops.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    androidx.compose.runtime.LaunchedEffect(isConfigOpen, configSectionIndex, lifecycleOwner) {
-        if (isConfigOpen && configSectionIndex == 3) {
-            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (true) {
-                    viewModel.hardware.refreshSocTemp()
-                    kotlinx.coroutines.delay(1500)
-                }
-            }
-        }
     }
 
     // 掌机控制台级绝对屏幕居中与零像素抖动布局体系
@@ -239,7 +221,6 @@ fun LauncherScreen(
                 joystickLightEnabled = joystickLightEnabled,
                 chargingSeparation = chargingSeparation,
                 chargePowerLimit = chargePowerLimit,
-                autoFanControlEnabled = autoFanControlEnabled,
                 airplaneMode = airplaneMode,
                 selectedDockIndex = selectedDockIndex,
                 focusZone = focusZone,
@@ -264,12 +245,9 @@ fun LauncherScreen(
         currentLanguage = appLanguage,
         onLanguageSelect = viewModel::setAppLanguage,
         isDefaultHome = isDefaultHome,
-        autoFanControlEnabled = autoFanControlEnabled,
-        socTemp = currentSocTemp,
         onColorSelect = { hex -> viewModel.hardware.setJoystickColor(hex) },
         onOrientationSelect = { mode -> viewModel.hardware.setOrientationMode(mode) },
         onRequestDefaultHome = { viewModel.hardware.requestDefaultHome() },
-        onToggleAutoFan = { viewModel.hardware.toggleAutoFanControl() },
         tabs = tabs,
         tabActionFocusIndex = configTabActionIndex,
         onAddTab = { name, isGame -> viewModel.addTab(name, isGame) },

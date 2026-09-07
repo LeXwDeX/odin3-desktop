@@ -6,15 +6,11 @@
     <string name="afk_overlay_unlock_hint" formatted="false">"双击屏幕退出"</string>
     <string name="afk_notification_title" formatted="false">"OLED 防烧屏挂机运行中"</string>
     <string name="afk_notification_text" formatted="false">"纯黑遮罩已开启，点击恢复画面"</string>
-    <string name="fan_notification_title" formatted="false">"充电风扇智能守护"</string>
-    <string name="fan_notification_text" formatted="false">"自动风扇调度已开启"</string>
     <string name="tab_games" formatted="false">"游戏与模拟器"</string>
     <string name="tab_system" formatted="false">"系统应用"</string>
     <string name="tab_all_apps" formatted="false">"全部应用"</string>
     <string name="text_idle_screen_protection" formatted="false">"息屏挂机保护"</string>
     <string name="text_foreground_notification_for_oled_idle_protection" formatted="false">"息屏挂机防烧屏前台通知"</string>
-    <string name="text_charging_fan_monitor" formatted="false">"充电风扇守护"</string>
-    <string name="text_charging_and_cooling_status_notifications" formatted="false">"充电与智能散热状态守护通知"</string>
     <string name="text_hardware_control_is_not_connected_reconnect_the" formatted="false">"硬件控制尚未连接，请通过 ADB 重新连接控制服务。"</string>
     <string name="text_the_hardware_service_could_not_be_authenticated" formatted="false">"硬件控制服务身份验证失败，请通过 ADB 重新连接。"</string>
     <string name="text_the_hardware_response_could_not_be_verified" formatted="false">"硬件控制返回了无法验证的响应，请刷新状态后重试。"</string>
@@ -159,7 +155,6 @@
     <string name="text_start_odin_desktop_at_boot" formatted="false">"开机自启 Odin 桌面"</string>
     <string name="text_on_enabled" formatted="false">"ON 已开启"</string>
     <string name="text_off_disabled" formatted="false">"OFF 已关闭"</string>
-    <string name="text_start_odin_desktop_and_the_cooling_monitor" formatted="false">"设备开机后自动拉起 Odin 启动台与温控守护后台，无需手动查找应用启动。"</string>
     <string name="text_start_the_desktop_only_when_opened_by" formatted="false">"开机时不主动拉起桌面界面，仅在被系统或用户显式调用时启动。"</string>
     <string name="text_disable_startup_a" formatted="false">"关闭自启 (A)"</string>
     <string name="text_enable_startup_a" formatted="false">"开启自启 (A)"</string>
@@ -202,8 +197,7 @@
     <string name="text_1_stick_light_color" formatted="false">"1. 摇杆灯颜色"</string>
     <string name="text_2_screen_orientation" formatted="false">"2. 屏幕方向规则"</string>
     <string name="text_3_home_and_startup" formatted="false">"3. 默认桌面"</string>
-    <string name="text_4_automatic_fan" formatted="false">"4. 自动风扇控制"</string>
-    <string name="text_5_edit_tabs" formatted="false">"5. Tab 页编辑"</string>
+    <string name="text_4_edit_tabs" formatted="false">"4. Tab 页编辑"</string>
     <string name="text_b_or_tap_the_background_to_return" formatted="false">"【B 键 / 点击空白返回桌面】"</string>
     <string name="text_manage_category_apps" formatted="false">"增删分类应用"</string>
     <string name="text_up_down_select_app_a_add_remove" formatted="false">"【上下键选应用 • A 键勾选/移除 • B 键完成】"</string>
@@ -220,19 +214,6 @@
     <string name="text_white" formatted="false">"冰川白"</string>
     <string name="text_dark_gray" formatted="false">"暗夜灰"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"选择摇杆 LED 灯光色彩预设（A键即时确认）："</string>
-    <string name="text_automatic_fan_policy" formatted="false">"自动风扇控制策略："</string>
-    <string name="text_the_fan_can_stop_while_charging_outside" formatted="false">"外接电源、默认性能且未运行游戏时可自动停转。过滤短暂温升，稳定降温后恢复停转；手动选档会关闭自动调度。"</string>
-    <string name="text_automatic_fan_control" formatted="false">"自动风扇控制"</string>
-    <string name="text_automatic_control_enabled_a_or_tap_to" formatted="false">"自动调度已开启 (按 A 键或点击切换)"</string>
-    <string name="text_automatic_control_disabled_manual_mode_retained" formatted="false">"自动调度已停用 (保留手动风扇档位)"</string>
-    <string name="text_on_3" formatted="false">"✓ [ 开启 ]"</string>
-    <string name="text_off_3" formatted="false">"✕ [ 关闭 ]"</string>
-    <string name="text_temperature_and_cooling_status" formatted="false">"实时状态与温控保护监控"</string>
-    <string name="text_highest_chip_temperature_soc" formatted="false">"• 芯片实时最高温度 (SoC)："</string>
-    <string name="text_cooling_threshold" formatted="false">"• 开扇条件："</string>
-    <string name="text_60_0_c_cooling_required_above_this" formatted="false">"60°C 以上 16 秒；75°C 以上 4 秒；90°C 立即"</string>
-    <string name="text_automatic_stop_conditions" formatted="false">"• 调度执行条件："</string>
-    <string name="text_charging_no_game_temperature_60_c" formatted="false">"降至 55°C 及以下持续 24 秒后恢复停转"</string>
     <string name="text_no_apps_press_x_to_manage_this" formatted="false">"暂无应用，按 X 键可管理或添加应用至此分类"</string>
     <string name="text_picked_up_left_right_to_move_a" formatted="false">"【已抓起】按方向键左右移动位置 • 按 A 键放下"</string>
     <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"【排序模式】按 A 键抓起图标 • 方向键左右选应用 • 按 B 键完成退出"</string>
@@ -241,14 +222,14 @@
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• 纯黑 OLED 省电与防烧屏优化\n"</string>
     <string name="text_full_gamepad_navigation_n" formatted="false">"• 实体手柄全键位盲操适配\n"</string>
     <string name="text_default_home_and_startup_integration_n" formatted="false">"• 系统默认桌面注册\n"</string>
-    <string name="text_charging_fan_control_n_n" formatted="false">"• 充电风扇智能调度\n\n"</string>
+    <string name="text_manual_hardware_control" formatted="false">"• 手动硬件控制\n\n"</string>
     <string name="text_open_source_acknowledgements_n" formatted="false">"开源与技术组件致谢：\n"</string>
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"【上下键选择 • A 键确认 • B 键返回】"</string>
     <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"【B 键 / 触碰空白返回】"</string>
     <string name="page_dashboard" formatted="false">"仪表盘"</string>
     <string name="page_config" formatted="false">"⚙️ 设置"</string>
-    <string name="language_section" formatted="false">"6. 语言"</string>
-    <string name="text_7_about" formatted="false">"7. 关于"</string>
+    <string name="language_section" formatted="false">"5. 语言"</string>
+    <string name="text_6_about" formatted="false">"6. 关于"</string>
     <string name="language_title" formatted="false">"应用语言"</string>
     <string name="language_description" formatted="false">"默认跟随系统，也可为 Odin Desktop 单独选择语言。其他系统语言使用英文。"</string>
     <string name="language_follow_system" formatted="false">"跟随系统"</string>

@@ -13,9 +13,6 @@ flowchart TD
     Hardware --> Native[HardwareControlClient：原厂 Binder 适配]
     Native --> Operations[HardwareOperations：固定协议、读回与回滚]
     Operations --> OEM[固件 PServerBinder]
-    Monitor[AppMonitorAccessibilityService：前台应用感知] --> Watchdog[FanWatchdogService：按需启动与事件合并]
-    Watchdog --> Hardware
-    Watchdog --> Thermal[ThermalGate：持续温度与降温回差]
     Hardware --> Sensors[SocTemperatureReader：共享短缓存]
     Repo --> Classifier[AppClassifier：内置应用分类适配]
     Repo --> Room[Room：分类和应用映射]
@@ -25,9 +22,9 @@ flowchart TD
     AfkTile[息屏挂机磁贴] --> Afk[AfkOverlayService：纯黑浮层]
 ```
 
-桌面通过 Android `MAIN` / `HOME` / `DEFAULT` 注册，由用户选择默认桌面；开机广播只按策略恢复温控服务，不主动启动界面。Dashboard 保留文件管理、系统设置、Odin 设置三个入口，底部五项硬件控制和顶部电池/风扇区域保留。
+桌面通过 Android `MAIN` / `HOME` / `DEFAULT` 注册，由用户选择默认桌面；没有应用开机接收器，由系统启动所选 HOME。Dashboard 保留文件管理、系统设置、Odin 设置三个入口，底部五项硬件控制和顶部电池/风扇区域保留。
 
-风扇仍需要前台应用感知，息屏挂机仍需要悬浮窗权限。因此删除 Shader 时保留无障碍监控、风扇守护和挂机服务。手动硬件操作不要求常驻前台服务；自动温控和挂机的服务按需运行。桌面不可见时停止顶部与仪表盘采样。
+2026-09-07 按用户要求移除自动风扇抢占、专用无障碍监控、开机接收器、设置页与快捷开关。风扇只响应用户硬件操作，不运行应用策略循环。AFK 息屏挂机保留悬浮窗权限与按需前台服务，桌面不可见时停止顶部与仪表盘采样。升级只清除旧自动偏好与风扇通知渠道，不改硬件档位。
 
 ## 数据与升级
 
@@ -56,7 +53,7 @@ tools/android python3 tools/architecture-regression.py
 tools/android python3 tools/fan-policy/test.py
 tools/android python3 tools/cooling-ui-regression.py
 tools/android python3 tools/home-back-regression.py
-tools/android python3 tools/fan-state-completion-regression.py
+tools/android python3 tools/fan-feature-removal-regression.py
 ```
 
 本地构建、Robolectric 和替身回归不能代替实机 UI、固件控制及温控验收。此前审计与设备记录保留在 [优化验收](optimization-audit.md) 和 [修复交接](performance-fan-home-fixes.md)，其中 Shader 部分仅描述旧版。

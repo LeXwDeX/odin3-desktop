@@ -12,11 +12,7 @@ object GamepadKeyHandler {
     fun handleKeyEvent(event: KeyEvent, viewModel: LauncherViewModel): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_X && viewModel.focusZone.value == FocusZone.DOCK) {
             val dockIndex = viewModel.selectedDockIndex.value
-            if (dockIndex == 1) {
-                xKeyDownTime = 0L
-                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) viewModel.hardware.toggleAutoFanControl()
-                return true
-            } else if (dockIndex == 3) {
+            if (dockIndex == 3) {
                 xKeyDownTime = 0L
                 if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) viewModel.hardware.toggleChargingSeparation()
                 return true

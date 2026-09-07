@@ -177,9 +177,9 @@ assert any(f.find(f"category[@{android}name='android.intent.category.HOME']") is
            and f.find(f"action[@{android}name='android.intent.action.MAIN']") is not None
            for f in main.findall("intent-filter")), "Default HOME registration was removed"
 services = {s.get(android + "name") for s in application.findall("service")}
-assert {".service.fan.AppMonitorAccessibilityService", ".service.fan.FanWatchdogService",
-        ".service.afk.AfkTileService", ".service.afk.AfkOverlayService"} <= services
+assert {".service.afk.AfkTileService", ".service.afk.AfkOverlayService"} <= services
+assert not any(".service.fan." in service for service in services)
 assert not any("shader" in c.get(android + "name", "").lower() for c in application)
 assert not list((SOURCE / "shader").rglob("*.kt"))
 assert not list((ROOT / "app/src/main/assets/shaders").rglob("*.*"))
-print("PASS: default HOME, fan and AFK components remain; retired components/assets are absent")
+print("PASS: default HOME and AFK components remain; retired components/assets are absent")

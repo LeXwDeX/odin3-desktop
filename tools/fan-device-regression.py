@@ -5,7 +5,6 @@ import importlib.util
 import json
 from pathlib import Path
 import time
-import xml.etree.ElementTree as ET
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--serial', required=True)
@@ -15,10 +14,10 @@ spec = importlib.util.spec_from_file_location('bridge_manage', Path(__file__).pa
 bridge = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bridge)
 bridge.verify_target(args.serial)
-prefs = ET.fromstring(bridge.app_shell(args.serial, 'cat shared_prefs/odin_desktop_prefs.xml'))
-auto = prefs.find("boolean[@name='auto_fan_control_enabled']")
-if auto is None or auto.attrib['value'] != 'false':
-    parser.error('Select manual fan control in the desktop before this manual-mode regression.')
+# This legacy bridge diagnostic must not run against an old active watchdog.
+services = bridge.shell(args.serial, 'dumpsys activity services com.odin.desktop').decode()
+if 'ServiceRecord' in services and 'FanWatchdogService' in services:
+    parser.error('Stop the old fan monitor or upgrade to the manual-only app before this regression.')
 token = bridge.read_token(args.serial)  # Remains in memory; never printed or persisted.
 report = {'samples': []}
 

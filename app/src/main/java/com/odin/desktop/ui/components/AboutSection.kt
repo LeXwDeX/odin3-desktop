@@ -29,7 +29,7 @@ internal fun AboutSection() {
                     strings.getString(R.string.text_oled_black_background_and_burn_in_protection) +
                     strings.getString(R.string.text_full_gamepad_navigation_n) +
                     strings.getString(R.string.text_default_home_and_startup_integration_n) +
-                    strings.getString(R.string.text_charging_fan_control_n_n) +
+                    strings.getString(R.string.text_manual_hardware_control) +
                     strings.getString(R.string.text_open_source_acknowledgements_n) +
                     "- Android Jetpack & Compose\n" +
                     "- Room Persistence Library\n" +

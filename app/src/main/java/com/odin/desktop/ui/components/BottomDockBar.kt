@@ -41,7 +41,6 @@ fun BottomDockBar(
     joystickLightEnabled: Boolean,
     chargingSeparation: Boolean,
     chargePowerLimit: Boolean,
-    autoFanControlEnabled: Boolean,
     airplaneMode: Boolean,
     selectedDockIndex: Int,
     focusZone: FocusZone,
@@ -58,14 +57,9 @@ fun BottomDockBar(
         else -> strings.getString(R.string.text_offline) to palette.textDim
     }
 
-    // 2. 风扇：
-    // - 充电风扇静音模式下停转: 蓝色 "关闭" (特殊状态：充电静音策略生效，风扇安全停转)
-    // - 手动常规档位 / 运转状态:
-    //   - 关闭: 灰色 "关闭" (灰色 关闭/OFF)
-    //   - 智能: 绿色 "智能" (绿色 安全/恒温)
-    //   - 最大: 红色 "最大" (红色 严重/极速满负荷)
+    // 2. 原厂风扇档位：关闭 / 智能 / 最高；不附加应用自动策略。
     val (fanLabel, fanColor) = when (fanMode) {
-        HardwareController.FAN_OFF -> if (autoFanControlEnabled) strings.getString(R.string.text_off) to palette.special else strings.getString(R.string.text_off) to palette.textDim
+        HardwareController.FAN_OFF -> strings.getString(R.string.text_off) to palette.textDim
         HardwareController.FAN_SMART -> strings.getString(R.string.text_smart) to palette.active
         HardwareController.FAN_SPORT -> strings.getString(R.string.text_maximum_2) to palette.danger
         HardwareController.FAN_QUIET -> strings.getString(R.string.text_quiet) to palette.active

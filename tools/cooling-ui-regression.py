@@ -27,8 +27,8 @@ variants.add_argument("--unguarded-light-variant", action="store_true",
                       help="In temporary source only, reproduce stale light observer updates")
 args = parser.parse_args()
 METHODS = ("enqueueCoolingAction", "cyclePerformanceMode", "cycleFanMode",
-           "toggleAutoFanControl", "refreshHardwareStates")
-# changeHardware shares the hardware mutex/readback and is extracted as the sixth
+           "refreshHardwareStates")
+# changeHardware shares the hardware mutex/readback and is extracted as another
 # production entry point, even though the cooling-specific tests do not invoke it.
 METHODS += ("changeHardware", "toggleJoystickLight", "refreshJoystickLight", "setJoystickColor")
 
@@ -63,11 +63,11 @@ def method(name):
     return text
 
 
-fields = ("_performanceMode", "_fanMode", "_autoFanControlEnabled", "hardwareLock",
+fields = ("_performanceMode", "_fanMode", "hardwareLock",
           "coolingJob", "coolingIntentPending", "coolingIntentRevision", "pendingCoolingActions",
           "_joystickLightEnabled", "_joystickColor", "_chargingSeparation", "_chargePowerLimit",
           "_chargeLimit80", "_airplaneMode", "_orientationMode", "_isDefaultHome",
-          "_currentSocTemp", "lightJob", "lightIntentPending", "lightIntentRevision", "pendingLightTarget", "colorJob")
+          "lightJob", "lightIntentPending", "lightIntentRevision", "pendingLightTarget", "colorJob")
 declarations = []
 for name in fields:
     match = re.search(rf"^    (?:@Volatile )?private (?:val|var) {name}\b[^\n]*", source, re.M)
@@ -123,13 +123,12 @@ class CoolingViewModelHarness {
     private val viewModelScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate +
         CoroutineExceptionHandler { _, failure -> scopeFailures += failure })
 ''' + production + '''
-    fun seed(performance: Int, fan: Int, auto: Boolean) {
+    fun seed(performance: Int, fan: Int) {
         check(MainThread.isCurrent())
         _performanceMode.value = performance
         _fanMode.value = fan
-        _autoFanControlEnabled.value = auto
     }
-    fun selection() = Selection(_performanceMode.value, _fanMode.value, _autoFanControlEnabled.value)
+    fun selection() = Selection(_performanceMode.value, _fanMode.value)
     fun lightSelection() = _joystickLightEnabled.value
     fun pendingKinds() = pendingCoolingActions.keys.toSet()
     suspend fun awaitIdle() {
@@ -146,7 +145,7 @@ class CoolingViewModelHarness {
     }
     fun close() { viewModelScope.cancel() }
 }
-data class Selection(val performance: Int, val fan: Int, val auto: Boolean)
+data class Selection(val performance: Int, val fan: Int)
 ''',
     "main_dispatcher": '''package regression
 import kotlinx.coroutines.*
@@ -213,17 +212,16 @@ object HardwareController {
     const val ORIENTATION_LANDSCAPE = 0
     @Volatile var performance = 0
     @Volatile var fan = 0
-    @Volatile var auto = false
     @Volatile var lights = false
     @Volatile var color = "#ff00e5ff"
     val calls = CopyOnWriteArrayList<String>()
     val performanceTargets = CopyOnWriteArrayList<Pair<Int, Int?>>()
     private val gates = ConcurrentHashMap<String, Gate>()
     private val failures = ConcurrentHashMap.newKeySet<String>()
-    fun reset(performance: Int = 0, fan: Int = 0, auto: Boolean = false) {
+    fun reset(performance: Int = 0, fan: Int = 0) {
         gates.values.forEach { it.release() }; gates.clear(); failures.clear(); calls.clear()
         performanceTargets.clear()
-        this.performance = performance; this.fan = fan; this.auto = auto
+        this.performance = performance; this.fan = fan
         lights = false; color = "#ff00e5ff"
         android.widget.Toast.shown = 0
     }
@@ -241,14 +239,13 @@ object HardwareController {
         return captured
     }
     fun getFanMode(context: Any) = fan
-    fun isAutoFanControlEnabled(context: Any) = auto
     fun setPerformanceMode(context: Any, mode: Int) {
         before("performance", mode.toString())
         performanceTargets += mode to null
         performance = mode
         // Hardware fixture: preserve manual maximum, otherwise apply mode default.
-        // Sensor/OEM policy itself is covered by FanControlCoordinator's own tests.
-        fan = if (!auto && fan == FAN_SPORT) FAN_SPORT else if (auto || mode != 0) FAN_SMART else FAN_OFF
+        // The user-triggered linkage is covered by FanControlCoordinator's own tests.
+        fan = if (fan == FAN_SPORT) FAN_SPORT else if (mode != 0) FAN_SMART else FAN_OFF
     }
     fun setPerformanceAndFan(context: Any, mode: Int, fanTarget: Int) {
         before("performance", mode.toString())
@@ -256,11 +253,7 @@ object HardwareController {
         performance = mode; fan = fanTarget
     }
     fun setManualFanMode(context: Any, mode: Int) {
-        before("fan", mode.toString()); auto = false; fan = mode
-    }
-    fun setAutoFanControlEnabled(context: Any, enabled: Boolean) {
-        before("automation", enabled.toString()); auto = enabled
-        if (enabled) fan = FAN_SMART
+        before("fan", mode.toString()); fan = mode
     }
     fun isJoystickLightEnabled(context: Any): Boolean {
         val captured = lights
@@ -276,9 +269,8 @@ object HardwareController {
     fun isAirplaneModeOn(context: Any) = false
     fun getOrientationMode(context: Any) = 0
     fun isDefaultHome(context: Any) = true
-    fun isBootAutoStartEnabled(context: Any) = true
     fun getMaxCpuGpuTemp() = 40f
-    fun state() = Selection(performance, fan, auto)
+    fun state() = Selection(performance, fan)
 }
 ''',
     "tests": '''package regression
@@ -288,11 +280,11 @@ import java.util.concurrent.TimeUnit
 private suspend fun Gate.awaitEntered() = withContext(Dispatchers.IO) {
     check(entered.await(5, TimeUnit.SECONDS)) { "Expected hardware operation never started" }
 }
-private suspend fun fixture(performance: Int = 0, fan: Int = 0, auto: Boolean = false,
+private suspend fun fixture(performance: Int = 0, fan: Int = 0,
                             body: suspend (CoolingViewModelHarness) -> Unit) {
-    HardwareController.reset(performance, fan, auto)
+    HardwareController.reset(performance, fan)
     val vm = withContext(Dispatchers.Main) {
-        CoolingViewModelHarness().apply { seed(performance, fan, auto) }
+        CoolingViewModelHarness().apply { seed(performance, fan) }
     }
     try { withTimeout(10_000) { body(vm) } } finally {
         withContext(Dispatchers.Main) { vm.close() }
@@ -309,50 +301,44 @@ fun main() = runBlocking {
         fixture { vm ->
             withContext(Dispatchers.Main) {
                 vm.cyclePerformanceMode()
-                expect(vm, Selection(1, 4, false), "Performance must display before hardware starts")
+                expect(vm, Selection(1, 4), "Performance must display before hardware starts")
                 check(HardwareController.calls.isEmpty())
                 vm.cycleFanMode()
-                expect(vm, Selection(1, 5, false), "Fan cycles from the visible smart choice")
-                vm.toggleAutoFanControl()
-                check(vm.selection().auto) { "Automation flag must display immediately" }
-                vm.toggleAutoFanControl()
-                check(!vm.selection().auto)
-                check(vm.pendingKinds().size <= 3)
+                expect(vm, Selection(1, 5), "Fan cycles from the visible smart choice")
+                check(vm.pendingKinds().size <= 2)
                 vm.awaitIdle()
-                expect(vm, Selection(1, 5, false), "Settled final selection")
+                expect(vm, Selection(1, 5), "Settled final selection")
                 check(HardwareController.state() == vm.selection())
             }
-            println("PASS immediate performance/fan/auto selection and final hardware intent")
+            println("PASS immediate performance/fan selection and final hardware intent")
         }
         fixture(fan = 5) { vm ->
             withContext(Dispatchers.Main) {
                 repeat(1_000) { index ->
                     vm.cyclePerformanceMode()
-                    expect(vm, Selection((index + 1) % 3, 5, false), "Rapid visible performance cycle")
+                    expect(vm, Selection((index + 1) % 3, 5), "Rapid visible performance cycle")
                     check(vm.pendingKinds() == setOf("performance")) { "Same-kind queue grew" }
                 }
                 vm.awaitIdle()
                 check(HardwareController.calls == listOf("performance:1")) {
                     "Expected one coalesced write, got ${HardwareController.calls}"
                 }
-                expect(vm, Selection(1, 5, false), "Manual maximum survives rapid performance cycles")
+                expect(vm, Selection(1, 5), "Manual maximum survives rapid performance cycles")
             }
             println("PASS 1,000 rapid cycles use current display and collapse to one pending write")
         }
         fixture(fan = 5) { vm ->
             withContext(Dispatchers.Main) {
-                vm.toggleAutoFanControl()
-                vm.cyclePerformanceMode()
-                vm.toggleAutoFanControl()
-                expect(vm, Selection(1, 4, false), "Chosen smart fan after auto-on/performance/auto-off")
+                vm.cycleFanMode() // visible MAX -> OFF, not yet written
+                vm.cyclePerformanceMode() // captures SMART from the visible OFF
+                vm.cycleFanMode() // newer manual MAX supersedes the pending OFF
+                expect(vm, Selection(1, 5), "New manual MAX after captured SMART")
                 vm.awaitIdle()
-                expect(vm, Selection(1, 4, false), "Coalescing automation must not recompute manual maximum")
-                check(HardwareController.state() == Selection(1, 4, false))
-                check(HardwareController.performanceTargets == listOf(1 to 4)) {
-                    "Performance must carry the exact fan selection observed at the press"
-                }
+                expect(vm, Selection(1, 5), "Last manual MAX wins")
+                check(HardwareController.state() == vm.selection())
+                check(HardwareController.performanceTargets == listOf(1 to 4))
             }
-            println("PASS auto-on/performance/auto-off preserves captured SMART target from manual MAX")
+            println("PASS fan/performance coalescing retains the captured SMART target")
         }
         fixture { vm ->
             val oldPerformance = HardwareController.blockNext("performance")
@@ -362,23 +348,21 @@ fun main() = runBlocking {
             try {
                 withContext(Dispatchers.Main) {
                     vm.cycleFanMode()
-                    vm.toggleAutoFanControl()
-                    vm.toggleAutoFanControl()
-                    expect(vm, Selection(1, 5, false), "New choices while old performance blocks")
+                            expect(vm, Selection(1, 5), "New choices while old performance blocks")
                 }
                 oldPerformance.release()
                 newFan.awaitEntered()
                 withContext(Dispatchers.Main) {
-                    expect(vm, Selection(1, 5, false), "Old performance completion must not overwrite new fan")
+                    expect(vm, Selection(1, 5), "Old performance completion must not overwrite new fan")
                 }
                 newFan.release()
                 withContext(Dispatchers.Main) {
                     vm.awaitIdle()
-                    expect(vm, Selection(1, 5, false), "Last interleaved intent wins")
+                    expect(vm, Selection(1, 5), "Last interleaved intent wins")
                     check(HardwareController.state() == vm.selection())
                 }
             } finally { oldPerformance.release(); newFan.release() }
-            println("PASS in-flight performance plus newer fan/auto choices cannot publish stale state")
+            println("PASS in-flight performance plus newer fan choices cannot publish stale state")
         }
         fixture { vm ->
             val staleRead = HardwareController.blockNext("readPerformance")
@@ -388,13 +372,13 @@ fun main() = runBlocking {
             try {
                 withContext(Dispatchers.Main) {
                     vm.cyclePerformanceMode()
-                    expect(vm, Selection(1, 4, false), "Selection during stale observer read")
+                    expect(vm, Selection(1, 4), "Selection during stale observer read")
                 }
                 staleRead.release()
                 newWrite.awaitEntered()
                 observer.join()
                 withContext(Dispatchers.Main) {
-                    expect(vm, Selection(1, 4, false), "Stale readback must not overwrite new revision")
+                    expect(vm, Selection(1, 4), "Stale readback must not overwrite new revision")
                 }
                 newWrite.release()
                 withContext(Dispatchers.Main) {
@@ -408,9 +392,9 @@ fun main() = runBlocking {
             HardwareController.failNext("fan")
             withContext(Dispatchers.Main) {
                 vm.cycleFanMode()
-                expect(vm, Selection(0, 0, false), "Failed request still selects immediately")
+                expect(vm, Selection(0, 0), "Failed request still selects immediately")
                 vm.awaitIdle()
-                expect(vm, Selection(0, 5, false), "Failure reconciles to actual hardware")
+                expect(vm, Selection(0, 5), "Failure reconciles to actual hardware")
                 check(android.widget.Toast.shown == 1) { "Failure feedback missing" }
             }
             println("PASS failure reports once and reconciles optimistic choice to actual hardware")
@@ -420,7 +404,7 @@ fun main() = runBlocking {
             withContext(Dispatchers.Main) {
                 vm.cyclePerformanceMode(); vm.cycleFanMode()
                 vm.awaitIdle()
-                expect(vm, Selection(0, 5, false), "Later manual fan survives earlier failed performance")
+                expect(vm, Selection(0, 5), "Later manual fan survives earlier failed performance")
                 check(HardwareController.calls == listOf("performance:1", "fan:5"))
                 check(android.widget.Toast.shown == 1)
             }
@@ -434,24 +418,20 @@ fun main() = runBlocking {
                 withContext(Dispatchers.Main) {
                     repeat(1_000) {
                         vm.cyclePerformanceMode()
-                        vm.toggleAutoFanControl()
-                        vm.cycleFanMode()
+                                vm.cycleFanMode()
                         check(vm.pendingKinds().size <= 3)
-                        check("automation" !in vm.pendingKinds()) { "Manual choice must supersede pending automation" }
                     }
                     vm.cyclePerformanceMode()
-                    vm.toggleAutoFanControl()
-                    check(vm.pendingKinds().size == 3)
+                        check(vm.pendingKinds().size == 2)
                 }
                 inFlight.release()
                 withContext(Dispatchers.Main) {
                     vm.awaitIdle()
-                    check(HardwareController.calls.size <= 4) { "Queued writes scaled with press count" }
+                    check(HardwareController.calls.size <= 3) { "Queued writes scaled with press count" }
                     check(HardwareController.state() == vm.selection())
-                    check(vm.selection().auto) { "Final automation intent was lost" }
                 }
             } finally { inFlight.release() }
-            println("PASS mixed 3,000-press storm keeps at most three pending command kinds")
+            println("PASS mixed 2,000-press storm keeps at most two pending command kinds")
         }
         for (colorFirst in listOf(true, false)) {
             fixture { vm ->

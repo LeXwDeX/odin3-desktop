@@ -54,12 +54,9 @@ fun ConfigDialog(
     currentLanguage: AppLanguage,
     onLanguageSelect: (AppLanguage) -> Unit,
     isDefaultHome: Boolean = false,
-    autoFanControlEnabled: Boolean,
-    socTemp: Float,
     onColorSelect: (String) -> Unit,
     onOrientationSelect: (Int) -> Unit,
     onRequestDefaultHome: () -> Unit = {},
-    onToggleAutoFan: () -> Unit,
     tabs: List<TabEntity>,
     tabActionFocusIndex: Int = 0,
     onAddTab: (String, Boolean) -> Unit,
@@ -77,10 +74,9 @@ fun ConfigDialog(
         strings.getString(R.string.text_1_stick_light_color),
         strings.getString(R.string.text_2_screen_orientation),
         strings.getString(R.string.text_3_home_and_startup),
-        strings.getString(R.string.text_4_automatic_fan),
-        strings.getString(R.string.text_5_edit_tabs),
+        strings.getString(R.string.text_4_edit_tabs),
         strings.getString(R.string.language_section),
-        strings.getString(R.string.text_7_about)
+        strings.getString(R.string.text_6_about)
     )
 
     val menuScrollState = rememberLazyListState()
@@ -193,10 +189,9 @@ fun ConfigDialog(
                         0 -> ColorSection(currentJoystickColor, inSubMenu, subFocusIndex, onColorSelect)
                         1 -> OrientationSection(currentOrientation, inSubMenu, subFocusIndex, onOrientationSelect)
                         2 -> DefaultHomeAndBootSection(isDefaultHome, inSubMenu, onRequestDefaultHome)
-                        3 -> AutoFanSection(autoFanControlEnabled, socTemp, inSubMenu, subFocusIndex, onToggleAutoFan)
-                        4 -> TabEditSection(tabs, inSubMenu, subFocusIndex, tabActionFocusIndex, onAddTab, onRenameTab, onDeleteTab, onMoveTabUp, onMoveTabDown, onSetDefaultTab)
-                        5 -> LanguageSection(currentLanguage, inSubMenu, subFocusIndex, onLanguageSelect)
-                        6 -> AboutSection()
+                        3 -> TabEditSection(tabs, inSubMenu, subFocusIndex, tabActionFocusIndex, onAddTab, onRenameTab, onDeleteTab, onMoveTabUp, onMoveTabDown, onSetDefaultTab)
+                        4 -> LanguageSection(currentLanguage, inSubMenu, subFocusIndex, onLanguageSelect)
+                        5 -> AboutSection()
                     }
                 }
             }
