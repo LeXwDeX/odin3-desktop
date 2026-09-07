@@ -4,7 +4,18 @@
 
 ## 发布方式
 
-自 2026-09-06 起，后续小版本迭代默认在完成代码提交并推送 `main` 后，核对 GitHub Releases 和远端标签，递增修订号并推送新标签。由 GitHub 执行全部发布检查、构建、签名与公开发布；确认对应工作流已触发并交付运行链接即可。除非用户另外要求，不等待发布完成或为发布重复本地构建、下载和设备安装。尚在运行时只报告“已触发”，不能报告“已发布”。
+自 2026-09-07 起，用户要求“掌机更新，以后都更新”。后续代码迭代默认在完成提交并推送 `main` 后，核对 GitHub Releases 和远端标签，递增修订号并推送新标签；等待 GitHub 完成全部检查、构建、签名与公开发布，再更新已连接的目标掌机。该约定替代此前“确认触发即可”的交付边界；仅文档或设备验收记录更新不重复发布相同应用的新版本。
+
+### 默认掌机更新流程
+
+1. 核对发布工作流成功、提交与标签一致，取得本仓库正式 Release 的 APK 和 SHA-256 附件；不为安装重复本地构建。
+2. 重新运行 `adb devices -l` 确认目标与授权。多设备时先确定目标；未连接时记录待安装版本，报告“已发布、未安装”，不声称已完成掌机更新。
+3. 校验附件 SHA-256、应用 ID、递增版本号、非 debuggable 属性，并核对现有 APK 与新版签名。保留旧 APK；不输出或提交签名私钥及用户数据。
+4. 使用 `adb -s <serial> install -r <apk>` 保留数据覆盖安装。遇到签名不匹配、版本降级或安装错误时停止安装并报告原因，不通过卸载、清数据或强制降级绕过。
+5. 安装后核对真实版本及 APK 哈希、默认 HOME、启动与设置页面；按本次改动检查相关服务和硬件读回，并清理 UI 调试辅助进程。保持用户的原厂开关及其他应用禁用状态。
+6. 分别报告“已触发／已发布／已安装／已实机验证”。短时检查不代替整夜充电、完整游戏或长时间稳定性验收。
+
+设备命令、签名与恢复约束见 [开发与设备验证](development.md)。这一默认授权仅用于本项目 APK 的后续发布和设备交付，不扩展到其他应用、Root 或固件更新。
 
 推送新的版本标签会自动创建公开 Release，并附上已签名、不可调试的 Release APK 和 SHA-256 校验文件：
 
@@ -62,3 +73,15 @@ tools/android ./gradlew -PreleaseVersion=0.1.1 :app:assembleDebug :app:assembleR
 公开 APK 链接匿名访问返回 HTTP 200；该 GitHub 附件已通过 `adb install -r` 在 Odin3 上保留数据覆盖安装，设备读回 `0.1.1 / 1002` 且没有 `DEBUGGABLE` 标记。安装后发起 MainActivity 启动没有报错，该次日志检查没有应用崩溃；设备随后断开，未继续完成 Release 界面操作复验。灯光修复的先前实机与用户复测见 [灯光记录](joystick-light-fix.md)。
 
 主分支 [Android CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34008426579) 通过；另一次[重复发布验证](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34008458750) 成功跳过构建、签名和上传，附件 ID、更新时间及摘要均保持不变。
+
+## v0.1.4 掌机更新验收
+
+2026-09-07，[v0.1.4](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.4) 的[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34073290522) 成功，标签与构建提交均为 `ed95a53a902f891ea2204dd76e25b5d12aabf08f`。下载正式附件 `odin3-desktop-v0.1.4.apk`，SHA-256 为 `ec18228c29c7e9c23a5776ee9ec2d8d55bd2429bdf758d630aec365b6c03d5c0`，与发布摘要和校验附件一致。新旧 APK 的签名证书一致，新版为 `com.odin.desktop / 0.1.4 / 1005`，不可调试。
+
+已通过 `adb install -r` 从 v0.1.3 覆盖升级到当前连接的 Odin3 / Android 15；未卸载或清数据。设备安装路径中的 APK 哈希与正式附件一致，原应用数据目录 inode 保持不变，既有分类和语言设置仍可见。默认 HOME 保持 `com.odin.desktop`，原厂 `com.odin.odinlauncher` 仍为禁用状态。
+
+实际打开桌面和设置，六个菜单项按 1–6 排列，没有自动风扇入口；Tab 编辑和语言内容已查看。多次读取应用运行服务为 `(nothing)`，旧 `odin_channel_fan` 在系统通知记录中已标记 `mDeleted=true`（系统可能保留已删除渠道的记录），AFK 渠道保留。UI 检查辅助进程已清理。
+
+安装前后首次硬件读回均为 `fan_mode=0 / PWM state=0 / duty=0 / RPM=0`。随后读到智能档 `fan_mode=4 / state=1 / duty=10000`，用户确认期间手动调整过风扇或性能；该变化不作为自主抢占证据，验收没有将其改回。此次覆盖安装与短时界面检查不等于整夜充电、深度挂起或游戏负载测试。
+
+旧 APK 与本次下载、截图保存在本机临时目录 `/private/tmp/odin-v014-install.Iwfuih/`，可能被系统清理，不进入 Git。保留旧 APK 不代表允许绕过版本检查强制降级。

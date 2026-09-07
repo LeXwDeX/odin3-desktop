@@ -4,7 +4,7 @@
 
 **专为 AYN Odin 3 安卓掌机深度打造的旗舰级默认桌面启动台与系统增强套件**
 
-[![Release](https://img.shields.io/badge/Release-v0.1.2-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
+[![Release](https://img.shields.io/badge/Release-v0.1.4-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
 [![Platform](https://img.shields.io/badge/Platform-AYN%20Odin%203%20(Android%2013%2B)-black?style=for-the-badge&logo=qualcomm)](https://github.com/LeXwDeX/odin3-desktop)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20%7C%20OLED%20Black-blue?style=for-the-badge&logo=jetpackcompose)](https://github.com/LeXwDeX/odin3-desktop)
 
@@ -16,7 +16,7 @@
 
 问题与验收见 [问题与需求记录](docs/issues.md)：Dock 硬件控制已改为原厂服务直连；从 0.1.2 起已按用户要求完整移除 Shader，详见 [移除说明](docs/shader-removal.md)。
 
-支持中文、英文和日文，默认跟随设备的系统语言，其他语言使用英文。进入 **CONFIG（设置）→ 6. 语言**，可选择“跟随系统 / 中文 / English / 日本語”，选择后立即刷新并自动保存；支持触屏和手柄上下选择、A 键确认。中文目前统一使用简体文案，繁体中文系统也会匹配中文。Android 13+ 与系统的应用语言设置同步，Android 10–12 使用 AndroidX 保存选择。分类身份与显示名称分离，自定义名称保持原样。实现与验收见 [多语言说明](docs/languages.md)，扩展接口见 [架构审计](docs/architecture.md)。下方截图来自此前实机版本；当前版本已移除图中的滤镜入口，其余布局保持原样。
+支持中文、英文和日文，默认跟随设备的系统语言，其他语言使用英文。进入 **CONFIG（设置）→ 5. 语言**，可选择“跟随系统 / 中文 / English / 日本語”，选择后立即刷新并自动保存；支持触屏和手柄上下选择、A 键确认。中文目前统一使用简体文案，繁体中文系统也会匹配中文。Android 13+ 与系统的应用语言设置同步，Android 10–12 使用 AndroidX 保存选择。分类身份与显示名称分离，自定义名称保持原样。实现与验收见 [多语言说明](docs/languages.md)，扩展接口见 [架构审计](docs/architecture.md)。下方截图来自此前实机版本；当前版本已移除滤镜和自动风扇入口，设置菜单现为 1–6 项，旧截图中的入口和序号不代表当前版本。
 
 ---
 
@@ -49,7 +49,7 @@
 由用户在 Android 的系统选择窗口中决定默认桌面。
 
 * **标准桌面注册**：声明 `MAIN` / `HOME` / `DEFAULT`，通过 `android.app.role.HOME` 请求默认桌面角色。选择 Odin Desktop 后，开机及按 Home 时由系统进入本桌面。
-* **尊重默认选择**：选择原厂或其他桌面时，开机广播不会主动拉起 Odin Desktop。旧版“开机自启”偏好已停止读取，后台温控服务的开机恢复保留。
+* **尊重默认选择**：选择原厂或其他桌面时，不会主动拉起 Odin Desktop。旧版“开机自启”偏好已停止读取，风扇守护和开机接收器均已移除。
 * **系统选择入口**：在设置【3. 默认桌面】中点击卡片或按 A，打开系统角色选择窗口；已经是默认桌面时可进入系统设置更换。取消选择保持原桌面。
 
 ![系统默认主屏幕设置](docs/screenshots/07_config_home_boot.png)
@@ -136,12 +136,11 @@
 ```
 odin3_desktop/
 ├── app/src/main/
-│   ├── AndroidManifest.xml     # HOME Launcher、开机广播与 QS 磁贴核心声明
+│   ├── AndroidManifest.xml     # HOME Launcher、AFK 服务与 QS 磁贴核心声明
 │   ├── java/com/odin/desktop/
 │   │   ├── OdinDesktopApplication.kt   # 全局单例与 Room 数据库初始化
 │   │   ├── dashboard/                  # 只读统计、存储多卷探测与三项常用操作
 │   │   ├── data/                       # Room 数据库实体、DAO 与多源数据仓库
-│   │   ├── receiver/                   # 开机恢复温控服务，不启动桌面界面
 │   │   ├── service/
 │   │   │   ├── afk/                    # 息屏挂机 OLED 纯黑防烧屏浮层服务
 │   │   │   └── fan/                    # 手动硬件事务与温度遥测
@@ -204,6 +203,8 @@ tools/android adb -s <设备序列号> shell am start -n com.odin.desktop/.ui.Ma
 风扇只提供手动“关闭／智能／最高”档位；“智能”是固件自身的智能散热档，不是应用自动接管。应用不再根据充电、息屏、温度或游戏状态自动改档，也不再声明风扇守护、前台应用无障碍监控或开机接收器。升级仅删除旧自动风扇偏好与通知渠道，不恢复或重写设备当前档位。
 
 用户主动切换性能时仍保留既有散热联动：手动最高档保持，其他档位在默认性能下关闭、升高性能时使用智能散热。原厂温控保护不变；原厂 USB 充电风扇开关是独立系统设置，不由应用修改。
+
+**床头充电／按电源键息屏时的推荐设置：** 如果不希望接入充电时被原厂策略自动切到智能风扇档，请在 **Odin 设置 → USB 设置 → USB 连接充电时的风扇状态设置** 中关闭该开关。开启时，原厂策略可在充电状态变化时自动切换风扇档位，覆盖此前的手动选择；这不是奥丁控制台的风扇守护。关闭仅取消这一路原厂充电联动，不是关闭温控保护，也不保证所有场景永远停扇；游戏或高负载时仍应选择合适的散热档位。该路径已在 Odin 3 固件 `Odin3_V1.0.0.187_20260616_193307_user` 核对，其他固件的名称或行为可能不同。开关由用户自行选择，安装和升级本应用不会代为修改。
 
 手动硬件按钮没有常驻前台服务或风扇通知。只有显式开启 AFK 息屏挂机时，才会运行其浮层前台服务并出现对应系统提示。桌面隐藏后停止顶部和仪表盘采样；温度、RPM/PWM 显示保留。删除范围、升级回归与原厂调查见 [风扇控制器记录](docs/fan-controller-ownership-investigation.md)。
 
