@@ -85,3 +85,13 @@ tools/android ./gradlew -PreleaseVersion=0.1.1 :app:assembleDebug :app:assembleR
 安装前后首次硬件读回均为 `fan_mode=0 / PWM state=0 / duty=0 / RPM=0`。随后读到智能档 `fan_mode=4 / state=1 / duty=10000`，用户确认期间手动调整过风扇或性能；该变化不作为自主抢占证据，验收没有将其改回。此次覆盖安装与短时界面检查不等于整夜充电、深度挂起或游戏负载测试。
 
 旧 APK 与本次下载、截图保存在本机临时目录 `/private/tmp/odin-v014-install.Iwfuih/`，可能被系统清理，不进入 Git。保留旧 APK 不代表允许绕过版本检查强制降级。
+
+## v0.1.5 图标排序与全部应用
+
+2026-09-07，[v0.1.5](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.5) 的[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34082548889)成功，[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34082515459)也通过。发布标签与构建提交为 `18661ccf6c9d0455186e264638e6857686b543e0`。
+
+正式 APK 的 SHA-256 为 `4d9936610bec0d84488c5f4357272a6ff50865754aff3cb960197f8553620f43`，与校验附件及掌机安装路径中的文件一致。包名为 `com.odin.desktop`，版本 `0.1.5 / 1006`，不可调试，新旧签名证书一致。已在重新确认连接的 Odin3 / Android 15 上通过 `adb install -r` 保留数据安装正式版；此前仅为手势验收临时覆盖安装同版本号的 Debug 构建，最终设备使用的是 GitHub 正式附件。
+
+覆盖安装后默认 HOME 为 `com.odin.desktop/.ui.MainActivity`，原厂 `com.odin.odinlauncher` 仍禁用。长按、点选位置、连续拖拽、三种展示排序、29 个真实应用的网格与返回入口验收见 [功能记录](icon-ordering.md)。测试前后 3 个分类记录与 16 条应用归属及其原始顺序一致。所有测试图标均来自设备已有应用，没有添加分类测试数据或清空用户数据。正式附件安装后再次实际打开“＋”入口、两行网格、排序菜单与设置页，应用进程未记录 AndroidRuntime 错误，UI 调试辅助进程已清理。
+
+旧 v0.1.4 APK、测试前后数据库/偏好备份、正式附件、校验信息、构建记录与截图保存在本机忽略目录 `.android-local/device-analysis/icon-order/`。此次范围是桌面交互与覆盖更新，不包含游戏负载或长时间运行验收。
