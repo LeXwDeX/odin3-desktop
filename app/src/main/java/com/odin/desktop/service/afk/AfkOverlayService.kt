@@ -5,8 +5,10 @@ import com.odin.desktop.locale.AppLanguage
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
@@ -41,6 +43,12 @@ class AfkOverlayService : Service() {
     private var overlayView: FrameLayout? = null
     private var statusTextView: TextView? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var screenReceiverRegistered = false
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_SCREEN_OFF) stopAfk()
+        }
+    }
 
     private val handler = Handler(Looper.getMainLooper())
     private val shifter = BurnInShifterEngine(maxOffsetX = 60, maxOffsetY = 40)
@@ -89,10 +97,24 @@ class AfkOverlayService : Service() {
         super.onCreate()
         languageSubscription = AppLanguage.observeLegacyChanges(::refreshNotificationLanguage)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val screenOffFilter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(screenOffReceiver, screenOffFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            // SCREEN_OFF is protected: only the system can send it on older Android.
+            registerReceiver(screenOffReceiver, screenOffFilter)
+        }
+        screenReceiverRegistered = true
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP_AFK) {
+            stopAfk()
+            return START_NOT_STICKY
+        }
+
+        // A queued start can arrive after Power has already put the device to sleep.
+        if (!getSystemService(PowerManager::class.java).isInteractive) {
             stopAfk()
             return START_NOT_STICKY
         }
@@ -297,6 +319,10 @@ class AfkOverlayService : Service() {
     }
 
     override fun onDestroy() {
+        if (screenReceiverRegistered) {
+            unregisterReceiver(screenOffReceiver)
+            screenReceiverRegistered = false
+        }
         languageSubscription?.close()
         cleanUp()
         super.onDestroy()

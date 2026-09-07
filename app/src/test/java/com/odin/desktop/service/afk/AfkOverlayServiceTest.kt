@@ -94,4 +94,43 @@ class AfkOverlayServiceTest {
         assertNull(field("overlayView"))
         assertFalse(wakeLock.isHeld)
     }
+
+    @Test fun screenOffDuringCountdownStopsAfkAndDoesNotResumeOnWake() {
+        assertSleepStopsAfk(afterMillis = 1000)
+    }
+
+    @Test fun screenOffAfterBlackMaskStopsAfkAndDoesNotResumeOnWake() {
+        assertSleepStopsAfk(afterMillis = 7000)
+    }
+
+    private fun assertSleepStopsAfk(afterMillis: Long) {
+        start()
+        advance(afterMillis)
+        val wakeLock = field("wakeLock") as PowerManager.WakeLock
+        assertTrue(AfkOverlayService.isAfkRunning)
+        val power = service.getSystemService(PowerManager::class.java)
+        shadowOf(power).setIsInteractive(false)
+        service.sendBroadcast(Intent(Intent.ACTION_SCREEN_OFF))
+        advance(0)
+        assertFalse("System sleep must end AFK", AfkOverlayService.isAfkRunning)
+        assertNull(field("overlayView"))
+        assertFalse(wakeLock.isHeld)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        shadowOf(power).setIsInteractive(true)
+        service.sendBroadcast(Intent(Intent.ACTION_SCREEN_ON))
+        advance(35_000)
+        assertNull("Waking must not restore the mask", field("overlayView"))
+        assertFalse(AfkOverlayService.isAfkRunning)
+        assertFalse(wakeLock.isHeld)
+    }
+
+    @Test fun startDeliveredAfterSleepDoesNotCreateMaskOrWakeLock() {
+        shadowOf(service.getSystemService(PowerManager::class.java)).setIsInteractive(false)
+        start()
+        advance(7000)
+        assertFalse(AfkOverlayService.isAfkRunning)
+        assertNull(field("overlayView"))
+        assertNull(field("wakeLock"))
+        assertTrue(shadowOf(service).isStoppedBySelf)
+    }
 }
