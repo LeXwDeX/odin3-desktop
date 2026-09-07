@@ -244,4 +244,24 @@
     <string name="header_full">Fully charged</string>
     <string name="header_fan">Fan %1$s RPM</string>
     <string name="afk_countdown_hint">"Entering idle screen in %1$d seconds\nDouble-tap to cancel or exit"</string>
+
+    <!-- Icon order and application library -->
+    <string name="app_library">All applications</string>
+    <string name="app_library_count">All applications · %1$d apps</string>
+    <string name="app_library_close">Back</string>
+    <string name="app_order_done">Done</string>
+    <string name="app_actions">App options</string>
+    <string name="app_order_hint">Tap an icon, then its destination · Hold and drag · A: pick/drop · B: back</string>
+    <string name="app_browse_hint">Hold an icon or press Y to reorder · START: sort</string>
+    <string name="app_sort_current">Sort: %1$s</string>
+    <string name="app_sort_title">Icon display order</string>
+    <string name="app_sort_manual">Manual</string>
+    <string name="app_sort_installed">Recently installed</string>
+    <string name="app_sort_last_used">Last used</string>
+    <string name="app_sort_name">Name (A–Z)</string>
+    <string name="app_usage_access">Usage access unavailable · Tap to open system settings</string>
+    <string name="app_usage_unavailable">Usage history is unavailable on this device.</string>
+    <string name="app_sort_detail">Saved per category. System usage records cover up to the past year; apps without a record appear last, sorted by name.</string>
+    <string name="app_order_save_failed">Could not save icon order. Please try again.</string>
+    <string name="app_sort_usage_missing">Last used: no access</string>
 </resources>

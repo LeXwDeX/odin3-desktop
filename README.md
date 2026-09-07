@@ -4,7 +4,7 @@
 
 **专为 AYN Odin 3 安卓掌机深度打造的旗舰级默认桌面启动台与系统增强套件**
 
-[![Release](https://img.shields.io/badge/Release-v0.1.4-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
+[![Release](https://img.shields.io/badge/Release-v0.1.5-cyan?style=for-the-badge&logo=android)](https://github.com/LeXwDeX/odin3-desktop/releases)
 [![Platform](https://img.shields.io/badge/Platform-AYN%20Odin%203%20(Android%2013%2B)-black?style=for-the-badge&logo=qualcomm)](https://github.com/LeXwDeX/odin3-desktop)
 [![UI](https://img.shields.io/badge/UI-Jetpack%20Compose%20%7C%20OLED%20Black-blue?style=for-the-badge&logo=jetpackcompose)](https://github.com/LeXwDeX/odin3-desktop)
 
@@ -114,7 +114,13 @@
 
 ## 🕹️ 全硬件实体按键交互指南 (Gamepad Controls)
 
-【所有应用】默认按首次安装时间从新到旧排列，手工安装和 Google Play 安装的新应用均出现在最左侧。已有手动排序会保留，新应用放在该顺序之前；应用更新不会按更新时间重新置顶。
+每个分类支持“手动排序 / 安装时间（最近优先）/ 最后运行时间（最近优先）/ 应用名称（A–Z）”，点击右下角“排序”或按 START 选择，按分类自动保存。名称使用当前界面语言的排序规则；最近运行使用 Android 提供的使用记录，未授权时提供系统授权入口，没有记录的应用排在最后。
+
+长按图标直接进入排序：可以点选图标后再点目标位置，也可以长按后拖拽移动，拖到边缘会自动滚动。按“完成排序”、Y 或 B 退出；手动调整切换为手动顺序，并保存整个分类。原有应用管理仍可通过右下角按钮或长按 Y 打开。
+
+普通分类滑带最多显示前 **20 个图标**；超过 20 个时，第 21 个位置为 **“＋ 全部应用”**。点击或用 A 打开全部已安装应用的网格，支持触摸滚动、手柄四向导航、排序和拖拽，返回时恢复原分类与光标位置。编辑排序时展示整个分类，可把第 20 个之后的图标移到首页。
+
+【全部应用】的初始手动顺序继续采用首次安装时间从新到旧，新安装应用排在保存的顺序之前，更新不会按更新时间置顶。详细行为与验收见 [图标排序与全部应用](docs/icon-ordering.md)。
 
 | 按键 / 组合 | 触发场景 | 交互行为 |
 | :--- | :--- | :--- |
@@ -126,6 +132,7 @@
 | **X 键** | 桌面卡片区 | 呼出当前 Tab 的**批量增删应用抽屉**（支持全拼/首字母即时搜索与勾选） |
 | **X 键** | Dock 充电卡片 | 切换**充电分离模式**（开启红 / 关闭灰） |
 | **Y 键 (长按/按键)** | 桌面卡片区 | 呼出**应用专属操作菜单**（Tab 迁移、系统属性、移除图标） |
+| **START 键** | 桌面卡片区 / 全部应用网格 | 打开展示排序；方向键选择，A 确认，B 返回 |
 | **Y 键 (短按)** | 桌面卡片区 | 开启/退出当前分类卡片的手动自由排序模式 |
 | **Home 键** | 系统任何位置 | 返回系统选定的默认桌面 |
 

@@ -27,6 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.viewinterop.AndroidView
 import com.odin.desktop.data.model.InstalledApp
 
@@ -38,7 +41,11 @@ fun AppCard(
     isPicked: Boolean = false,
     cardIndex: Int = 0,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    hidden: Boolean = false,
+    compact: Boolean = false,
+    interactive: Boolean = true,
+    onLongClick: () -> Unit = {}
 ) {
     val palette = LocalOdinPalette.current
     val targetScale = when {
@@ -86,7 +93,7 @@ fun AppCard(
 
     // 固定外层槽位尺寸 128.dp，保证卡片放大或抖动时绝对不挤压或推移上下左右邻近元素
     Box(
-        modifier = modifier.size(128.dp),
+        modifier = modifier.size(if (compact) 96.dp else 128.dp).graphicsLayer { alpha = if (hidden) 0f else 1f },
         contentAlignment = Alignment.Center
     ) {
         Box(
@@ -96,7 +103,7 @@ fun AppCard(
                     translationY = if (isPicked) -8f else jiggleTranslationY
                 }
                 .scale(scale)
-                .size(110.dp)
+                .size(if (compact) 82.dp else 110.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(if (isPicked) palette.accent.copy(alpha = 0.15f) else palette.card)
                 .border(
@@ -114,8 +121,12 @@ fun AppCard(
                     },
                     shape = RoundedCornerShape(16.dp)
                 )
-                .clickable { onClick() }
-                .padding(16.dp),
+                .clickable(enabled = interactive) { onClick() }
+                .semantics {
+                    contentDescription = app.label
+                    if (interactive) onLongClick { onLongClick(); true }
+                }
+                .padding(if (compact) 12.dp else 16.dp),
             contentAlignment = Alignment.Center
         ) {
             AndroidView(
@@ -127,7 +138,7 @@ fun AppCard(
                 update = { imageView ->
                     imageView.setImageDrawable(app.icon)
                 },
-                modifier = Modifier.size(72.dp)
+                modifier = Modifier.size(if (compact) 54.dp else 72.dp)
             )
         }
     }

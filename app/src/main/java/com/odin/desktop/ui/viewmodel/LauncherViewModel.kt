@@ -19,6 +19,13 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.model.InstalledApp
 import com.odin.desktop.data.model.orderAllApps
+import com.odin.desktop.data.model.AppSortMode
+import com.odin.desktop.data.model.HOME_APP_LIMIT
+import com.odin.desktop.data.model.homeAppCount
+import com.odin.desktop.data.model.sortApps
+import com.odin.desktop.data.model.moveApp
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import com.odin.desktop.service.fan.HardwareController
 import com.odin.desktop.ui.navigation.FocusZone
 import com.odin.desktop.ui.components.AppActionType
@@ -110,7 +117,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun navigationBlocked() = _isConfigOpen.value || _isAppActionDialogOpen.value ||
-        _isAppBatchManageDialogOpen.value || _isReorderingApps.value
+        _isAppBatchManageDialogOpen.value || _isReorderingApps.value || _isAllAppsOpen.value || _isSortMenuOpen.value
 
     // --- 应用列表状态 ---
     private val _allInstalledApps = MutableStateFlow<List<InstalledApp>>(emptyList())
@@ -189,6 +196,79 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _pickedAppIndex = MutableStateFlow<Int?>(null)
     val pickedAppIndex: StateFlow<Int?> = _pickedAppIndex.asStateFlow()
 
+    private val _isAllAppsOpen = MutableStateFlow(false)
+    val isAllAppsOpen = _isAllAppsOpen.asStateFlow()
+    private var libraryReturnIndex = 0
+    private var gridColumns = 1
+    private val _sortMode = MutableStateFlow(AppSortMode.MANUAL)
+    val sortMode = _sortMode.asStateFlow()
+    private val _usageStatsAvailable = MutableStateFlow(false)
+    val usageStatsAvailable = _usageStatsAvailable.asStateFlow()
+    private val _isSortMenuOpen = MutableStateFlow(false)
+    val isSortMenuOpen = _isSortMenuOpen.asStateFlow()
+    private val _sortMenuIndex = MutableStateFlow(0)
+    val sortMenuIndex = _sortMenuIndex.asStateFlow()
+    private val orderSaveMutex = Mutex()
+    private val pendingOrders = mutableMapOf<Long, List<String>>()
+    private var scanJob: Job? = null
+
+    private fun activeAppTab(): TabEntity? = if (_isAllAppsOpen.value)
+        _tabs.value.firstOrNull { it.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS }
+        else _tabs.value.getOrNull(_selectedTabIndex.value)
+
+    fun setGridColumns(columns: Int) { gridColumns = columns.coerceAtLeast(1) }
+
+    private fun visibleAppCount() = homeAppCount(_currentTabApps.value.size,
+        _isAllAppsOpen.value || _isReorderingApps.value)
+
+    fun openAllApps() {
+        if (navigationBlocked()) return
+        libraryReturnIndex = HOME_APP_LIMIT.coerceAtMost(_currentTabApps.value.lastIndex.coerceAtLeast(0))
+        _isAllAppsOpen.value = true
+        _selectedAppIndex.value = 0
+        _focusZone.value = FocusZone.APPS
+        filterAppsForCurrentTab()
+    }
+
+    fun closeAllApps() {
+        if (_isReorderingApps.value) exitReorderMode()
+        _isAllAppsOpen.value = false
+        _selectedAppIndex.value = libraryReturnIndex
+        _focusZone.value = FocusZone.APPS
+        filterAppsForCurrentTab()
+    }
+
+    fun openSortMenu() {
+        if (_isDashboardSelected.value || _isConfigOpen.value || _isAppActionDialogOpen.value ||
+            _isAppBatchManageDialogOpen.value || _isReorderingApps.value) return
+        _sortMenuIndex.value = _sortMode.value.ordinal
+        _isSortMenuOpen.value = true
+    }
+
+    fun closeSortMenu() { _isSortMenuOpen.value = false }
+
+    fun setSortMode(mode: AppSortMode) {
+        if (mode == AppSortMode.LAST_USED && !_usageStatsAvailable.value) return
+        val tab = activeAppTab() ?: return
+        _sortMode.value = mode
+        appRepository.setSortMode(tab.id, mode)
+        _selectedAppIndex.value = 0
+        closeSortMenu()
+        filterAppsForCurrentTab()
+    }
+
+    fun openUsageAccessSettings() {
+        closeSortMenu()
+        runCatching {
+            context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
+                data = android.net.Uri.parse("package:" + context.packageName)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            })
+        }.onFailure {
+            Toast.makeText(context, context.getString(R.string.app_usage_unavailable), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             appRepository.sanitizeDefaultTabs()
@@ -222,7 +302,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun scanInstalledApps() {
-        viewModelScope.launch {
+        scanJob?.cancel()
+        scanJob = viewModelScope.launch {
             val apps = appRepository.getInstalledLaunchableApps()
             val currentInstalledPackages = apps.map { it.packageName }.toSet()
 
@@ -234,6 +315,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 }
             }
 
+            _usageStatsAvailable.value = appRepository.usageStatsAvailable
             _allInstalledApps.value = apps
             filterAppsForCurrentTab()
         }
@@ -244,40 +326,29 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private fun filterAppsForCurrentTab() {
         filterJob?.cancel()
         filterJob = viewModelScope.launch {
-            val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
+            val currentTab = activeAppTab()
             val allApps = _allInstalledApps.value
-
             if (currentTab == null) {
                 _currentTabApps.value = allApps
                 _currentTabAppPackages.value = allApps.map { it.packageName }.toSet()
-            } else if (currentTab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS) {
-                val mappings = withContext(Dispatchers.IO) {
-                    appRepository.getAppsForTabFlow(currentTab.id)
-                }
-                mappings.collectLatest { mappingList ->
-                    if (_isReorderingApps.value) return@collectLatest
-                    _currentTabApps.value = orderAllApps(allApps, mappingList.map { it.packageName })
-                    _currentTabAppPackages.value = allApps.map { it.packageName }.toSet()
-                    if (_selectedAppIndex.value >= _currentTabApps.value.size) {
-                        _selectedAppIndex.value = 0
-                    }
-                }
-            } else {
-                val mappings = withContext(Dispatchers.IO) {
-                    appRepository.getAppsForTabFlow(currentTab.id)
-                }
-                mappings.collectLatest { mappingList ->
-                    if (_isReorderingApps.value) return@collectLatest
-                    val pkgSet = mappingList.map { it.packageName }.toSet()
-                    _currentTabAppPackages.value = pkgSet
+                return@launch
+            }
+            _sortMode.value = appRepository.getSortMode(currentTab.id)
+            appRepository.getAppsForTabFlow(currentTab.id).collectLatest { mappings ->
+                if (_isReorderingApps.value) return@collectLatest
+                val allTab = currentTab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS
+                val members = if (allTab) allApps.map { it.packageName }.toSet()
+                    else mappings.map { it.packageName }.toSet()
+                val saved = pendingOrders[currentTab.id] ?: mappings.map { it.packageName }
+                val manual = if (allTab) orderAllApps(allApps, saved) else {
                     val appMap = allApps.associateBy { it.packageName }
-                    val orderedApps = mappingList.mapNotNull { appMap[it.packageName] }
-                    val extraApps = allApps.filter { pkgSet.contains(it.packageName) && !orderedApps.contains(it) }
-                    _currentTabApps.value = orderedApps + extraApps
-                    if (_selectedAppIndex.value >= _currentTabApps.value.size) {
-                        _selectedAppIndex.value = 0
-                    }
+                    (saved + mappings.map { it.packageName }).distinct().filter { it in members }
+                        .mapNotNull(appMap::get)
                 }
+                _currentTabAppPackages.value = members
+                _currentTabApps.value = sortApps(manual, _sortMode.value,
+                    context.resources.configuration.locales[0])
+                _selectedAppIndex.value = _selectedAppIndex.value.coerceIn(0, (visibleAppCount() - 1).coerceAtLeast(0))
             }
         }
     }
@@ -293,7 +364,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             return
         }
-        if (_isConfigOpen.value || _isAppActionDialogOpen.value || _isAppBatchManageDialogOpen.value || _isReorderingApps.value) return
+        if (navigationBlocked()) return
         val current = if (_isDashboardSelected.value) 0 else _selectedTabIndex.value + 1
         val previous = if (current > 0) current - 1 else _tabs.value.size
         if (previous == 0) selectDashboard() else selectTab(previous - 1)
@@ -309,14 +380,14 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             return
         }
-        if (_isConfigOpen.value || _isAppActionDialogOpen.value || _isAppBatchManageDialogOpen.value || _isReorderingApps.value) return
+        if (navigationBlocked()) return
         val current = if (_isDashboardSelected.value) 0 else _selectedTabIndex.value + 1
         val next = (current + 1) % (_tabs.value.size + 1)
         if (next == 0) selectDashboard() else selectTab(next - 1)
     }
 
     fun selectTab(index: Int) {
-        if (_isConfigOpen.value || _isAppActionDialogOpen.value || _isAppBatchManageDialogOpen.value || _isReorderingApps.value) return
+        if (navigationBlocked()) return
         if (index in _tabs.value.indices) {
             _isDashboardSelected.value = false
             updateDashboardCollection()
@@ -330,6 +401,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 方向导航 (D-Pad / 摇杆) ---
     fun onNavigateLeft() {
+        if (_isSortMenuOpen.value) {
+            _sortMenuIndex.value = (_sortMenuIndex.value - 1).coerceIn(0, AppSortMode.entries.lastIndex)
+            return
+        }
         when (_focusZone.value) {
             FocusZone.TABS -> {
                 if (_isConfigFocusedInTabs.value) {
@@ -389,6 +464,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun onNavigateRight() {
+        if (_isSortMenuOpen.value) {
+            _sortMenuIndex.value = (_sortMenuIndex.value + 1).coerceIn(0, AppSortMode.entries.lastIndex)
+            return
+        }
         when (_focusZone.value) {
             FocusZone.TABS -> {
                 if (!_isConfigFocusedInTabs.value) {
@@ -406,10 +485,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 if (_isReorderingApps.value) {
                     if (_pickedAppIndex.value != null) {
                         movePickedAppRight()
-                    } else if (_selectedAppIndex.value < _currentTabApps.value.size - 1) {
+                    } else if (_selectedAppIndex.value < visibleAppCount() - 1) {
                         _selectedAppIndex.value += 1
                     }
-                } else if (_selectedAppIndex.value < _currentTabApps.value.size - 1) {
+                } else if (_selectedAppIndex.value < visibleAppCount() - 1) {
                     _selectedAppIndex.value += 1
                 }
             }
@@ -448,11 +527,16 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun onNavigateUp() {
+        if (_isSortMenuOpen.value) {
+            _sortMenuIndex.value = (_sortMenuIndex.value - 1).coerceIn(0, AppSortMode.entries.lastIndex)
+            return
+        }
         when (_focusZone.value) {
             FocusZone.DOCK -> _focusZone.value = contentFocus()
             FocusZone.DASHBOARD -> _focusZone.value = FocusZone.TABS
             FocusZone.APPS -> {
-                if (!_isReorderingApps.value) _focusZone.value = FocusZone.TABS
+                if (_isAllAppsOpen.value) navigateGrid(-gridColumns)
+                else if (!_isReorderingApps.value) _focusZone.value = FocusZone.TABS
             }
             FocusZone.TABS -> {}
             FocusZone.CONFIG_MODAL -> {
@@ -498,12 +582,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun onNavigateDown() {
+        if (_isSortMenuOpen.value) {
+            _sortMenuIndex.value = (_sortMenuIndex.value + 1).coerceIn(0, AppSortMode.entries.lastIndex)
+            return
+        }
         when (_focusZone.value) {
             FocusZone.TABS -> _focusZone.value = contentFocus()
             FocusZone.DASHBOARD -> _focusZone.value = FocusZone.DOCK
             FocusZone.APPS -> {
                 // 在排序状态下，光标只能在图标区域中移动，禁止移动到 Dock
-                if (!_isReorderingApps.value) {
+                if (_isAllAppsOpen.value) navigateGrid(gridColumns)
+                else if (!_isReorderingApps.value) {
                     _focusZone.value = FocusZone.DOCK
                 }
             }
@@ -534,7 +623,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             }
             FocusZone.APP_ACTION_MODAL -> {
                 if (_appActionInTabPicker.value) {
-                    val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
+                    val currentTab = activeAppTab()
                     val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS }
                     if (_appActionTabPickerFocusIndex.value < targetTabs.size - 1) {
                         _appActionTabPickerFocusIndex.value += 1
@@ -569,6 +658,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 实体 A 键 (确定 / 启动 / 切档) ---
     fun onConfirm() {
+        if (_isSortMenuOpen.value) {
+            val mode = AppSortMode.entries[_sortMenuIndex.value]
+            if (mode == AppSortMode.LAST_USED && !_usageStatsAvailable.value) openUsageAccessSettings()
+            else setSortMode(mode)
+            return
+        }
         when (_focusZone.value) {
             FocusZone.DASHBOARD -> onDashboardAction(DashboardAction.entries[_selectedDashboardControl.value])
             FocusZone.TABS -> {
@@ -581,6 +676,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             FocusZone.APPS -> {
                 if (_isReorderingApps.value) {
                     togglePickApp()
+                    return
+                }
+                if (!_isAllAppsOpen.value && _selectedAppIndex.value == HOME_APP_LIMIT && _currentTabApps.value.size > HOME_APP_LIMIT) {
+                    openAllApps()
                     return
                 }
                 val app = _currentTabApps.value.getOrNull(_selectedAppIndex.value)
@@ -601,7 +700,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                 val app = _appUnderAction.value
                 if (app != null) {
                     if (_appActionInTabPicker.value) {
-                        val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
+                        val currentTab = activeAppTab()
                         val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS }
                         val target = targetTabs.getOrNull(_appActionTabPickerFocusIndex.value)
                         if (target != null) {
@@ -630,16 +729,25 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // --- 触摸或点击 App 项 ---
     fun onAppClick(app: InstalledApp, index: Int) {
         _focusZone.value = FocusZone.APPS
-        _selectedAppIndex.value = index
+        if (_isSortMenuOpen.value) return
         if (_isReorderingApps.value) {
-            togglePickApp()
+            val picked = _pickedAppIndex.value
+            if (picked != null) {
+                movePickedAppTo(index)
+                finishAppDrag()
+            } else {
+                _selectedAppIndex.value = index
+                togglePickApp()
+            }
         } else {
+            _selectedAppIndex.value = index
             launchApp(app)
         }
     }
 
     // --- 触摸或点击 Dock 项 ---
     fun onDockItemClick(index: Int) {
+        if (navigationBlocked()) return
         _focusZone.value = FocusZone.DOCK
         _selectedDockIndex.value = index
         triggerDockAction(index)
@@ -647,6 +755,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 实体 B 键 (返回 / 取消) ---
     fun onBack(): Boolean {
+        if (_isSortMenuOpen.value) { closeSortMenu(); return true }
         if (_isReorderingApps.value) {
             if (_pickedAppIndex.value != null) {
                 _pickedAppIndex.value = null
@@ -677,6 +786,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             _focusZone.value = contentFocus()
             return true
         }
+        if (_isAllAppsOpen.value) { closeAllApps(); return true }
         if (_focusZone.value == FocusZone.DOCK || _focusZone.value == FocusZone.TABS) {
             _isConfigFocusedInTabs.value = false
             _focusZone.value = contentFocus()
@@ -785,6 +895,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openConfigDialog() {
+        if (navigationBlocked()) return
         refreshAppLanguage()
         hardware.refreshHomeStatus()
         _isConfigOpen.value = true
@@ -855,7 +966,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun moveAppToTab(app: InstalledApp, targetTabId: Long) {
-        val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
+        val currentTab = activeAppTab()
         if (currentTab != null && currentTab.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS) {
             _currentTabApps.value = _currentTabApps.value.filter { it.packageName != app.packageName }
             _currentTabAppPackages.value = _currentTabAppPackages.value - app.packageName
@@ -876,66 +987,89 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    // --- 图标排序编辑模式 (Y 键抖动模式) ---
+    // Manual edits work on the complete category, including icons beyond the home limit.
     fun enterReorderMode() {
-        if (_focusZone.value == FocusZone.APPS && _currentTabApps.value.isNotEmpty()) {
-            _isReorderingApps.value = true
-            _pickedAppIndex.value = null
-            Toast.makeText(context, context.getString(R.string.text_sorting_icons_a_to_pick_up_or), Toast.LENGTH_SHORT).show()
-        }
+        if (_focusZone.value != FocusZone.APPS || _isSortMenuOpen.value || _currentTabApps.value.isEmpty()) return
+        val tab = activeAppTab() ?: return
+        _isReorderingApps.value = true
+        _pickedAppIndex.value = null
+        _selectedAppIndex.value = _selectedAppIndex.value.coerceAtMost(_currentTabApps.value.lastIndex)
+        _sortMode.value = AppSortMode.MANUAL
+        appRepository.setSortMode(tab.id, AppSortMode.MANUAL)
+    }
+
+    fun pickAppForDrag(packageName: String) {
+        val index = _currentTabApps.value.indexOfFirst { it.packageName == packageName }
+        if (index < 0) return
+        _focusZone.value = FocusZone.APPS
+        if (!_isReorderingApps.value) enterReorderMode()
+        if (!_isReorderingApps.value) return
+        _selectedAppIndex.value = index
+        _pickedAppIndex.value = index
+    }
+
+    fun moveDraggedApp(packageName: String, targetPackage: String) {
+        if (!_isReorderingApps.value) return
+        val from = _currentTabApps.value.indexOfFirst { it.packageName == packageName }
+        val to = _currentTabApps.value.indexOfFirst { it.packageName == targetPackage }
+        if (from < 0 || to < 0) return
+        _pickedAppIndex.value = from
+        movePickedAppTo(to)
+    }
+
+    fun finishAppDrag() {
+        _pickedAppIndex.value = null
+        saveCurrentTabAppOrder()
     }
 
     fun exitReorderMode() {
+        saveCurrentTabAppOrder()
         _isReorderingApps.value = false
         _pickedAppIndex.value = null
-        saveCurrentTabAppOrder()
-        Toast.makeText(context, context.getString(R.string.text_icon_order_saved), Toast.LENGTH_SHORT).show()
+        _selectedAppIndex.value = _selectedAppIndex.value.coerceAtMost((visibleAppCount() - 1).coerceAtLeast(0))
     }
 
     fun togglePickApp() {
         if (_pickedAppIndex.value == null) {
-            _pickedAppIndex.value = _selectedAppIndex.value
-        } else {
-            _pickedAppIndex.value = null
-            saveCurrentTabAppOrder()
-        }
+            if (_selectedAppIndex.value in _currentTabApps.value.indices) _pickedAppIndex.value = _selectedAppIndex.value
+        } else finishAppDrag()
     }
 
-    private fun movePickedAppLeft() {
-        val currentIndex = _selectedAppIndex.value
-        if (currentIndex > 0) {
-            val list = _currentTabApps.value.toMutableList()
-            val item = list.removeAt(currentIndex)
-            list.add(currentIndex - 1, item)
-            _currentTabApps.value = list
-            _selectedAppIndex.value = currentIndex - 1
-            _pickedAppIndex.value = currentIndex - 1
-        }
+    private fun movePickedAppTo(target: Int) {
+        val from = _pickedAppIndex.value ?: return
+        if (target !in _currentTabApps.value.indices) return
+        _currentTabApps.value = moveApp(_currentTabApps.value, from, target)
+        _selectedAppIndex.value = target
+        _pickedAppIndex.value = target
     }
 
-    private fun movePickedAppRight() {
-        val currentIndex = _selectedAppIndex.value
-        if (currentIndex < _currentTabApps.value.size - 1) {
-            val list = _currentTabApps.value.toMutableList()
-            val item = list.removeAt(currentIndex)
-            list.add(currentIndex + 1, item)
-            _currentTabApps.value = list
-            _selectedAppIndex.value = currentIndex + 1
-            _pickedAppIndex.value = currentIndex + 1
-        }
+    private fun movePickedAppLeft() = movePickedAppTo(_selectedAppIndex.value - 1)
+    private fun movePickedAppRight() = movePickedAppTo(_selectedAppIndex.value + 1)
+
+    private fun navigateGrid(delta: Int) {
+        val target = (_selectedAppIndex.value + delta).coerceIn(0, _currentTabApps.value.lastIndex.coerceAtLeast(0))
+        if (_pickedAppIndex.value != null) movePickedAppTo(target) else _selectedAppIndex.value = target
     }
 
     private fun saveCurrentTabAppOrder() {
-        val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value) ?: return
-        val tabId = currentTab.id
+        val tabId = activeAppTab()?.id ?: return
         val pkgs = _currentTabApps.value.map { it.packageName }
-        viewModelScope.launch(Dispatchers.IO) {
-            appRepository.updateAppOrder(tabId, pkgs)
+        pendingOrders[tabId] = pkgs
+        viewModelScope.launch {
+            try {
+                orderSaveMutex.withLock { appRepository.updateAppOrder(tabId, pkgs) }
+            } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                Toast.makeText(context, context.getString(R.string.app_order_save_failed), Toast.LENGTH_LONG).show()
+            } finally {
+                if (pendingOrders[tabId] === pkgs) pendingOrders.remove(tabId)
+            }
+            if (!_isReorderingApps.value && activeAppTab()?.id == tabId) filterAppsForCurrentTab()
         }
     }
 
     fun removeAppFromCurrentTab(app: InstalledApp) {
-        val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value) ?: return
+        val currentTab = activeAppTab() ?: return
         if (currentTab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS) {
             Toast.makeText(context, context.getString(R.string.text_all_apps_contains_every_installed_app_icons), Toast.LENGTH_SHORT).show()
             return
@@ -954,10 +1088,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 应用操作模态框 (Y 键) ---
     fun openAppActionDialog() {
-        if (_isDashboardSelected.value || _isConfigOpen.value || _isAppBatchManageDialogOpen.value || _isAppActionDialogOpen.value) return
+        if (_isDashboardSelected.value || _isConfigOpen.value || _isAppBatchManageDialogOpen.value || _isAppActionDialogOpen.value || _isSortMenuOpen.value) return
         if (_isReorderingApps.value) {
             exitReorderMode()
         }
+        if (!_isAllAppsOpen.value && !_isReorderingApps.value && _selectedAppIndex.value >= HOME_APP_LIMIT) return
         val app = _currentTabApps.value.getOrNull(_selectedAppIndex.value) ?: return
         _appUnderAction.value = app
         _appActionFocusIndex.value = 0
@@ -985,7 +1120,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val app = _appUnderAction.value ?: return
         when (type) {
             AppActionType.MOVE_TO_TAB -> {
-                val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
+                val currentTab = activeAppTab()
                 val targetTabs = _tabs.value.filter { it.id != currentTab?.id && it.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS }
                 if (targetTabs.isNotEmpty()) {
                     _appActionInTabPicker.value = true
@@ -1019,8 +1154,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     // --- 批量增删分类应用模态框 (X 键) ---
     fun openBatchManageDialog() {
+        if (_isSortMenuOpen.value) return
         if (_isDashboardSelected.value || _isConfigOpen.value || _isAppBatchManageDialogOpen.value || _isAppActionDialogOpen.value || _isReorderingApps.value) return
-        val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value)
+        val currentTab = activeAppTab()
         if (currentTab != null && currentTab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS) {
             Toast.makeText(context, context.getString(R.string.text_all_apps_is_managed_automatically), Toast.LENGTH_SHORT).show()
             return
@@ -1050,7 +1186,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun toggleAppInCurrentTab(app: InstalledApp) {
-        val currentTab = _tabs.value.getOrNull(_selectedTabIndex.value) ?: return
+        val currentTab = activeAppTab() ?: return
         viewModelScope.launch(Dispatchers.IO) {
             if (_currentTabAppPackages.value.contains(app.packageName)) {
                 appRepository.removeAppFromTab(currentTab.id, app.packageName)

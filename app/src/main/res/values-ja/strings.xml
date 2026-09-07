@@ -242,4 +242,24 @@
     <string name="header_full">満充電</string>
     <string name="header_fan">ファン %1$s RPM</string>
     <string name="afk_countdown_hint">"%1$d 秒後に画面保護を開始\nダブルタップでキャンセル・終了"</string>
+
+    <!-- Icon order and application library -->
+    <string name="app_library">すべてのアプリ</string>
+    <string name="app_library_count">すべてのアプリ · %1$d 個</string>
+    <string name="app_library_close">戻る</string>
+    <string name="app_order_done">並べ替え完了</string>
+    <string name="app_actions">アプリ管理</string>
+    <string name="app_order_hint">アイコン→移動先をタップ · 長押しでドラッグ · A 選択/配置 · B 戻る</string>
+    <string name="app_browse_hint">長押し・Yで並べ替え · START 表示順</string>
+    <string name="app_sort_current">表示順：%1$s</string>
+    <string name="app_sort_title">アイコンの表示順</string>
+    <string name="app_sort_manual">手動</string>
+    <string name="app_sort_installed">インストール日時（新しい順）</string>
+    <string name="app_sort_last_used">最終使用日時（新しい順）</string>
+    <string name="app_sort_name">アプリ名（A–Z）</string>
+    <string name="app_usage_access">使用履歴を取得できません · タップしてシステム設定へ</string>
+    <string name="app_usage_unavailable">この端末では使用履歴を取得できません。</string>
+    <string name="app_sort_detail">表示順はカテゴリごとに保存。過去1年以内のシステム使用履歴を参照し、記録のないアプリは末尾に名前順で表示します。</string>
+    <string name="app_order_save_failed">表示順を保存できませんでした。もう一度お試しください。</string>
+    <string name="app_sort_usage_missing">最終使用：履歴未取得</string>
 </resources>

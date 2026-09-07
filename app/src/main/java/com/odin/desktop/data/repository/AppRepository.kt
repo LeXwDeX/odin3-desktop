@@ -1,6 +1,7 @@
 package com.odin.desktop.data.repository
 
 import android.content.Context
+import com.odin.desktop.data.model.AppSortMode
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -20,6 +21,36 @@ class AppRepository(
     private val database: OdinDatabase,
     private val classifier: AppClassifier = AndroidAppClassifier
 ) {
+    private val displayPreferences = context.getSharedPreferences("app_display", Context.MODE_PRIVATE)
+    var usageStatsAvailable: Boolean = false
+        private set
+
+    fun getSortMode(tabId: Long): AppSortMode =
+        AppSortMode.entries.firstOrNull {
+            it.name == displayPreferences.getString("sort_$tabId", null)
+        } ?: AppSortMode.MANUAL
+
+    fun setSortMode(tabId: Long, mode: AppSortMode) {
+        displayPreferences.edit().putString("sort_$tabId", mode.name).apply()
+    }
+
+    private fun lastUsedTimes(): Map<String, Long> {
+        val ops = context.getSystemService(android.app.AppOpsManager::class.java)
+        usageStatsAvailable = ops?.unsafeCheckOpNoThrow(
+            android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName
+        ) == android.app.AppOpsManager.MODE_ALLOWED
+        if (!usageStatsAvailable) return emptyMap()
+        return try {
+            val now = System.currentTimeMillis()
+            val usage = context.getSystemService(android.app.usage.UsageStatsManager::class.java)
+            val records = usage?.queryAndAggregateUsageStats(now - 365L * 24 * 60 * 60 * 1000, now)
+            if (records == null) usageStatsAvailable = false
+            records.orEmpty().mapValues { it.value.lastTimeUsed }.filterValues { it > 0L }
+        } catch (_: SecurityException) {
+            usageStatsAvailable = false
+            emptyMap()
+        }
+    }
 
     private val tabDao = database.tabDao()
     private val appMappingDao = database.appMappingDao()
@@ -29,6 +60,7 @@ class AppRepository(
 
     suspend fun getInstalledLaunchableApps(): List<InstalledApp> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
+        val lastUsed = lastUsedTimes()
         launchableActivities().distinctBy { it.activityInfo?.packageName }.mapNotNull { resolveInfo ->
             val activity = resolveInfo.activityInfo ?: return@mapNotNull null
             val packageName = activity.packageName
@@ -43,7 +75,7 @@ class AppRepository(
             InstalledApp(packageName, activity.name, label, icon,
                 (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
                 appInfo.category == ApplicationInfo.CATEGORY_GAME,
-                firstInstallTime)
+                firstInstallTime, lastUsed[packageName])
         }.sortedBy { it.label }
     }
 

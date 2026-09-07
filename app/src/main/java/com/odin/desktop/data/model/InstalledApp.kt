@@ -9,7 +9,8 @@ data class InstalledApp(
     val icon: Drawable? = null,
     val isSystemApp: Boolean = false,
     val isGame: Boolean = false,
-    val firstInstallTime: Long = 0L
+    val firstInstallTime: Long = 0L,
+    val lastTimeUsed: Long? = null
 )
 
 /** New installations precede the saved manual order, independent of installer or label. */

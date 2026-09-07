@@ -48,6 +48,11 @@ object GamepadKeyHandler {
                     return true
                 }
 
+                KeyEvent.KEYCODE_BUTTON_START -> {
+                    if (event.repeatCount == 0) viewModel.openSortMenu()
+                    return true
+                }
+
                 // 实体 A 键 / 确定
                 KeyEvent.KEYCODE_BUTTON_A,
                 KeyEvent.KEYCODE_DPAD_CENTER,
@@ -95,7 +100,7 @@ object GamepadKeyHandler {
             when (event.keyCode) {
                 KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER,
                 KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BACK,
-                KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1 -> return true
+                KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1, KeyEvent.KEYCODE_BUTTON_START -> return true
                 KeyEvent.KEYCODE_BUTTON_X,
                 KeyEvent.KEYCODE_MENU -> {
                     if (xKeyDownTime > 0) {

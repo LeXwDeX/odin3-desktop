@@ -24,7 +24,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.odin.desktop.ui.components.AppActionDialog
 import com.odin.desktop.ui.components.AppBatchManageDialog
-import com.odin.desktop.ui.components.AppHorizontalRow
+import com.odin.desktop.ui.components.AppIconCollection
+import com.odin.desktop.ui.components.AppSortMenu
+import com.odin.desktop.ui.components.appSortLabel
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.TextButton
+import com.odin.desktop.data.model.HOME_APP_LIMIT
 import com.odin.desktop.ui.components.DashboardContent
 import com.odin.desktop.ui.components.BottomDockBar
 import com.odin.desktop.ui.components.ConfigDialog
@@ -82,6 +88,11 @@ fun LauncherScreen(
 
     val isReorderingApps by viewModel.isReorderingApps.collectAsState()
     val pickedAppIndex by viewModel.pickedAppIndex.collectAsState()
+    val isAllAppsOpen by viewModel.isAllAppsOpen.collectAsState()
+    val sortMode by viewModel.sortMode.collectAsState()
+    val usageAvailable by viewModel.usageStatsAvailable.collectAsState()
+    val isSortMenuOpen by viewModel.isSortMenuOpen.collectAsState()
+    val sortMenuIndex by viewModel.sortMenuIndex.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(orientationMode) {
         if (orientationMode >= 0) onOrientationChange(orientationMode)
@@ -102,23 +113,38 @@ fun LauncherScreen(
                 modifier = Modifier.fillMaxSize().padding(top = 56.dp, bottom = 62.dp)
             )
         } else {
-        // 1. 中部应用大卡片滑带 (严格屏幕级垂直绝对居中，居于屏幕中轴线上)
-        Box(
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
-        ) {
-            AppHorizontalRow(
-                apps = currentTabApps,
-                selectedAppIndex = selectedAppIndex,
-                focusZone = focusZone,
-                isReordering = isReorderingApps,
-                pickedIndex = pickedAppIndex,
-                onAppClick = { app, index ->
-                    viewModel.onAppClick(app, index)
+        AppIconCollection(
+            apps = currentTabApps, selectedIndex = selectedAppIndex,
+            hasFocus = focusZone == FocusZone.APPS,
+            isGrid = isAllAppsOpen, isReordering = isReorderingApps, pickedIndex = pickedAppIndex,
+            collectionKey = if (isAllAppsOpen) "library" else selectedTabIndex, sortKey = sortMode,
+            onClick = viewModel::onAppClick, onPick = viewModel::pickAppForDrag,
+            onMove = viewModel::moveDraggedApp, onDrop = viewModel::finishAppDrag,
+            onAllApps = viewModel::openAllApps, onColumns = viewModel::setGridColumns,
+            modifier = if (isAllAppsOpen) Modifier.fillMaxSize().padding(top = 132.dp, bottom = 94.dp)
+                else Modifier.align(Alignment.Center).fillMaxWidth().height(164.dp)
+        )
+
+        Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 60.dp, start = 28.dp, end = 28.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(if (isReorderingApps) strings.getString(R.string.app_order_hint)
+                else strings.getString(R.string.app_browse_hint), color = palette.textDim, fontSize = 12.sp,
+                maxLines = 2, modifier = Modifier.weight(1f))
+            if (isReorderingApps) TextButton(onClick = viewModel::exitReorderMode) {
+                Text(strings.getString(R.string.app_order_done), color = palette.accent)
+            } else {
+                TextButton(onClick = viewModel::openAppActionDialog) {
+                    Text(strings.getString(R.string.app_actions), color = palette.accent)
                 }
-            )
+                TextButton(onClick = viewModel::openSortMenu) {
+                    Text(if (sortMode == com.odin.desktop.data.model.AppSortMode.LAST_USED && !usageAvailable)
+                        strings.getString(R.string.app_sort_usage_missing)
+                        else strings.getString(R.string.app_sort_current, strings.getString(appSortLabel(sortMode))), color = palette.accent)
+                }
+            }
+            if (isAllAppsOpen) TextButton(onClick = viewModel::closeAllApps) {
+                Text(strings.getString(R.string.app_library_close), color = palette.accent)
+            }
         }
 
         // 2. 首页 App Name 与包名详情 (严格固定独立绝对槽位，彻底杜绝相对推挤与字符抖动)
@@ -129,7 +155,8 @@ fun LauncherScreen(
                 .padding(top = 64.dp, start = 32.dp, end = 32.dp)
                 .height(60.dp)
         ) {
-            val hoveredApp = currentTabApps.getOrNull(selectedAppIndex)
+            val isMoreSelected = !isAllAppsOpen && !isReorderingApps && selectedAppIndex == HOME_APP_LIMIT && currentTabApps.size > HOME_APP_LIMIT
+            val hoveredApp = if (isMoreSelected) null else currentTabApps.getOrNull(selectedAppIndex)
 
             // App Name 槽位：绝对固定在 Top(0.dp)，固定高度 32.dp，严格顶部对齐，零像素位移
             Box(
@@ -140,7 +167,7 @@ fun LauncherScreen(
                 contentAlignment = Alignment.TopStart
             ) {
                 Text(
-                    text = hoveredApp?.label ?: if (currentTabApps.isEmpty()) strings.getString(R.string.text_no_apps_in_this_category) else "",
+                    text = if (isMoreSelected) strings.getString(R.string.app_library) else hoveredApp?.label ?: if (currentTabApps.isEmpty()) strings.getString(R.string.text_no_apps_in_this_category) else "",
                     color = if (focusZone == FocusZone.APPS) palette.accent else palette.text,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
@@ -167,7 +194,7 @@ fun LauncherScreen(
                 contentAlignment = Alignment.TopStart
             ) {
                 Text(
-                    text = hoveredApp?.packageName ?: "",
+                    text = if (isAllAppsOpen) strings.getString(R.string.app_library_count, currentTabApps.size) else hoveredApp?.packageName ?: "",
                     color = palette.textDim,
                     fontSize = 12.sp,
                     maxLines = 1,
@@ -229,6 +256,11 @@ fun LauncherScreen(
                 }
             )
         }
+        if (isSortMenuOpen) AppSortMenu(
+            selected = sortMode, focusIndex = sortMenuIndex, usageAvailable = usageAvailable,
+            onSelect = viewModel::setSortMode, onDismiss = viewModel::closeSortMenu,
+            onUsageAccess = viewModel::openUsageAccessSettings
+        )
     }
 
     // 5. Config 设置弹窗 (支持手柄 D-Pad 上下左右与 A/B/X/L1/R1 盲操)
@@ -262,7 +294,7 @@ fun LauncherScreen(
     AppActionDialog(
         isOpen = isAppActionDialogOpen,
         app = appUnderAction,
-        currentTab = tabs.getOrNull(selectedTabIndex),
+        currentTab = if (isAllAppsOpen) tabs.firstOrNull { it.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS } else tabs.getOrNull(selectedTabIndex),
         allTabs = tabs,
         focusIndex = appActionFocusIndex,
         inTabPicker = appActionInTabPicker,
@@ -277,7 +309,7 @@ fun LauncherScreen(
     // 7. 长按 X 键呼出【批量增删分类应用】模态框
     AppBatchManageDialog(
         isOpen = isAppBatchManageDialogOpen,
-        currentTab = tabs.getOrNull(selectedTabIndex),
+        currentTab = if (isAllAppsOpen) tabs.firstOrNull { it.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS } else tabs.getOrNull(selectedTabIndex),
         allApps = allInstalledApps,
         currentTabAppPackages = currentTabAppPackages,
         searchQuery = batchManageSearchQuery,

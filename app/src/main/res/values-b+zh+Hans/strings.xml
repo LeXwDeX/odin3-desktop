@@ -241,4 +241,24 @@
     <string name="header_full">已充满</string>
     <string name="header_fan">风扇 %1$s RPM</string>
     <string name="afk_countdown_hint">"%1$d 秒后进入息屏挂机\n双击屏幕可取消或退出"</string>
+
+    <!-- Icon order and application library -->
+    <string name="app_library">全部应用</string>
+    <string name="app_library_count">全部应用 · %1$d 个应用</string>
+    <string name="app_library_close">返回</string>
+    <string name="app_order_done">完成排序</string>
+    <string name="app_actions">应用管理</string>
+    <string name="app_order_hint">点选图标，再点目标位置 · 长按拖拽 · A 拿起/放下 · B 返回</string>
+    <string name="app_browse_hint">长按图标或按 Y 调整顺序 · START 展示排序</string>
+    <string name="app_sort_current">排序：%1$s</string>
+    <string name="app_sort_title">图标展示排序</string>
+    <string name="app_sort_manual">手动排序</string>
+    <string name="app_sort_installed">安装时间（最近优先）</string>
+    <string name="app_sort_last_used">最后运行时间（最近优先）</string>
+    <string name="app_sort_name">应用名称（A–Z）</string>
+    <string name="app_usage_access">未取得使用记录 · 点击前往系统授权</string>
+    <string name="app_usage_unavailable">当前设备无法提供应用使用记录。</string>
+    <string name="app_sort_detail">排序方式按分类保存。最近运行读取系统保留的近一年记录；没有记录的应用排在末尾，按名称排列。</string>
+    <string name="app_order_save_failed">图标顺序保存失败，请重试。</string>
+    <string name="app_sort_usage_missing">最后运行：未取得记录</string>
 </resources>
