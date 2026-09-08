@@ -117,3 +117,29 @@ tools/android ./gradlew -PreleaseVersion=0.1.1 :app:assembleDebug :app:assembleR
 交互测试前后的数据库所有表记录一致，包括 3 个分类和 47 条应用归属；正式版安装前的全部偏好文件也与测试前逐字节一致。最终安装前后数据目录 inode 不变，原有自定义分类仍可见，默认 HOME 和禁用应用列表一致。英文截图完成后已恢复原来的 `[zh-Hans]` 应用语言和 `1.0` 字体大小，设备回到 Odin Desktop；当前应用进程没有记录崩溃，UI 调试辅助进程已停止。
 
 旧 APK、数据保留校验、原始截图、布局与正式附件保存在本机忽略目录 `.android-local/device-analysis/ui-v017/`。Dashboard 的 6/30 秒调度由生产 Flow 的虚拟时钟测试验证；本次设备检查覆盖所改交互，不代表所有语言、字体倍数与长时间负载场景的穷尽验收。
+
+## v0.1.8 分类展开与存储颜色
+
+2026-09-08，[v0.1.8](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.8) 的[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34184545209)和[对应主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34184540044)均成功，标签与构建提交为 `082c83d49d5f694febec0f3c2f32e66ca05a1c6a`。
+
+`[+]` 现在展开当前分类，沿用该分类的排序和应用归属；内置存储与 TF 卡的空闲容量使用同一个灰色。无 TF 卡时内置存储占满两卡位置的布局已存在，本次保留，挂载变化在 Dashboard 下一次刷新时反映。
+
+正式附件 SHA-256 为 `e1eea2634feb7a25804e2e6af7308e2bed9622d0a398ba0a0d1bcc3a31afc5a6`，与 GitHub 资产摘要、校验附件及安装路径中的 APK 一致。包名 `com.odin.desktop`，版本 `0.1.8 / 1009`，不可调试，新旧签名一致；保存旧 APK 后以 `adb install -r` 保留数据安装到重新确认的 Odin3 / Android 15。正式版实测自定义分类展开后仅显示该分类的 12 个应用，B 返回来源分类的 `[+]`；两个存储条的空闲部分颜色一致。
+
+本地 Debug/Release 构建、42 项单元测试、279 个多语言键及架构回归、Home/Back 重复输入回归通过；Lint 0 个错误、82 个警告。交互前后数据库所有表和偏好文件一致，保留 3 个分类、47 条应用归属；安装前后数据目录 inode、默认 HOME 和禁用应用列表一致。
+
+验收期间一次使用已变化页面的旧坐标，误触充电按钮，将 5V 3A 改为 9V 3A。已恢复 5V 3A，界面和设备读回确认 `charging_limit_power_limit=1`、`percent_80_charge_limit=0`。后续验收先检查当前页面身份，再执行依赖该页面的操作。
+
+证据保存在本机忽略目录 `.android-local/device-analysis/category-v018/`；安装路径 APK 的最终独立哈希核对保存在下一次迭代的 `.android-local/device-analysis/immersive-v019/baseline.json`。
+
+## v0.1.9 恢复前台后的沉浸模式
+
+2026-09-08，[v0.1.9](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.9) 的[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34186162331)和[对应主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34186121378)均成功，标签与构建提交为 `166d850c06b6b84c10fe74d7f45b1e2073b497e4`。
+
+主窗口在恢复前台、重新取得窗口焦点时再次隐藏系统状态栏和导航栏，保留边缘滑动访问系统栏的行为。应用扫描、硬件刷新与 Dashboard 工作仍绑定实际可见性变化；本地回归确认 HOME 连按 100 次没有额外应用扫描、硬件刷新、可见性切换和无障碍读取，根页面 BACK 连按 100 次没有进入 Android 默认返回分发。Debug/Release 构建、42 项单元测试、279 个多语言键及架构回归通过，Lint 0 个错误、82 个警告。
+
+正式附件 SHA-256 为 `311971a570e327a474293a071dfe753843818a5b710e6fcd531224b80d5e9792`，与 GitHub 资产摘要、校验附件及安装路径中的 APK 一致。包名 `com.odin.desktop`，版本 `0.1.9 / 1010`，不可调试，签名与已保留的 v0.1.8 一致；先使用同版本 Debug 构建验证，再以 `adb install -r` 安装 GitHub 正式附件。
+
+正式版实测冷启动、从系统设置返回、熄屏唤醒、收起通知面板后，状态栏和导航栏均隐藏；边缘滑动仍可访问系统栏与通知面板。窗口读回同时核对当前焦点、栏可见性和临时显示状态，避免只用一项可见性标志判断系统覆盖层。全屏应用页、B 返回来源分类及设置页打开正常。README 三张英文图片重新从正式版采集并逐张检查，拍摄后恢复 `[zh-Hans]` 语言和 `1.0` 字体大小。
+
+Debug 交互验证前后数据库所有表与偏好文件一致，保留 3 个分类和 47 条应用归属。正式安装与英文截图完成后，数据目录 inode、默认 HOME、禁用应用列表及充电开关与安装前基线一致，TF 卡仍挂载；当前应用进程没有记录崩溃，UI 调试辅助进程已停止，设备回到 Odin Desktop。旧正式 APK 保留在上一版本的本地验收目录，新版本的附件、窗口读回、数据比对和截图保存在 `.android-local/device-analysis/immersive-v019/`。这些短时检查不代替长期运行与所有语言、字体配置的穷尽验收。
