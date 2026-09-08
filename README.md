@@ -1,6 +1,6 @@
 # Odin 3 Desktop
 
-A controller-friendly Android launcher for the **AYN Odin 3**, with an OLED-black interface, app groups, a full-screen app library, and direct access to the handheld's hardware controls.
+A controller-friendly Android launcher for the **AYN Odin 3**, with a soft dark interface, app groups, a full-screen app library, and direct access to the handheld's hardware controls.
 
 [![Latest release](https://img.shields.io/github/v/release/LeXwDeX/odin3-desktop)](https://github.com/LeXwDeX/odin3-desktop/releases/latest)
 [![Android CI](https://github.com/LeXwDeX/odin3-desktop/actions/workflows/android-ci.yml/badge.svg)](https://github.com/LeXwDeX/odin3-desktop/actions/workflows/android-ci.yml)
@@ -81,7 +81,7 @@ Choose from six color presets with touch or the controller. The focused preset i
 
 ### Orientation
 
-**Grip landscape** keeps landscape apps in the normal handheld orientation while allowing apps that explicitly request portrait. **Sensor landscape** releases that preference and follows the app's orientation request and the device sensors. Settings are applied through the firmware and read back; no persistent rotation service is needed.
+**Landscape grip** keeps landscape apps in the normal handheld orientation while allowing apps that explicitly request portrait. **Sensor landscape** releases that preference and follows the app's orientation request and the device sensors. Settings are applied through the firmware and read back; no persistent rotation service is needed.
 
 ![English orientation settings on an Odin 3](docs/screenshots/orientation-en.png)
 
@@ -91,7 +91,7 @@ Android remains responsible for choosing the default home app. If you select ano
 
 Hardware buttons do not require a persistent foreground service. The optional AFK black-screen overlay runs only when explicitly enabled. Double-tap to exit it, or press Power to put the device to sleep; sleeping ends the overlay, notification, and wake lock. Waking the device does not automatically restart AFK mode.
 
-The screenshots above are captured from the English interface of v0.1.7 on a physical Odin 3.
+The screenshots above are captured from the English interface of v0.1.10 on a physical Odin 3.
 
 ## Controller guide
 
@@ -118,7 +118,7 @@ Use **JDK 17**, **Android SDK 35**, and the Gradle Wrapper. The project includes
 git clone https://github.com/LeXwDeX/odin3-desktop.git
 cd odin3-desktop
 python3 tools/setup-android.py
-tools/android ./gradlew -PreleaseVersion=0.1.7 :app:assembleDebug
+tools/android ./gradlew -PreleaseVersion=0.1.10 :app:assembleDebug
 ```
 
 For other environments, configure `JAVA_HOME` and `ANDROID_HOME`, then run the Gradle Wrapper directly. A locally generated debug key may differ from the release key; keep the original signing key when you need an in-place update.
