@@ -212,9 +212,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val pendingOrders = mutableMapOf<Long, List<String>>()
     private var scanJob: Job? = null
 
-    private fun activeAppTab(): TabEntity? = if (_isAllAppsOpen.value)
-        _tabs.value.firstOrNull { it.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS }
-        else _tabs.value.getOrNull(_selectedTabIndex.value)
+    private fun activeAppTab(): TabEntity? = _tabs.value.getOrNull(_selectedTabIndex.value)
 
     fun setGridColumns(columns: Int) { gridColumns = columns.coerceAtLeast(1) }
 

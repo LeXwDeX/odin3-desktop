@@ -3,6 +3,7 @@ package com.odin.desktop.ui.screens
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
+import com.odin.desktop.data.model.displayName
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ fun LauncherScreen(
     val telemetry by viewModel.telemetry.collectAsState()
     val tabs by viewModel.tabs.collectAsState()
     val selectedTabIndex by viewModel.selectedTabIndex.collectAsState()
+    val currentTab = tabs.getOrNull(selectedTabIndex)
     val isConfigFocused by viewModel.isConfigFocusedInTabs.collectAsState()
     val focusZone by viewModel.focusZone.collectAsState()
 
@@ -121,8 +123,9 @@ fun LauncherScreen(
             ) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = 28.dp)) {
                     Text(
-                        text = if (isAllAppsOpen) strings.getString(R.string.app_library_count, currentTabApps.size)
-                            else if (isMoreSelected) strings.getString(R.string.app_library)
+                        text = if (isAllAppsOpen) strings.getString(R.string.app_library_count,
+                                currentTab?.displayName(strings).orEmpty(), currentTabApps.size)
+                            else if (isMoreSelected) currentTab?.displayName(strings).orEmpty()
                             else hoveredApp?.label ?: strings.getString(R.string.text_no_apps_in_this_category),
                         color = if (focusZone == FocusZone.APPS) palette.accent else palette.text,
                         fontSize = if (isAllAppsOpen) 20.sp else 24.sp,
@@ -256,7 +259,7 @@ fun LauncherScreen(
     AppActionDialog(
         isOpen = isAppActionDialogOpen,
         app = appUnderAction,
-        currentTab = if (isAllAppsOpen) tabs.firstOrNull { it.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS } else tabs.getOrNull(selectedTabIndex),
+        currentTab = currentTab,
         allTabs = tabs,
         focusIndex = appActionFocusIndex,
         inTabPicker = appActionInTabPicker,
@@ -271,7 +274,7 @@ fun LauncherScreen(
     // 7. 长按 X 键呼出【批量增删分类应用】模态框
     AppBatchManageDialog(
         isOpen = isAppBatchManageDialogOpen,
-        currentTab = if (isAllAppsOpen) tabs.firstOrNull { it.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS } else tabs.getOrNull(selectedTabIndex),
+        currentTab = currentTab,
         allApps = allInstalledApps,
         currentTabAppPackages = currentTabAppPackages,
         searchQuery = batchManageSearchQuery,

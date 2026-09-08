@@ -61,11 +61,12 @@ import com.odin.desktop.ui.theme.CyanAccent
 import com.odin.desktop.ui.theme.OdinDesktopTheme
 import java.util.Locale
 
+private val StorageFreeColor = Color(0xFF8E99A4)
 private val StorageColors = listOf(
     Color(0xFF6C96FF), // 系统: 蓝色
     CyanAccent,        // 应用: 青色
     Color(0xFFFFB454), // 其他: 橙色
-    Color(0xFF8E99A4)  // 空闲: 灰色
+    StorageFreeColor  // 空闲: 灰色
 )
 
 /** Dashboard selection belongs to the launcher; this view only paints it and handles touch. */
@@ -221,7 +222,8 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
             SegmentedBar(categories.map { it!!.toFloat() / total!!.toFloat() }, StorageColors)
         } else {
             // Only total/free are known yet: show aggregate use, never invent category proportions.
-            UsageBar(if (used != null && total != null) used.toFloat() / total else null, Color(0xFF6C96FF))
+            UsageBar(if (used != null && total != null) used.toFloat() / total else null,
+                Color(0xFF6C96FF), remainingColor = StorageFreeColor)
         }
         val categoryNames = listOf(strings.getString(R.string.text_system_2), strings.getString(R.string.text_apps), strings.getString(R.string.text_other), strings.getString(R.string.text_free))
         if (compact) {
@@ -285,12 +287,14 @@ private fun ExternalStorageCard(usage: ExternalStorageUsage, modifier: Modifier)
                 modifier = Modifier.padding(bottom = 3.dp))
         }
         Spacer(Modifier.height(7.dp))
-        UsageBar(if (used != null && total != null) used.toFloat() / total else null, palette.accent)
+        UsageBar(if (used != null && total != null) used.toFloat() / total else null,
+            palette.accent, remainingColor = StorageFreeColor)
         Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            listOf(strings.getString(R.string.text_used_2) to used, strings.getString(R.string.text_free) to free).forEach { (title, bytes) ->
+            listOf(strings.getString(R.string.text_used_2) to used, strings.getString(R.string.text_free) to free).forEachIndexed { index, (title, bytes) ->
+                val color = if (index == 0) palette.accent else StorageFreeColor
                 Row(Modifier.fillMaxWidth()) {
-                    Text(title, color = palette.textDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.weight(1f))
-                    Text(formatBytes(bytes), color = palette.text, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1)
+                    Text(title, color = color, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.weight(1f))
+                    Text(formatBytes(bytes), color = color, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1)
                 }
             }
         }
@@ -383,11 +387,12 @@ private fun MetricNote(note: String?) {
 }
 
 @Composable
-private fun UsageBar(fraction: Float?, color: Color, modifier: Modifier = Modifier) {
+private fun UsageBar(fraction: Float?, color: Color, modifier: Modifier = Modifier,
+    remainingColor: Color = Color(0xFF26343A)) {
     val palette = LocalOdinPalette.current
     if (fraction != null && fraction.isFinite()) {
         SegmentedBar(listOf(fraction.coerceIn(0f, 1f), (1f - fraction).coerceIn(0f, 1f)),
-            listOf(color, Color(0xFF26343A)), modifier)
+            listOf(color, remainingColor), modifier)
     } else {
         Canvas(modifier.fillMaxWidth().height(7.dp).clip(RoundedCornerShape(4.dp))) {
             drawRect(Color(0xFF26343A))

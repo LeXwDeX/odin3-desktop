@@ -244,8 +244,8 @@
     <string name="afk_countdown_hint">"%1$d 秒後に画面保護を開始\nダブルタップでキャンセル・終了"</string>
 
     <!-- Icon order and application library -->
-    <string name="app_library">すべてのアプリ</string>
-    <string name="app_library_count">すべてのアプリ · %1$d 個</string>
+    <string name="app_library">カテゴリを開く</string>
+    <string name="app_library_count">%1$s · %2$d 個</string>
     <string name="app_library_close">戻る</string>
     <string name="app_order_done">並べ替え完了</string>
     <string name="app_actions">アプリ管理</string>

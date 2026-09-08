@@ -246,8 +246,8 @@
     <string name="afk_countdown_hint">"Entering idle screen in %1$d seconds\nDouble-tap to cancel or exit"</string>
 
     <!-- Icon order and application library -->
-    <string name="app_library">All applications</string>
-    <string name="app_library_count">All applications · %1$d apps</string>
+    <string name="app_library">View group</string>
+    <string name="app_library_count">%1$s · %2$d apps</string>
     <string name="app_library_close">Back</string>
     <string name="app_order_done">Done</string>
     <string name="app_actions">App options</string>

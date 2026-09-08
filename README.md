@@ -22,7 +22,7 @@ The app targets the AYN Odin 3. Hardware integration has been verified on Androi
 
 ## Home screen and app library
 
-Each group's home row shows up to **10 apps**. When the group contains more than 10, the next tile is **[+]**. Open it to see **all installed, launchable apps**, including apps in other groups.
+Each group's home row shows up to **10 apps**. When the group contains more than 10, the next tile is **[+]**. Open it to see **every app in that group**, including the first 10. The page title shows the group's name and app count. Opening [+] in the **All apps** group shows every installed, launchable app.
 
 The library fills the screen: no tab bar and no hardware dock. Navigate with the D-pad or stick, scroll by touch, and press **B** to return to the original group and its [+] tile. On the Odin 3 at its default display and font settings, the grid shows three rows of six icons. The column count adapts to the available width.
 
@@ -36,7 +36,7 @@ App names can be shortened in the grid; the selected app's name also appears abo
 - Press **Y** or hold an icon to reorder. Pick an icon and tap its destination, or drag it toward an edge to scroll. Reordering exposes the complete group, including apps beyond the first 10.
 - Press **START** or tap **Sort** to choose manual order, installation time, last used, or app name. Sort preferences are saved separately for each group.
 
-Installation order uses the original install time, so updating an app does not move it to the front. Last-used order requires Android usage access; apps without a usage record appear after those with a record. The library shares its saved order with the All apps group.
+Installation order uses the original install time, so updating an app does not move it to the front. Last-used order requires Android usage access; apps without a usage record appear after those with a record. Each group's full-screen page shares that group's saved order, sorting preference, and app membership.
 
 ## Hardware dock
 
@@ -64,6 +64,8 @@ The Dashboard shows internal-storage categories, mounted external-storage capaci
 Entering the Dashboard starts a sample immediately. Each sampler then refreshes at **6-second intervals three times**, followed by **30-second intervals**. Leaving the Dashboard or hiding the launcher stops collection; returning starts the initial cadence again. Slow queries complete before another sample is requested, so work does not accumulate. The smaller battery and fan display in the home-screen header has its own refresh schedule.
 
 Statistics that cannot be read are marked unavailable. Usage access is needed for some storage and memory details. The launcher avoids presenting incomplete app-memory totals as complete measurements.
+
+Free space uses the same gray in both internal and external storage bars. When no external volume is detected, the internal storage card fills the storage row; changes appear on the next Dashboard refresh.
 
 ## Settings
 

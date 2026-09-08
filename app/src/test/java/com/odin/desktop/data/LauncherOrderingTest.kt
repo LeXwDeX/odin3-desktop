@@ -38,7 +38,7 @@ class LauncherOrderingTest {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { app.database.clearAllTables() }
         app.getSharedPreferences("app_display", 0).edit().clear().commit()
         val pm = shadowOf(app.packageManager)
-        val entries = (0..24).map { index ->
+        val entries = (0..30).map { index ->
             val pkg = "test.app${index.toString().padStart(2, '0')}"
             val info = ApplicationInfo().apply { packageName = pkg; name = pkg }
             pm.installPackage(PackageInfo().apply {
@@ -53,12 +53,12 @@ class LauncherOrderingTest {
         pm.setResolveInfosForIntent(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), entries)
         categoryId = app.database.tabDao().insertTab(TabEntity(name = "Games", isDefault = true))
         allId = app.database.tabDao().insertTab(TabEntity(name = "All", kind = TabKind.ALL_APPS, sortOrder = 1))
-        app.database.appMappingDao().insertMappings(entries.mapIndexed { index, entry ->
+        app.database.appMappingDao().insertMappings(entries.take(25).mapIndexed { index, entry ->
             AppMappingEntity(tabId = categoryId, packageName = entry.activityInfo.packageName, sortOrder = index)
         })
         vm = LauncherViewModel(app)
         store.put("launcher", vm)
-        await { vm.tabs.value.size == 2 && vm.allInstalledApps.value.size == 25 }
+        await { vm.tabs.value.size == 2 && vm.allInstalledApps.value.size == 31 }
         vm.selectTab(0)
         await { vm.currentTabApps.value.size == 25 }
     }
@@ -97,11 +97,13 @@ class LauncherOrderingTest {
     }
 
     @Test fun plusAndGridNavigationReturnToSameCategoryPositionAndSortPersistsSeparately() {
+        val categoryPackages = vm.currentTabApps.value.map { it.packageName }.toSet()
         repeat(30) { vm.onNavigateRight() }
         assertEquals(10, vm.selectedAppIndex.value)
         vm.onConfirm()
         assertTrue(vm.isAllAppsOpen.value)
         await { vm.currentTabApps.value.size == 25 }
+        assertEquals(categoryPackages, vm.currentTabApps.value.map { it.packageName }.toSet())
         vm.setGridColumns(3)
         vm.onNavigateUp()
         vm.onPrevTab()
@@ -114,8 +116,8 @@ class LauncherOrderingTest {
         vm.onNavigateDown()
         assertEquals(3, vm.selectedAppIndex.value)
         vm.setSortMode(AppSortMode.NAME)
-        assertEquals(AppSortMode.NAME, app.appRepository.getSortMode(allId))
-        assertEquals(AppSortMode.MANUAL, app.appRepository.getSortMode(categoryId))
+        assertEquals(AppSortMode.NAME, app.appRepository.getSortMode(categoryId))
+        assertEquals(AppSortMode.MANUAL, app.appRepository.getSortMode(allId))
         vm.onBack()
         assertFalse(vm.isAllAppsOpen.value)
         assertEquals(0, vm.selectedTabIndex.value)
@@ -151,5 +153,55 @@ class LauncherOrderingTest {
         assertFalse(vm.isAllAppsOpen.value)
         assertEquals(10, vm.selectedAppIndex.value)
         assertEquals(FocusZone.APPS, vm.focusZone.value)
+    }
+
+    @Test fun expandedCategorySavesItsOwnOrderAndMembership() {
+        val original = vm.currentTabApps.value
+        vm.openAllApps()
+        vm.pickAppForDrag(original.last().packageName)
+        vm.moveDraggedApp(original.last().packageName, original.first().packageName)
+        vm.finishAppDrag()
+        val reordered = vm.currentTabApps.value.map { it.packageName }
+        vm.exitReorderMode()
+        await {
+            runBlocking { app.database.appMappingDao().getAppsForTab(categoryId).map { it.packageName } } == reordered
+        }
+        assertEquals(original.last().packageName, reordered.first())
+        assertEquals(25, reordered.size)
+        assertTrue(runBlocking { app.database.appMappingDao().getAppsForTab(allId) }.isEmpty())
+
+        vm.removeAppFromCurrentTab(original.first())
+        await {
+            runBlocking { app.database.appMappingDao().getAppsForTab(categoryId) }.size == 24 &&
+                original.first().packageName !in vm.currentTabAppPackages.value
+        }
+        vm.openBatchManageDialog()
+        assertTrue(vm.isAppBatchManageDialogOpen.value)
+        val outsideApp = vm.allInstalledApps.value.first { it.packageName !in original.map { app -> app.packageName } }
+        vm.toggleAppInCurrentTab(outsideApp)
+        await { outsideApp.packageName in vm.currentTabAppPackages.value }
+        assertTrue(runBlocking { app.database.appMappingDao().getAppsForTab(allId) }.isEmpty())
+        assertEquals(31, vm.allInstalledApps.value.size)
+        vm.onBack()
+        assertTrue(vm.isAllAppsOpen.value)
+        vm.onBack()
+        await { vm.currentTabApps.value.size == 25 }
+        assertEquals(10, vm.selectedAppIndex.value)
+        assertTrue(outsideApp.packageName in vm.currentTabAppPackages.value)
+        assertFalse(original.first().packageName in vm.currentTabAppPackages.value)
+    }
+
+    @Test fun expandingAllAppsTabStillShowsEveryInstalledApp() {
+        vm.selectTab(1)
+        await { vm.currentTabApps.value.size == 31 }
+        vm.openAllApps()
+        assertEquals(vm.allInstalledApps.value.map { it.packageName }.toSet(),
+            vm.currentTabApps.value.map { it.packageName }.toSet())
+        vm.setSortMode(AppSortMode.NAME)
+        assertEquals(AppSortMode.NAME, app.appRepository.getSortMode(allId))
+        assertEquals(AppSortMode.MANUAL, app.appRepository.getSortMode(categoryId))
+        vm.onBack()
+        assertEquals(1, vm.selectedTabIndex.value)
+        assertEquals(10, vm.selectedAppIndex.value)
     }
 }

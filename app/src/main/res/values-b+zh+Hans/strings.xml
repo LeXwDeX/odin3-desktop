@@ -243,8 +243,8 @@
     <string name="afk_countdown_hint">"%1$d 秒后进入息屏挂机\n双击屏幕可取消或退出"</string>
 
     <!-- Icon order and application library -->
-    <string name="app_library">全部应用</string>
-    <string name="app_library_count">全部应用 · %1$d 个应用</string>
+    <string name="app_library">展开分类</string>
+    <string name="app_library_count">%1$s · %2$d 个应用</string>
     <string name="app_library_close">返回</string>
     <string name="app_order_done">完成排序</string>
     <string name="app_actions">应用管理</string>
