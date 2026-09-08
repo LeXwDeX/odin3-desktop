@@ -73,7 +73,7 @@ fun TopTabBar(
                 HomeTab(strings.getString(com.odin.desktop.R.string.page_dashboard), isDashboardSelected && !isConfigFocused, focusZone, onDashboardSelected)
             }
             itemsIndexed(tabs, key = { _, tab -> tab.id }) { index, tab ->
-                HomeTab(tab.displayName(strings).uppercase(), !isDashboardSelected && selectedTabIndex == index && !isConfigFocused,
+                HomeTab(tab.displayName(strings), !isDashboardSelected && selectedTabIndex == index && !isConfigFocused,
                     focusZone) { onTabSelected(index) }
             }
         }

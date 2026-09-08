@@ -7,6 +7,8 @@ import com.odin.desktop.data.entity.TabKind
 
 fun TabEntity.displayName(context: Context): String {
     if (!usesDefaultName) return name
+    // Legacy migrations marked existing category names as defaults. Keep their stored text.
+    if (kind != TabKind.ALL_APPS && name.isNotEmpty()) return name
     val label = when (kind) {
         TabKind.GAMES -> R.string.tab_games
         TabKind.SYSTEM -> R.string.tab_system

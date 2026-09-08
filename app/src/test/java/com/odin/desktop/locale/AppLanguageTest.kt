@@ -9,6 +9,9 @@ import android.os.LocaleList
 import android.os.Looper
 import androidx.appcompat.app.AppCompatActivity
 import com.odin.desktop.R
+import com.odin.desktop.data.entity.TabEntity
+import com.odin.desktop.data.entity.TabKind
+import com.odin.desktop.data.model.displayName
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -22,6 +25,33 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [32, 35], application = Application::class)
 class AppLanguageTest {
+    @Test
+    fun storedCategoryNamesSurviveLocaleChangesEvenWithLegacyDefaultFlags() {
+        val context = RuntimeEnvironment.getApplication()
+        val storedTabs = listOf(
+            TabEntity(id = 1, name = "游戏与模拟器", kind = TabKind.GAMES, usesDefaultName = true),
+            TabEntity(id = 2, name = "系统工具", kind = TabKind.SYSTEM, usesDefaultName = true),
+            TabEntity(name = "Games & emulators", kind = TabKind.GAMES, usesDefaultName = true),
+            TabEntity(name = "My rPg Collection", kind = TabKind.CUSTOM),
+            TabEntity(name = "お気に入り", kind = TabKind.GAMES, usesDefaultName = false),
+            TabEntity(name = "我的全部应用", kind = TabKind.ALL_APPS, usesDefaultName = false)
+        )
+        listOf("en", "ja", "zh-Hans").forEach { tag ->
+            val config = Configuration(context.resources.configuration).apply {
+                setLocales(LocaleList.forLanguageTags(tag))
+            }
+            val localized = context.createConfigurationContext(config)
+            storedTabs.forEach { tab ->
+                assertEquals("$tag / ${tab.kind}", tab.name, tab.displayName(localized))
+            }
+            val allApps = TabEntity(name = "全部应用", kind = TabKind.ALL_APPS, usesDefaultName = true)
+            assertEquals(localized.getString(R.string.tab_all_apps), allApps.displayName(localized))
+            // Empty system-generated seed labels have no stored user name to preserve.
+            val seed = TabEntity(name = "", kind = TabKind.GAMES, usesDefaultName = true)
+            assertEquals(localized.getString(R.string.tab_games), seed.displayName(localized))
+        }
+    }
+
     @After
     fun resetLanguage() {
         AppLanguage.SYSTEM.apply()

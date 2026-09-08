@@ -35,7 +35,7 @@ App names can be shortened in the grid; the selected app's name also appears abo
 ### Organizing apps
 
 - Create up to 10 groups in **Settings → 4. Edit tabs**. Use **▲ / ▼** to move a group, choose its default-home action, or delete an eligible group.
-- Group names and actions have separate rows so longer translations do not compete for the same horizontal space. Custom names are preserved when changing languages.
+- Group names and actions have separate rows so longer translations do not compete for the same horizontal space. Saved group names keep their original text and capitalization when changing languages, including names inherited from older versions. System entries such as **All apps** still follow the interface language.
 - Press **X** in an app group to open its searchable membership list. Adding or removing a group entry does not install or uninstall the app.
 - Press **Y** or hold an icon to reorder. Pick an icon and tap its destination, or drag it toward an edge to scroll. Reordering exposes the complete group, including apps beyond the first 10.
 - Press **START** or tap **Sort** to choose manual order, installation time, last used, or app name. Sort preferences are saved separately for each group.
@@ -118,7 +118,7 @@ Use **JDK 17**, **Android SDK 35**, and the Gradle Wrapper. The project includes
 git clone https://github.com/LeXwDeX/odin3-desktop.git
 cd odin3-desktop
 python3 tools/setup-android.py
-tools/android ./gradlew -PreleaseVersion=0.1.10 :app:assembleDebug
+tools/android ./gradlew -PreleaseVersion=0.1.11 :app:assembleDebug
 ```
 
 For other environments, configure `JAVA_HOME` and `ANDROID_HOME`, then run the Gradle Wrapper directly. A locally generated debug key may differ from the release key; keep the original signing key when you need an in-place update.
