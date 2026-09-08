@@ -3,7 +3,7 @@ package com.odin.desktop.data.model
 import java.text.Collator
 import java.util.Locale
 
-const val HOME_APP_LIMIT = 20
+const val HOME_APP_LIMIT = 10
 
 enum class AppSortMode { MANUAL, INSTALLED, LAST_USED, NAME }
 

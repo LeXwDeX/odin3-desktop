@@ -27,12 +27,13 @@ class AppOrderingTest {
         assertEquals(sortApps(sameNames, AppSortMode.NAME), sortApps(sameNames.reversed(), AppSortMode.NAME))
     }
 
-    @Test fun overflowStartsAfterTwentyAndEditingKeepsEveryAppReachable() {
+    @Test fun overflowStartsAfterTenAndEditingKeepsEveryAppReachable() {
         assertEquals(0, homeAppCount(0, false))
-        assertEquals(19, homeAppCount(19, false))
-        assertEquals(20, homeAppCount(20, false))
-        assertEquals(21, homeAppCount(21, false))
-        assertEquals(21, homeAppCount(50, false))
+        assertEquals(9, homeAppCount(9, false))
+        assertEquals(10, homeAppCount(10, false))
+        assertEquals(11, homeAppCount(11, false))
+        assertEquals(11, homeAppCount(20, false))
+        assertEquals(11, homeAppCount(50, false))
         assertEquals(50, homeAppCount(50, true))
     }
 

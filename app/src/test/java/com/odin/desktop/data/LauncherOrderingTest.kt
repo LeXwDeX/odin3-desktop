@@ -12,6 +12,7 @@ import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.entity.TabKind
 import com.odin.desktop.data.model.AppSortMode
 import com.odin.desktop.ui.viewmodel.LauncherViewModel
+import com.odin.desktop.ui.navigation.FocusZone
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.*
@@ -97,11 +98,19 @@ class LauncherOrderingTest {
 
     @Test fun plusAndGridNavigationReturnToSameCategoryPositionAndSortPersistsSeparately() {
         repeat(30) { vm.onNavigateRight() }
-        assertEquals(20, vm.selectedAppIndex.value)
+        assertEquals(10, vm.selectedAppIndex.value)
         vm.onConfirm()
         assertTrue(vm.isAllAppsOpen.value)
         await { vm.currentTabApps.value.size == 25 }
         vm.setGridColumns(3)
+        vm.onNavigateUp()
+        vm.onPrevTab()
+        vm.onNextTab()
+        vm.onDockItemClick(0)
+        assertTrue(vm.isAllAppsOpen.value)
+        assertEquals(FocusZone.APPS, vm.focusZone.value)
+        assertEquals(0, vm.selectedTabIndex.value)
+        assertEquals(0, vm.selectedAppIndex.value)
         vm.onNavigateDown()
         assertEquals(3, vm.selectedAppIndex.value)
         vm.setSortMode(AppSortMode.NAME)
@@ -110,7 +119,7 @@ class LauncherOrderingTest {
         vm.onBack()
         assertFalse(vm.isAllAppsOpen.value)
         assertEquals(0, vm.selectedTabIndex.value)
-        assertEquals(20, vm.selectedAppIndex.value)
+        assertEquals(10, vm.selectedAppIndex.value)
         vm.onConfirm()
         await { vm.sortMode.value == AppSortMode.NAME }
         vm.enterReorderMode()
@@ -120,5 +129,27 @@ class LauncherOrderingTest {
         assertTrue(vm.isAllAppsOpen.value)
         vm.onBack()
         assertFalse(vm.isAllAppsOpen.value)
+    }
+
+    @Test fun gridBoundaryAndNestedDialogsKeepFocusUntilBackReturnsToPlus() {
+        repeat(10) { vm.onNavigateRight() }
+        vm.onConfirm()
+        await { vm.currentTabApps.value.size == 25 }
+        vm.setGridColumns(6)
+        repeat(20) { vm.onNavigateDown() }
+        assertEquals(24, vm.selectedAppIndex.value)
+        assertEquals(FocusZone.APPS, vm.focusZone.value)
+        vm.openSortMenu()
+        vm.onBack()
+        assertFalse(vm.isSortMenuOpen.value)
+        assertTrue(vm.isAllAppsOpen.value)
+        vm.openAppActionDialog()
+        vm.onBack()
+        assertFalse(vm.isAppActionDialogOpen.value)
+        assertTrue(vm.isAllAppsOpen.value)
+        vm.onBack()
+        assertFalse(vm.isAllAppsOpen.value)
+        assertEquals(10, vm.selectedAppIndex.value)
+        assertEquals(FocusZone.APPS, vm.focusZone.value)
     }
 }

@@ -88,7 +88,7 @@ fun ConfigDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(palette.background.copy(alpha = 0.96f))
+            .background(palette.background)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null

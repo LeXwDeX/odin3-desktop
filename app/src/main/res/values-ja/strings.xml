@@ -262,4 +262,25 @@
     <string name="app_sort_detail">表示順はカテゴリごとに保存。過去1年以内のシステム使用履歴を参照し、記録のないアプリは末尾に名前順で表示します。</string>
     <string name="app_order_save_failed">表示順を保存できませんでした。もう一度お試しください。</string>
     <string name="app_sort_usage_missing">最終使用：履歴未取得</string>
+
+    <!-- Compact controls; full labels remain available to accessibility. -->
+    <string name="dock_performance_title">⚡</string>
+    <string name="dock_fan_title">🌀</string>
+    <string name="dock_lights_title">💡</string>
+    <string name="dock_charging_title">🔋</string>
+    <string name="dock_airplane_title">✈</string>
+    <string name="dock_performance_normal">P1</string>
+    <string name="dock_performance_medium">P2</string>
+    <string name="dock_performance_maximum">P3</string>
+    <string name="dock_off">OFF</string>
+    <string name="dock_on">ON</string>
+    <string name="dock_fan_smart">S</string>
+    <string name="dock_fan_maximum">M</string>
+    <string name="dock_fan_quiet">Q</string>
+    <string name="dock_fan_system">SYS</string>
+    <string name="dock_unknown">—</string>
+    <string name="dock_bypass_5v">5V BP</string>
+    <string name="dock_bypass_9v">9V BP</string>
+    <string name="app_sort_button">並び順</string>
+    <string name="app_library_back_button">B · 戻る</string>
 </resources>

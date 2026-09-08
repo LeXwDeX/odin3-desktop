@@ -261,4 +261,25 @@
     <string name="app_sort_detail">排序方式按分类保存。最近运行读取系统保留的近一年记录；没有记录的应用排在末尾，按名称排列。</string>
     <string name="app_order_save_failed">图标顺序保存失败，请重试。</string>
     <string name="app_sort_usage_missing">最后运行：未取得记录</string>
+
+    <!-- Compact controls; full labels remain available to accessibility. -->
+    <string name="dock_performance_title">⚡ 性能</string>
+    <string name="dock_fan_title">🌀 风扇</string>
+    <string name="dock_lights_title">💡 摇杆灯</string>
+    <string name="dock_charging_title">🔋 充电</string>
+    <string name="dock_airplane_title">✈ 飞行</string>
+    <string name="dock_performance_normal">默认</string>
+    <string name="dock_performance_medium">性能</string>
+    <string name="dock_performance_maximum">最高</string>
+    <string name="dock_off">关闭</string>
+    <string name="dock_on">开启</string>
+    <string name="dock_fan_smart">智能</string>
+    <string name="dock_fan_maximum">最大</string>
+    <string name="dock_fan_quiet">静音</string>
+    <string name="dock_fan_system">系统</string>
+    <string name="dock_unknown">—</string>
+    <string name="dock_bypass_5v">5V 分离</string>
+    <string name="dock_bypass_9v">9V 分离</string>
+    <string name="app_sort_button">排序</string>
+    <string name="app_library_back_button">B · 返回</string>
 </resources>

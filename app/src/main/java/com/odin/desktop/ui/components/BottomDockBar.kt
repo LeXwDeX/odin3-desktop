@@ -25,6 +25,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +93,30 @@ fun BottomDockBar(
         DockItemData(strings.getString(R.string.text_airplane_mode), airplaneLabel, airplaneColor)
     )
 
+    // Compact labels are display-only resources; accessibility retains each full state.
+    val compactTitles = listOf(R.string.dock_performance_title, R.string.dock_fan_title,
+        R.string.dock_lights_title, R.string.dock_charging_title, R.string.dock_airplane_title)
+    val compactValues = listOf(
+        strings.getString(when (performanceMode) {
+            HardwareController.PERF_NORMAL -> R.string.dock_performance_normal
+            HardwareController.PERF_PERFORMANCE -> R.string.dock_performance_medium
+            HardwareController.PERF_HIGH_PERFORMANCE -> R.string.dock_performance_maximum
+            else -> R.string.dock_unknown
+        }),
+        strings.getString(when (fanMode) {
+            HardwareController.FAN_OFF -> R.string.dock_off
+            HardwareController.FAN_SMART -> R.string.dock_fan_smart
+            HardwareController.FAN_SPORT -> R.string.dock_fan_maximum
+            HardwareController.FAN_QUIET -> R.string.dock_fan_quiet
+            2, 3, 6 -> R.string.dock_fan_system
+            else -> R.string.dock_unknown
+        }),
+        strings.getString(if (joystickLightEnabled) R.string.dock_on else R.string.dock_off),
+        if (chargingSeparation) strings.getString(if (chargePowerLimit) R.string.dock_bypass_5v else R.string.dock_bypass_9v)
+            else chargeLabel,
+        strings.getString(if (airplaneMode) R.string.dock_on else R.string.dock_off)
+    )
+
     ProvideTextStyle(TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))) {
         Row(
             modifier = modifier
@@ -116,22 +143,29 @@ fun BottomDockBar(
                         .border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(8.dp))
                         .focusProperties { canFocus = false }
                         .clickable(role = Role.Button) { onItemClick(index) }
+                        .clearAndSetSemantics {
+                            contentDescription = item.title
+                            stateDescription = item.value
+                        }
                         .padding(horizontal = 6.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = item.title,
+                            text = strings.getString(compactTitles[index]),
                             color = palette.text,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false).padding(end = 5.dp)
                         )
                         Text(
-                            text = ": ${item.value}",
+                            text = compactValues[index],
                             color = item.stateColor,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,

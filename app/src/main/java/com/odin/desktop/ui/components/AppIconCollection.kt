@@ -189,7 +189,9 @@ fun AppIconCollection(
                             .clickable(onClick = onAllApps).semantics { contentDescription = label },
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Text("+", fontSize = 48.sp, color = palette.accent)
-                            Text(label, fontSize = 13.sp, color = palette.text)
+                            Text(label, fontSize = 13.sp, color = palette.text, maxLines = 2,
+                                overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 8.dp))
                         }
                     }
                 }

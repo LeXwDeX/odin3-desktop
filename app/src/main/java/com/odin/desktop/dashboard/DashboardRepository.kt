@@ -26,12 +26,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.sync.Mutex
@@ -62,21 +60,19 @@ class DashboardRepository(context: Context) {
 
         // UID storage queries can take seconds. They never hold up the live metrics.
         launch(Dispatchers.IO) {
-            while (isActive) {
+            dashboardRefreshes().collect {
                 val storage = storageSnapshot()
                 publish { it.copy(storage = storage) }
-                delay(STORAGE_INTERVAL_MS)
             }
         }
         launch(Dispatchers.IO) {
-            while (isActive) {
+            dashboardRefreshes().collect {
                 val external = readExternalStorage()
                 publish { it.copy(externalStorage = external) }
-                delay(LIVE_INTERVAL_MS)
             }
         }
         launch(Dispatchers.IO) {
-            while (isActive) {
+            dashboardRefreshes().collect {
                 val sample = sampler.read()
                 publish {
                     sample.copy(
@@ -85,17 +81,15 @@ class DashboardRepository(context: Context) {
                         memory = sample.memory.copy(nonSystemAppBytes = pss.bytes, note = notes(sample.memory.note, pss.note))
                     )
                 }
-                delay(LIVE_INTERVAL_MS)
             }
         }
         launch(Dispatchers.IO) {
-            while (isActive) {
+            dashboardRefreshes().collect {
                 val value = dumpSampler.nonSystemPss()
                 publish {
                     pss = value
                     it.copy(memory = it.memory.copy(nonSystemAppBytes = value.bytes, note = value.note))
                 }
-                delay(DUMP_INTERVAL_MS)
             }
         }
     }.conflate()
@@ -103,12 +97,9 @@ class DashboardRepository(context: Context) {
     private suspend fun storageSnapshot(): StorageUsage = storageLock.withLock {
         val access = hasUsageAccess(app)
         val localeTags = app.resources.configuration.locales.toLanguageTags()
-        val now = SystemClock.elapsedRealtime()
-        storageCache?.takeIf { it.hasAccess == access && it.localeTags == localeTags && now - it.time < STORAGE_INTERVAL_MS }
-            ?.let { return@withLock it.value }
         val value = readStorage(access)
         currentCoroutineContext().ensureActive()
-        storageCache = CachedStorage(value, SystemClock.elapsedRealtime(), access, localeTags)
+        storageCache = CachedStorage(value, localeTags)
         value
     }
 
@@ -193,13 +184,7 @@ class DashboardRepository(context: Context) {
         )
     }
 
-    private data class CachedStorage(val value: StorageUsage, val time: Long, val hasAccess: Boolean, val localeTags: String)
-
-    private companion object {
-        const val LIVE_INTERVAL_MS = 2_000L
-        const val STORAGE_INTERVAL_MS = 60_000L
-        const val DUMP_INTERVAL_MS = 15_000L
-    }
+    private data class CachedStorage(val value: StorageUsage, val localeTags: String)
 }
 
 private class LiveSampler(private val app: Context) {

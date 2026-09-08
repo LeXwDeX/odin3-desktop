@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -95,12 +96,16 @@ fun ConsoleModalDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
+                            modifier = Modifier.weight(1f).padding(end = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             titleIcon?.invoke()
                             Text(
                                 text = title,
+                                modifier = Modifier.weight(1f, fill = false),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
                                 color = palette.text,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
@@ -125,6 +130,7 @@ fun ConsoleModalDialog(
                         // 头部快捷 B 键返回提示
                         Text(
                             text = strings.getString(R.string.text_b_or_tap_the_background_to_return_2),
+                            modifier = Modifier.widthIn(max = 180.dp),
                             color = palette.textDim,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Normal

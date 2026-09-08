@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,10 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -26,7 +24,6 @@ import com.odin.desktop.ui.components.AppActionDialog
 import com.odin.desktop.ui.components.AppBatchManageDialog
 import com.odin.desktop.ui.components.AppIconCollection
 import com.odin.desktop.ui.components.AppSortMenu
-import com.odin.desktop.ui.components.appSortLabel
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.TextButton
@@ -113,106 +110,70 @@ fun LauncherScreen(
                 modifier = Modifier.fillMaxSize().padding(top = 56.dp, bottom = 62.dp)
             )
         } else {
-        AppIconCollection(
-            apps = currentTabApps, selectedIndex = selectedAppIndex,
-            hasFocus = focusZone == FocusZone.APPS,
-            isGrid = isAllAppsOpen, isReordering = isReorderingApps, pickedIndex = pickedAppIndex,
-            collectionKey = if (isAllAppsOpen) "library" else selectedTabIndex, sortKey = sortMode,
-            onClick = viewModel::onAppClick, onPick = viewModel::pickAppForDrag,
-            onMove = viewModel::moveDraggedApp, onDrop = viewModel::finishAppDrag,
-            onAllApps = viewModel::openAllApps, onColumns = viewModel::setGridColumns,
-            modifier = if (isAllAppsOpen) Modifier.fillMaxSize().padding(top = 132.dp, bottom = 94.dp)
-                else Modifier.align(Alignment.Center).fillMaxWidth().height(164.dp)
-        )
-
-        Row(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(bottom = 60.dp, start = 28.dp, end = 28.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(if (isReorderingApps) strings.getString(R.string.app_order_hint)
-                else strings.getString(R.string.app_browse_hint), color = palette.textDim, fontSize = 12.sp,
-                maxLines = 2, modifier = Modifier.weight(1f))
-            if (isReorderingApps) TextButton(onClick = viewModel::exitReorderMode) {
-                Text(strings.getString(R.string.app_order_done), color = palette.accent)
-            } else {
-                TextButton(onClick = viewModel::openAppActionDialog) {
-                    Text(strings.getString(R.string.app_actions), color = palette.accent)
-                }
-                TextButton(onClick = viewModel::openSortMenu) {
-                    Text(if (sortMode == com.odin.desktop.data.model.AppSortMode.LAST_USED && !usageAvailable)
-                        strings.getString(R.string.app_sort_usage_missing)
-                        else strings.getString(R.string.app_sort_current, strings.getString(appSortLabel(sortMode))), color = palette.accent)
-                }
-            }
-            if (isAllAppsOpen) TextButton(onClick = viewModel::closeAllApps) {
-                Text(strings.getString(R.string.app_library_close), color = palette.accent)
-            }
-        }
-
-        // 2. 首页 App Name 与包名详情 (严格固定独立绝对槽位，彻底杜绝相对推挤与字符抖动)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .fillMaxWidth()
-                .padding(top = 64.dp, start = 32.dp, end = 32.dp)
-                .height(60.dp)
-        ) {
-            val isMoreSelected = !isAllAppsOpen && !isReorderingApps && selectedAppIndex == HOME_APP_LIMIT && currentTabApps.size > HOME_APP_LIMIT
+            val isMoreSelected = !isAllAppsOpen && !isReorderingApps &&
+                selectedAppIndex == HOME_APP_LIMIT && currentTabApps.size > HOME_APP_LIMIT
             val hoveredApp = if (isMoreSelected) null else currentTabApps.getOrNull(selectedAppIndex)
-
-            // App Name 槽位：绝对固定在 Top(0.dp)，固定高度 32.dp，严格顶部对齐，零像素位移
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .fillMaxWidth()
-                    .height(32.dp),
-                contentAlignment = Alignment.TopStart
-            ) {
-                Text(
-                    text = if (isMoreSelected) strings.getString(R.string.app_library) else hoveredApp?.label ?: if (currentTabApps.isEmpty()) strings.getString(R.string.text_no_apps_in_this_category) else "",
-                    color = if (focusZone == FocusZone.APPS) palette.accent else palette.text,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
-                        platformStyle = PlatformTextStyle(includeFontPadding = false),
-                        lineHeight = 28.sp,
-                        lineHeightStyle = LineHeightStyle(
-                            alignment = LineHeightStyle.Alignment.Top,
-                            trim = LineHeightStyle.Trim.Both
-                        )
-                    )
+            Column(
+                Modifier.fillMaxSize().padding(
+                    top = if (isAllAppsOpen) 12.dp else 64.dp,
+                    bottom = if (isAllAppsOpen) 4.dp else 58.dp
                 )
-            }
-
-            // 包名槽位：绝对固定在 Top(34.dp)，固定高度 20.dp，严格顶部对齐，与 App Name 彻底物理隔离
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 34.dp)
-                    .fillMaxWidth()
-                    .height(20.dp),
-                contentAlignment = Alignment.TopStart
             ) {
-                Text(
-                    text = if (isAllAppsOpen) strings.getString(R.string.app_library_count, currentTabApps.size) else hoveredApp?.packageName ?: "",
-                    color = palette.textDim,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
-                        platformStyle = PlatformTextStyle(includeFontPadding = false),
-                        lineHeight = 16.sp,
-                        lineHeightStyle = LineHeightStyle(
-                            alignment = LineHeightStyle.Alignment.Top,
-                            trim = LineHeightStyle.Trim.Both
-                        )
+                Column(Modifier.fillMaxWidth().padding(horizontal = 28.dp)) {
+                    Text(
+                        text = if (isAllAppsOpen) strings.getString(R.string.app_library_count, currentTabApps.size)
+                            else if (isMoreSelected) strings.getString(R.string.app_library)
+                            else hoveredApp?.label ?: strings.getString(R.string.text_no_apps_in_this_category),
+                        color = if (focusZone == FocusZone.APPS) palette.accent else palette.text,
+                        fontSize = if (isAllAppsOpen) 20.sp else 24.sp,
+                        fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
-                )
+                    Text(
+                        text = if (isAllAppsOpen) hoveredApp?.label ?: "" else hoveredApp?.packageName ?: "",
+                        color = palette.textDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    AppIconCollection(
+                        apps = currentTabApps, selectedIndex = selectedAppIndex,
+                        hasFocus = focusZone == FocusZone.APPS,
+                        isGrid = isAllAppsOpen, isReordering = isReorderingApps, pickedIndex = pickedAppIndex,
+                        collectionKey = if (isAllAppsOpen) "library" else selectedTabIndex, sortKey = sortMode,
+                        onClick = viewModel::onAppClick, onPick = viewModel::pickAppForDrag,
+                        onMove = viewModel::moveDraggedApp, onDrop = viewModel::finishAppDrag,
+                        onAllApps = viewModel::openAllApps, onColumns = viewModel::setGridColumns,
+                        modifier = if (isAllAppsOpen) Modifier.fillMaxSize().padding(top = 4.dp)
+                            else Modifier.fillMaxWidth().height(164.dp)
+                    )
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        strings.getString(if (isReorderingApps) R.string.app_order_hint else R.string.app_browse_hint),
+                        color = palette.textDim, fontSize = 11.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (isReorderingApps) TextButton(onClick = viewModel::exitReorderMode) {
+                        Text(strings.getString(R.string.app_order_done), color = palette.accent)
+                    } else {
+                        TextButton(onClick = viewModel::openAppActionDialog) {
+                            Text(strings.getString(R.string.app_actions), color = palette.accent)
+                        }
+                        TextButton(onClick = viewModel::openSortMenu) {
+                            Text(strings.getString(R.string.app_sort_button), color = palette.accent)
+                        }
+                    }
+                    if (isAllAppsOpen) TextButton(onClick = viewModel::onBack) {
+                        Text(strings.getString(R.string.app_library_back_button), color = palette.accent)
+                    }
+                }
             }
         }
 
-        }
-
+        if (!isAllAppsOpen) {
         // 3. 顶部 Tab 栏 (顶部对齐)
         Box(
             modifier = Modifier
@@ -255,6 +216,7 @@ fun LauncherScreen(
                     viewModel.onDockItemClick(index)
                 }
             )
+        }
         }
         if (isSortMenuOpen) AppSortMenu(
             selected = sortMode, focusIndex = sortMenuIndex, usageAvailable = usageAvailable,

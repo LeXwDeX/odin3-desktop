@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,6 +38,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,11 +65,7 @@ internal fun TabEditSection(
     var newTabName by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(strings.getString(R.string.text_tab_groups_and_order_value_10, tabs.size), color = palette.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Text(strings.getString(R.string.text_up_down_tab_left_right_action_a), color = palette.accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
@@ -123,7 +124,7 @@ internal fun TabEditSection(
                 }
                 val focusedAction = if (isRowFocused) availableActions.getOrNull(tabActionFocusIndex) else null
 
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
@@ -134,10 +135,10 @@ internal fun TabEditSection(
                             shape = RoundedCornerShape(8.dp)
                         )
                         .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
@@ -149,6 +150,9 @@ internal fun TabEditSection(
                         )
                         Text(
                             text = tab.displayName(strings),
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                             color = if (isRowFocused) palette.accent else palette.text,
                             fontSize = 15.sp,
                             fontWeight = if (isRowFocused || tab.isDefault) FontWeight.Bold else FontWeight.Normal
@@ -187,6 +191,7 @@ internal fun TabEditSection(
                     // 排序与操作按钮区 (支持左右光标高亮聚焦或手柄键位直达)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         // 上移按钮
@@ -201,11 +206,13 @@ internal fun TabEditSection(
                                         color = if (isBtnFocused) palette.accent else palette.border,
                                         shape = RoundedCornerShape(4.dp)
                                     )
-                                    .clickable { onMoveTabUp(tab) }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .clickable(role = Role.Button) { onMoveTabUp(tab) }
+                                    .clearAndSetSemantics { contentDescription = strings.getString(R.string.text_move_up) }
+                                    .size(44.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = strings.getString(R.string.text_move_up),
+                                    text = "▲",
                                     color = if (isBtnFocused) palette.background else palette.text,
                                     fontSize = 11.sp,
                                     fontWeight = if (isBtnFocused) FontWeight.Bold else FontWeight.Normal
@@ -225,11 +232,13 @@ internal fun TabEditSection(
                                         color = if (isBtnFocused) palette.accent else palette.border,
                                         shape = RoundedCornerShape(4.dp)
                                     )
-                                    .clickable { onMoveTabDown(tab) }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .clickable(role = Role.Button) { onMoveTabDown(tab) }
+                                    .clearAndSetSemantics { contentDescription = strings.getString(R.string.text_move_down) }
+                                    .size(44.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = strings.getString(R.string.text_move_down),
+                                    text = "▼",
                                     color = if (isBtnFocused) palette.background else palette.text,
                                     fontSize = 11.sp,
                                     fontWeight = if (isBtnFocused) FontWeight.Bold else FontWeight.Normal
@@ -249,8 +258,11 @@ internal fun TabEditSection(
                                         color = palette.accent,
                                         shape = RoundedCornerShape(4.dp)
                                     )
-                                    .clickable { onSetDefaultTab(tab) }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .clickable(role = Role.Button) { onSetDefaultTab(tab) }
+                                    .weight(1f)
+                                    .heightIn(min = 44.dp)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = strings.getString(R.string.text_set_as_home),
@@ -273,8 +285,11 @@ internal fun TabEditSection(
                                         color = if (isBtnFocused) palette.danger else palette.danger.copy(alpha = 0.5f),
                                         shape = RoundedCornerShape(4.dp)
                                     )
-                                    .clickable { onDeleteTab(tab) }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .clickable(role = Role.Button) { onDeleteTab(tab) }
+                                    .weight(1f)
+                                    .heightIn(min = 44.dp)
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = strings.getString(R.string.text_delete),
