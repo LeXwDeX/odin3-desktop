@@ -1,5 +1,10 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.components.base.SettingsSectionHeader
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -26,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.odin.desktop.service.fan.HardwareController
 
 @Composable
@@ -39,9 +43,9 @@ internal fun OrientationSection(
     val palette = LocalOdinPalette.current
     val strings = LocalContext.current
     Column {
-        Text(strings.getString(R.string.text_screen_orientation), color = palette.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text(strings.getString(R.string.text_the_usb_port_is_on_the_bottom), color = palette.textDim, fontSize = 12.sp)
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsSectionHeader(strings.getString(R.string.text_screen_orientation),
+            strings.getString(R.string.text_the_usb_port_is_on_the_bottom))
+        Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
         val options = listOf(
             Pair(strings.getString(R.string.text_fixed_landscape_default_grip), HardwareController.ORIENTATION_LANDSCAPE),
@@ -52,23 +56,23 @@ internal fun OrientationSection(
             val isFocused = inSubMenu && subFocusIndex % options.size == index
             val isActive = currentOrientation == mode
 
+            if (index > 0) Spacer(Modifier.height(OdinSpacing.md))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(OdinCorners.control))
                     .background(
-                        if (isFocused) palette.accent.copy(alpha = 0.20f)
+                        if (isFocused) palette.selection
                         else if (isActive) palette.surface
                         else palette.card
                     )
                     .border(
                         width = if (isFocused) 2.dp else if (isActive) 1.dp else 0.dp,
                         color = if (isFocused) palette.accent else if (isActive) palette.accent.copy(alpha = 0.5f) else palette.border,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(OdinCorners.control)
                     )
                     .clickable { onOrientationSelect(mode) }
-                    .padding(horizontal = 18.dp, vertical = 14.dp)
+                    .padding(OdinInsets.optionRow)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -77,15 +81,16 @@ internal fun OrientationSection(
                 ) {
                     Text(
                         text = label,
+                        modifier = Modifier.weight(1f).padding(end = OdinSpacing.sm),
                         color = if (isFocused || isActive) palette.accent else palette.text,
-                        fontSize = 14.sp,
+                        style = OdinTypography.h3,
                         fontWeight = if (isFocused || isActive) FontWeight.Bold else FontWeight.Normal
                     )
                     if (isActive) {
                         Text(
                             text = strings.getString(R.string.text_active),
                             color = palette.accent,
-                            fontSize = 12.sp,
+                            style = OdinTypography.button,
                             fontWeight = FontWeight.Bold
                         )
                     }

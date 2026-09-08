@@ -10,8 +10,8 @@ import androidx.compose.material3.Shapes
 @Composable
 fun OdinDesktopTheme(
     palette: OdinPalette = OdinPalette(),
-    typography: Typography = Typography(),
-    shapes: Shapes = Shapes(),
+    typography: Typography = OdinTypography.material,
+    shapes: Shapes = OdinMaterialShapes,
     content: @Composable () -> Unit
 ) {
     CompositionLocalProvider(LocalOdinPalette provides palette) {

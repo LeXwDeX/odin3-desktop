@@ -1,5 +1,10 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.components.base.SettingsSectionHeader
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import com.odin.desktop.data.model.displayName
 import androidx.compose.ui.platform.LocalContext
@@ -44,7 +49,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.odin.desktop.data.entity.TabEntity
 
 @Composable
@@ -65,16 +69,14 @@ internal fun TabEditSection(
     var newTabName by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(strings.getString(R.string.text_tab_groups_and_order_value_10, tabs.size), color = palette.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(strings.getString(R.string.text_up_down_tab_left_right_action_a), color = palette.accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(modifier = Modifier.height(12.dp))
+        SettingsSectionHeader(strings.getString(R.string.text_tab_groups_and_order_value_10, tabs.size),
+            strings.getString(R.string.text_up_down_tab_left_right_action_a), descriptionColor = palette.accent)
+        Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
         if (tabs.size < 10) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
             ) {
                 OutlinedTextField(
                     value = newTabName,
@@ -96,6 +98,8 @@ internal fun TabEditSection(
                             newTabName = ""
                         }
                     },
+                    shape = RoundedCornerShape(OdinCorners.control),
+                    contentPadding = OdinInsets.button,
                     colors = ButtonDefaults.buttonColors(containerColor = palette.accent)
                 ) {
                     Text(strings.getString(R.string.text_add), color = palette.background, fontWeight = FontWeight.Bold)
@@ -103,7 +107,7 @@ internal fun TabEditSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
         val listState = rememberLazyListState()
         LaunchedEffect(subFocusIndex, inSubMenu) {
@@ -114,7 +118,7 @@ internal fun TabEditSection(
 
         LazyColumn(
             state = listState,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
             modifier = Modifier.fillMaxSize()
         ) {
             itemsIndexed(tabs) { index, tab ->
@@ -127,25 +131,25 @@ internal fun TabEditSection(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(OdinCorners.control))
                         .background(if (isRowFocused) palette.accent.copy(alpha = 0.12f) else palette.card)
                         .border(
                             width = if (isRowFocused) 2.dp else 1.dp,
                             color = if (isRowFocused) palette.accent.copy(alpha = 0.7f) else palette.border,
-                            shape = RoundedCornerShape(8.dp)
+                            shape = RoundedCornerShape(OdinCorners.control)
                         )
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(OdinInsets.optionRow),
+                    verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)
                     ) {
                         Text(
                             text = "#${index + 1}",
                             color = if (isRowFocused) palette.accent else palette.textDim,
-                            fontSize = 13.sp,
+                            style = OdinTypography.button,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -154,20 +158,20 @@ internal fun TabEditSection(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                             color = if (isRowFocused) palette.accent else palette.text,
-                            fontSize = 15.sp,
+                            style = OdinTypography.h3,
                             fontWeight = if (isRowFocused || tab.isDefault) FontWeight.Bold else FontWeight.Normal
                         )
                         if (tab.isDefault) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(OdinCorners.badge))
                                     .background(palette.warning)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .padding(OdinInsets.badge)
                             ) {
                                 Text(
                                     text = strings.getString(R.string.text_home_tab),
                                     color = palette.background,
-                                    fontSize = 11.sp,
+                                    style = OdinTypography.caption,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -175,14 +179,14 @@ internal fun TabEditSection(
                         if (tab.isGameTab) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(OdinCorners.badge))
                                     .background(palette.accent.copy(alpha = 0.15f))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .padding(OdinInsets.badge)
                             ) {
                                 Text(
                                     text = strings.getString(R.string.text_game_category),
                                     color = palette.accent,
-                                    fontSize = 11.sp
+                                    style = OdinTypography.caption
                                 )
                             }
                         }
@@ -192,19 +196,19 @@ internal fun TabEditSection(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
                     ) {
                         // 上移按钮
                         if (index > 0) {
                             val isBtnFocused = focusedAction == com.odin.desktop.data.entity.TabAction.MOVE_UP
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(OdinCorners.control))
                                     .background(if (isBtnFocused) palette.accent else palette.surface)
                                     .border(
                                         width = if (isBtnFocused) 2.dp else 1.dp,
                                         color = if (isBtnFocused) palette.accent else palette.border,
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = RoundedCornerShape(OdinCorners.control)
                                     )
                                     .clickable(role = Role.Button) { onMoveTabUp(tab) }
                                     .clearAndSetSemantics { contentDescription = strings.getString(R.string.text_move_up) }
@@ -214,7 +218,7 @@ internal fun TabEditSection(
                                 Text(
                                     text = "▲",
                                     color = if (isBtnFocused) palette.background else palette.text,
-                                    fontSize = 11.sp,
+                                    style = OdinTypography.button,
                                     fontWeight = if (isBtnFocused) FontWeight.Bold else FontWeight.Normal
                                 )
                             }
@@ -225,12 +229,12 @@ internal fun TabEditSection(
                             val isBtnFocused = focusedAction == com.odin.desktop.data.entity.TabAction.MOVE_DOWN
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(OdinCorners.control))
                                     .background(if (isBtnFocused) palette.accent else palette.surface)
                                     .border(
                                         width = if (isBtnFocused) 2.dp else 1.dp,
                                         color = if (isBtnFocused) palette.accent else palette.border,
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = RoundedCornerShape(OdinCorners.control)
                                     )
                                     .clickable(role = Role.Button) { onMoveTabDown(tab) }
                                     .clearAndSetSemantics { contentDescription = strings.getString(R.string.text_move_down) }
@@ -240,7 +244,7 @@ internal fun TabEditSection(
                                 Text(
                                     text = "▼",
                                     color = if (isBtnFocused) palette.background else palette.text,
-                                    fontSize = 11.sp,
+                                    style = OdinTypography.button,
                                     fontWeight = if (isBtnFocused) FontWeight.Bold else FontWeight.Normal
                                 )
                             }
@@ -251,23 +255,23 @@ internal fun TabEditSection(
                             val isBtnFocused = focusedAction == com.odin.desktop.data.entity.TabAction.SET_DEFAULT
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(OdinCorners.control))
                                     .background(if (isBtnFocused) palette.accent else palette.accent.copy(alpha = 0.2f))
                                     .border(
                                         width = if (isBtnFocused) 2.dp else 1.dp,
                                         color = palette.accent,
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = RoundedCornerShape(OdinCorners.control)
                                     )
                                     .clickable(role = Role.Button) { onSetDefaultTab(tab) }
                                     .weight(1f)
                                     .heightIn(min = 44.dp)
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    .padding(OdinInsets.compactButton),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = strings.getString(R.string.text_set_as_home),
                                     color = if (isBtnFocused) palette.background else palette.accent,
-                                    fontSize = 11.sp,
+                                    style = OdinTypography.button,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -278,23 +282,23 @@ internal fun TabEditSection(
                             val isBtnFocused = focusedAction == com.odin.desktop.data.entity.TabAction.DELETE
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(OdinCorners.control))
                                     .background(if (isBtnFocused) palette.danger else palette.danger.copy(alpha = 0.15f))
                                     .border(
                                         width = if (isBtnFocused) 2.dp else 1.dp,
                                         color = if (isBtnFocused) palette.danger else palette.danger.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = RoundedCornerShape(OdinCorners.control)
                                     )
                                     .clickable(role = Role.Button) { onDeleteTab(tab) }
                                     .weight(1f)
                                     .heightIn(min = 44.dp)
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    .padding(OdinInsets.compactButton),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = strings.getString(R.string.text_delete),
                                     color = if (isBtnFocused) palette.background else palette.danger,
-                                    fontSize = 11.sp,
+                                    style = OdinTypography.button,
                                     fontWeight = FontWeight.Bold
                                 )
                             }

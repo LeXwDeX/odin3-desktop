@@ -1,5 +1,8 @@
 package com.odin.desktop.ui.screens
 
+import com.odin.desktop.ui.theme.OdinSizes
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -20,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.odin.desktop.ui.components.AppActionDialog
 import com.odin.desktop.ui.components.AppBatchManageDialog
 import com.odin.desktop.ui.components.AppIconCollection
@@ -109,7 +111,7 @@ fun LauncherScreen(
                 selectedControl = selectedDashboardControl,
                 hasFocus = focusZone == FocusZone.DASHBOARD,
                 onAction = viewModel::onDashboardAction,
-                modifier = Modifier.fillMaxSize().padding(top = 56.dp, bottom = 62.dp)
+                modifier = Modifier.fillMaxSize().padding(top = OdinSizes.headerHeight, bottom = OdinSizes.dockHeight)
             )
         } else {
             val isMoreSelected = !isAllAppsOpen && !isReorderingApps &&
@@ -117,23 +119,23 @@ fun LauncherScreen(
             val hoveredApp = if (isMoreSelected) null else currentTabApps.getOrNull(selectedAppIndex)
             Column(
                 Modifier.fillMaxSize().padding(
-                    top = if (isAllAppsOpen) 12.dp else 64.dp,
-                    bottom = if (isAllAppsOpen) 4.dp else 58.dp
+                    top = if (isAllAppsOpen) OdinSpacing.md else OdinSizes.headerHeight,
+                    bottom = if (isAllAppsOpen) OdinSpacing.xs else OdinSizes.dockHeight
                 )
             ) {
-                Column(Modifier.fillMaxWidth().padding(horizontal = 28.dp)) {
+                Column(Modifier.fillMaxWidth().padding(horizontal = OdinSpacing.page)) {
                     Text(
                         text = if (isAllAppsOpen) strings.getString(R.string.app_library_count,
                                 currentTab?.displayName(strings).orEmpty(), currentTabApps.size)
                             else if (isMoreSelected) currentTab?.displayName(strings).orEmpty()
                             else hoveredApp?.label ?: strings.getString(R.string.text_no_apps_in_this_category),
                         color = if (focusZone == FocusZone.APPS) palette.accent else palette.text,
-                        fontSize = if (isAllAppsOpen) 20.sp else 24.sp,
+                        style = OdinTypography.h1,
                         fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = if (isAllAppsOpen) hoveredApp?.label ?: "" else hoveredApp?.packageName ?: "",
-                        color = palette.textDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        color = palette.textDim, style = OdinTypography.body, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -150,13 +152,13 @@ fun LauncherScreen(
                     )
                 }
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                    Modifier.fillMaxWidth().padding(horizontal = OdinSpacing.page),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(OdinSpacing.xs)
                 ) {
                     Text(
                         strings.getString(if (isReorderingApps) R.string.app_order_hint else R.string.app_browse_hint),
-                        color = palette.textDim, fontSize = 11.sp,
+                        color = palette.textDim, style = OdinTypography.caption,
                         modifier = Modifier.weight(1f)
                     )
                     if (isReorderingApps) TextButton(onClick = viewModel::exitReorderMode) {

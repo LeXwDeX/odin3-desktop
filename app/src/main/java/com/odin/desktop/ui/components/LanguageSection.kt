@@ -1,5 +1,10 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.components.base.SettingsSectionHeader
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.relocation.BringIntoViewRequester
@@ -26,7 +31,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.odin.desktop.R
 import com.odin.desktop.locale.AppLanguage
 import com.odin.desktop.ui.theme.LocalOdinPalette
@@ -43,10 +47,10 @@ internal fun LanguageSection(
     val palette = LocalOdinPalette.current
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()).selectableGroup(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)
     ) {
-        Text(stringResource(R.string.language_title), color = palette.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text(stringResource(R.string.language_description), color = palette.textDim, fontSize = 12.sp)
+        SettingsSectionHeader(stringResource(R.string.language_title),
+            stringResource(R.string.language_description), modifier = Modifier.padding(bottom = OdinSpacing.xs))
         AppLanguage.entries.forEachIndexed { index, language ->
             val focused = inSubMenu && subFocusIndex == index
             val selected = currentLanguage == language
@@ -58,15 +62,15 @@ internal fun LanguageSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .bringIntoViewRequester(bringIntoView)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (focused) palette.accent.copy(alpha = 0.20f) else palette.card)
+                    .clip(RoundedCornerShape(OdinCorners.control))
+                    .background(if (focused) palette.selection else palette.card)
                     .border(
                         if (focused) 2.dp else 1.dp,
                         if (focused || selected) palette.accent else palette.border,
-                        RoundedCornerShape(8.dp)
+                        RoundedCornerShape(OdinCorners.control)
                     )
                     .selectable(selected = selected, role = Role.RadioButton) { onLanguageSelect(language) }
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                    .padding(OdinInsets.optionRow),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -74,10 +78,10 @@ internal fun LanguageSection(
                     stringResource(language.label),
                     modifier = Modifier.weight(1f),
                     color = if (focused || selected) palette.accent else palette.text,
-                    fontSize = 14.sp
+                    style = OdinTypography.h3
                 )
                 if (selected) {
-                    Text(stringResource(R.string.text_active), color = palette.accent, fontSize = 12.sp)
+                    Text(stringResource(R.string.text_active), color = palette.accent, style = OdinTypography.body)
                 }
             }
         }

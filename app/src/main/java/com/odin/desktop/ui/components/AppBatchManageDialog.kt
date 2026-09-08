@@ -1,5 +1,9 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import com.odin.desktop.data.model.displayName
 import androidx.compose.ui.platform.LocalContext
@@ -38,7 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.model.InstalledApp
@@ -94,7 +97,7 @@ fun AppBatchManageDialog(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = onSearchChange,
-                placeholder = { Text(strings.getString(R.string.text_filter_by_app_or_package_name_down), color = palette.textDim, fontSize = 13.sp) },
+                placeholder = { Text(strings.getString(R.string.text_filter_by_app_or_package_name_down), color = palette.textDim, style = OdinTypography.body) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = palette.text,
@@ -109,11 +112,11 @@ fun AppBatchManageDialog(
                     .border(
                         width = if (isSearchFocused) 2.dp else 0.dp,
                         color = if (isSearchFocused) palette.accent else Color.Transparent,
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(OdinCorners.control)
                     )
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(OdinSpacing.md))
 
             // 2. 状态统计条
             Row(
@@ -124,17 +127,17 @@ fun AppBatchManageDialog(
                 Text(
                     text = strings.getString(R.string.text_matching_apps_value, filteredApps.size),
                     color = palette.textDim,
-                    fontSize = 12.sp
+                    style = OdinTypography.body
                 )
                 Text(
                     text = strings.getString(R.string.text_this_category_contains_value_apps, currentTabAppPackages.size),
                     color = palette.accent,
-                    fontSize = 12.sp,
+                    style = OdinTypography.body,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(OdinSpacing.sm))
 
             // 3. 应用勾选列表
             if (filteredApps.isEmpty()) {
@@ -142,12 +145,12 @@ fun AppBatchManageDialog(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(strings.getString(R.string.text_no_matching_apps), color = palette.textDim, fontSize = 14.sp)
+                    Text(strings.getString(R.string.text_no_matching_apps), color = palette.textDim, style = OdinTypography.h3)
                 }
             } else {
                 LazyColumn(
                     state = listState,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     itemsIndexed(filteredApps) { index, app ->
@@ -157,21 +160,21 @@ fun AppBatchManageDialog(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(OdinCorners.control))
                                 .background(if (isRowFocused) palette.accent else palette.background)
                                 .border(
                                     width = if (isRowFocused) 2.dp else 1.dp,
                                     color = if (isRowFocused) palette.accent else palette.border,
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = RoundedCornerShape(OdinCorners.control)
                                 )
                                 .clickable { onToggleApp(app) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                                .padding(OdinInsets.optionRow),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md),
                                 modifier = Modifier.weight(1f)
                             ) {
                                 AndroidView(
@@ -190,7 +193,7 @@ fun AppBatchManageDialog(
                                     Text(
                                         text = app.label,
                                         color = if (isRowFocused) palette.background else palette.text,
-                                        fontSize = 14.sp,
+                                        style = OdinTypography.h3,
                                         fontWeight = if (isRowFocused) FontWeight.Bold else FontWeight.Normal,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -198,7 +201,7 @@ fun AppBatchManageDialog(
                                     Text(
                                         text = app.packageName,
                                         color = if (isRowFocused) palette.background.copy(alpha = 0.7f) else palette.textDim,
-                                        fontSize = 11.sp,
+                                        style = OdinTypography.caption,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -208,7 +211,7 @@ fun AppBatchManageDialog(
                             // 状态标签 / 勾选开关
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(OdinCorners.badge))
                                     .background(
                                         when {
                                             isRowFocused && isAdded -> palette.background
@@ -220,9 +223,9 @@ fun AppBatchManageDialog(
                                     .border(
                                         width = 1.dp,
                                         color = if (isRowFocused) palette.background else (if (isAdded) palette.accent else palette.border),
-                                        shape = RoundedCornerShape(4.dp)
+                                        shape = RoundedCornerShape(OdinCorners.badge)
                                     )
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .padding(OdinInsets.badge)
                             ) {
                                 Text(
                                     text = if (isAdded) strings.getString(R.string.text_added) else strings.getString(R.string.text_not_added),
@@ -232,7 +235,7 @@ fun AppBatchManageDialog(
                                         isAdded -> palette.accent
                                         else -> palette.textDim
                                     },
-                                    fontSize = 11.sp,
+                                    style = OdinTypography.caption,
                                     fontWeight = FontWeight.Bold
                                 )
                             }

@@ -1,5 +1,8 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.components.base.SettingsSectionHeader
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -13,7 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,8 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 internal fun ColorSection(
@@ -46,17 +49,17 @@ internal fun ColorSection(
     )
 
     Column {
-        Text(strings.getString(R.string.text_choose_a_stick_led_color_a_to), color = palette.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(18.dp))
+        SettingsSectionHeader(strings.getString(R.string.text_choose_a_stick_led_color_a_to))
+        Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
             presets.forEachIndexed { index, (label, hex) ->
                 val isSelected = currentColor.equals(hex, ignoreCase = true)
                 val isFocused = inSubMenu && subFocusIndex % presets.size == index
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { onColorSelect(hex) }
+                    modifier = Modifier.weight(1f).clickable { onColorSelect(hex) }
                 ) {
                     Box(
                         modifier = Modifier
@@ -69,11 +72,12 @@ internal fun ColorSection(
                                 shape = CircleShape
                             )
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(OdinSpacing.sm))
                     Text(
                         text = label,
+                        textAlign = TextAlign.Center,
                         color = if (isFocused) palette.accent else if (isSelected) palette.text else palette.textDim,
-                        fontSize = 12.sp,
+                        style = OdinTypography.body,
                         fontWeight = if (isFocused || isSelected) FontWeight.Bold else FontWeight.Normal
                     )
                 }

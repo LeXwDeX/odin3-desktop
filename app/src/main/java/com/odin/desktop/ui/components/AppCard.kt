@@ -1,5 +1,7 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinCorners
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import android.widget.ImageView
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -104,7 +106,7 @@ fun AppCard(
                 }
                 .scale(scale)
                 .size(if (compact) 76.dp else 110.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(OdinCorners.dialog))
                 .background(if (isPicked || isFocused) palette.selection else palette.card)
                 .border(
                     width = when {
@@ -119,14 +121,14 @@ fun AppCard(
                         isReordering -> palette.border.copy(alpha = 0.8f)
                         else -> palette.border
                     },
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(OdinCorners.dialog)
                 )
                 .clickable(enabled = interactive) { onClick() }
                 .semantics {
                     contentDescription = app.label
                     if (interactive) onLongClick { onLongClick(); true }
                 }
-                .padding(if (compact) 10.dp else 16.dp),
+                .padding(if (compact) OdinSpacing.md else OdinSpacing.lg),
             contentAlignment = Alignment.Center
         ) {
             AndroidView(

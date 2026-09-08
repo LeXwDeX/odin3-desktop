@@ -1,5 +1,9 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -23,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,7 +40,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.odin.desktop.data.entity.TabEntity
 
 /**
@@ -97,7 +101,7 @@ fun ConfigDialog(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp, vertical = 32.dp)
+                .padding(OdinSpacing.page)
         ) {
             // 顶栏标题与关闭指引
             Row(
@@ -108,21 +112,23 @@ fun ConfigDialog(
                 Text(
                     text = strings.getString(R.string.text_system_settings),
                     color = palette.accent,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    style = OdinTypography.h1,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f).padding(end = OdinSpacing.lg)
                 )
                 Text(
                     text = strings.getString(R.string.text_b_or_tap_the_background_to_return),
                     color = palette.textDim,
-                    fontSize = 13.sp
+                    style = OdinTypography.body,
+                    modifier = Modifier.widthIn(max = 280.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(OdinSpacing.xl))
 
             Row(
                 modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                horizontalArrangement = Arrangement.spacedBy(OdinSpacing.xl)
             ) {
                 // 左侧设置分类导航
                 LazyColumn(
@@ -130,15 +136,15 @@ fun ConfigDialog(
                     modifier = Modifier
                         .width(220.dp)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(OdinCorners.card))
                         .background(palette.surface)
                         .border(
                             width = 1.dp,
                             color = palette.border,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(OdinCorners.card)
                         )
-                        .padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(OdinSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
                 ) {
                     itemsIndexed(sections) { index, title ->
                         val isSelected = selectedSection == index
@@ -147,7 +153,7 @@ fun ConfigDialog(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(OdinCorners.control))
                                 .background(
                                     if (isMenuFocused) palette.selection
                                     else if (isSelected) palette.accent.copy(alpha = 0.12f)
@@ -156,15 +162,15 @@ fun ConfigDialog(
                                 .border(
                                     width = if (isMenuFocused) 1.5.dp else 0.dp,
                                     color = if (isMenuFocused) palette.accent else Color.Transparent,
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = RoundedCornerShape(OdinCorners.control)
                                 )
                                 .clickable { onSectionClick(index) }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(OdinInsets.optionRow)
                         ) {
                             Text(
                                 text = title,
                                 color = if (isMenuFocused || isSelected) palette.accent else palette.text,
-                                fontSize = 15.sp,
+                                style = OdinTypography.h3,
                                 fontWeight = if (isMenuFocused || isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         }
@@ -176,14 +182,14 @@ fun ConfigDialog(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(OdinCorners.card))
                         .background(palette.surface)
                         .border(
                             width = 1.dp,
                             color = palette.border,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(OdinCorners.card)
                         )
-                        .padding(24.dp)
+                        .padding(OdinSpacing.panel)
                 ) {
                     when (selectedSection) {
                         0 -> ColorSection(currentJoystickColor, inSubMenu, subFocusIndex, onColorSelect)

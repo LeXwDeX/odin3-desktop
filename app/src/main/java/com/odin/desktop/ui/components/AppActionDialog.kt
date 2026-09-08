@@ -1,5 +1,7 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import com.odin.desktop.data.model.displayName
 import com.odin.desktop.R
@@ -19,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.model.InstalledApp
@@ -125,13 +126,13 @@ fun AppActionDialog(
                 Text(
                     text = strings.getString(R.string.text_choose_a_target_tab_for_value, app.label),
                     color = palette.textDim,
-                    fontSize = 13.sp,
+                    style = OdinTypography.body,
                     modifier = Modifier.padding(bottom = 10.dp)
                 )
 
                 LazyColumn(
                     state = tabPickerListState,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     itemsIndexed(targetTabs) { index, tab ->
@@ -150,7 +151,7 @@ fun AppActionDialog(
             // 一级应用操作列表
             LazyColumn(
                 state = listState,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
                 modifier = Modifier.fillMaxSize()
             ) {
                 itemsIndexed(actions) { index, item ->

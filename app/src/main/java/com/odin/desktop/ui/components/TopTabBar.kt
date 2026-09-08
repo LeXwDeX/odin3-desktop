@@ -1,5 +1,10 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinSizes
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.data.model.displayName
@@ -15,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontFamily
@@ -33,7 +39,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.ui.navigation.FocusZone
 
@@ -55,7 +60,8 @@ fun TopTabBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .height(OdinSizes.headerHeight)
+            .padding(horizontal = OdinSpacing.page, vertical = OdinSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -65,9 +71,9 @@ fun TopTabBar(
         LaunchedEffect(activeIndex) { listState.animateScrollToItem(activeIndex) }
         LazyRow(
             state = listState,
-            modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+            modifier = Modifier.weight(1f).padding(horizontal = OdinSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(OdinSpacing.xs)
         ) {
             item(key = "dashboard") {
                 HomeTab(strings.getString(com.odin.desktop.R.string.page_dashboard), isDashboardSelected && !isConfigFocused, focusZone, onDashboardSelected)
@@ -78,7 +84,7 @@ fun TopTabBar(
             }
         }
         ShoulderButtonBadge(label = "R1")
-        Spacer(Modifier.padding(horizontal = 6.dp))
+        Spacer(Modifier.padding(horizontal = OdinSpacing.sm))
 
         HeaderTelemetry(telemetry)
         Spacer(Modifier.width(12.dp))
@@ -87,20 +93,20 @@ fun TopTabBar(
         val isConfigSelected = isConfigFocused && focusZone == FocusZone.TABS
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(OdinCorners.control))
                 .background(if (isConfigSelected) palette.selection else palette.surface)
                 .border(
                     width = 1.dp,
                     color = if (isConfigSelected) palette.accent else Color.Transparent,
-                    shape = RoundedCornerShape(6.dp)
+                    shape = RoundedCornerShape(OdinCorners.control)
                 )
                 .clickable { onConfigClick() }
-                .padding(horizontal = 14.dp, vertical = 6.dp)
+                .padding(OdinInsets.compactButton)
         ) {
             Text(
                 text = strings.getString(com.odin.desktop.R.string.page_config),
                 color = if (isConfigSelected) palette.accent else palette.text,
-                fontSize = 14.sp,
+                style = OdinTypography.h3,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -112,12 +118,12 @@ private fun HomeTab(label: String, selected: Boolean, focusZone: FocusZone, onCl
     val palette = LocalOdinPalette.current
     val focused = selected && focusZone == FocusZone.TABS
     Box(
-        Modifier.widthIn(max = 150.dp).clip(RoundedCornerShape(6.dp))
+        Modifier.widthIn(max = 150.dp).clip(RoundedCornerShape(OdinCorners.control))
             .background(if (focused) palette.selection else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(OdinInsets.tab)
     ) {
-        Text(label, color = if (selected) palette.accent else palette.textDim, fontSize = 15.sp,
+        Text(label, color = if (selected) palette.accent else palette.textDim, style = OdinTypography.h3,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -127,15 +133,15 @@ fun ShoulderButtonBadge(label: String) {
     val palette = LocalOdinPalette.current
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
+            .clip(RoundedCornerShape(OdinCorners.badge))
             .background(palette.surface)
-            .border(1.dp, palette.border, RoundedCornerShape(4.dp))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .border(1.dp, palette.border, RoundedCornerShape(OdinCorners.badge))
+            .padding(OdinInsets.badge)
     ) {
         Text(
             text = label,
             color = palette.textDim,
-            fontSize = 11.sp,
+            style = OdinTypography.caption,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -145,24 +151,24 @@ fun ShoulderButtonBadge(label: String) {
 private fun HeaderTelemetry(telemetry: LauncherTelemetry) {
     val palette = LocalOdinPalette.current
     val strings = LocalContext.current
-    Row(Modifier.width(208.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Row(Modifier.width(208.dp), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md),
         verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.width(84.dp)) {
             Text(strings.getString(R.string.header_battery, telemetry.battery.percent?.toString() ?: "—"),
-                color = palette.text, fontSize = 12.sp, lineHeight = 14.sp, maxLines = 1)
+                color = palette.text, style = OdinTypography.dataLabel, maxLines = 1)
             Text(strings.getString(when (telemetry.battery.status) {
                 android.os.BatteryManager.BATTERY_STATUS_CHARGING -> R.string.header_charging
                 android.os.BatteryManager.BATTERY_STATUS_FULL -> R.string.header_full
                 android.os.BatteryManager.BATTERY_STATUS_DISCHARGING,
                 android.os.BatteryManager.BATTERY_STATUS_NOT_CHARGING -> R.string.header_on_battery
                 else -> R.string.header_unread
-            }), color = palette.textDim, fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
+            }), color = palette.textDim, style = OdinTypography.dataNote, maxLines = 1)
         }
         Column(Modifier.weight(1f)) {
             Text(strings.getString(R.string.header_fan, telemetry.fan?.rpm?.toString() ?: "—"), color = palette.text,
-                fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 14.sp, maxLines = 1)
+                fontFamily = FontFamily.Monospace, style = OdinTypography.dataLabel, maxLines = 1)
             Text("PWM ${telemetry.fan?.dutyPercent ?: "—"}%", color = palette.textDim,
-                fontFamily = FontFamily.Monospace, fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
+                fontFamily = FontFamily.Monospace, style = OdinTypography.dataNote, maxLines = 1)
         }
     }
 }

@@ -1,5 +1,8 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -48,7 +51,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import com.odin.desktop.dashboard.DashboardAction
 import com.odin.desktop.dashboard.DashboardState
@@ -73,22 +75,22 @@ fun DashboardContent(
     BoxWithConstraints(modifier.fillMaxSize().background(palette.background)) {
         val wide = maxWidth >= 620.dp
         val storageRows = (state.externalStorage.size + 2) / 2
-        val storageHeight = 136.dp * storageRows + 10.dp * (storageRows - 1)
+        val storageHeight = 136.dp * storageRows + OdinSpacing.md * (storageRows - 1)
         val scrollState = rememberScrollState()
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = 18.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = OdinSpacing.page, vertical = OdinSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)
         ) {
             if (wide) {
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
+                    Column(Modifier.weight(1.35f), verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
                         StorageCards(state.storage, state.externalStorage)
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
                             ProcessorCard("CPU", state.cpu, Modifier.weight(1f).height(104.dp))
                             ProcessorCard("GPU", state.gpu, Modifier.weight(1f).height(104.dp))
                         }
                     }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
                         MemoryCard(state.memory, state.loading, Modifier.fillMaxWidth().height(storageHeight))
                         WifiCard(state.wifi, state.loading, Modifier.fillMaxWidth().height(104.dp))
                     }
@@ -96,7 +98,7 @@ fun DashboardContent(
             } else {
                 StorageCards(state.storage, state.externalStorage)
                 MemoryCard(state.memory, state.loading, Modifier.fillMaxWidth().height(136.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
                     ProcessorCard("CPU", state.cpu, Modifier.weight(1f).height(104.dp))
                     ProcessorCard("GPU", state.gpu, Modifier.weight(1f).height(104.dp))
                 }
@@ -104,7 +106,7 @@ fun DashboardContent(
             }
             val actions = DashboardAction.entries
             actions.chunked(if (wide) 4 else 2).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)) {
                     row.forEach { action ->
                         DashboardCard(
                             modifier = Modifier.weight(1f).height(64.dp),
@@ -112,9 +114,9 @@ fun DashboardContent(
                             onClick = { onAction(action) }
                         ) {
                             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)) {
+                                verticalArrangement = Arrangement.spacedBy(OdinSpacing.xs, Alignment.CenterVertically)) {
                                 ActionIcon(action, Modifier.size(18.dp))
-                                Text(actionLabel(action), color = palette.text, fontSize = 12.sp, lineHeight = 16.sp,
+                                Text(actionLabel(action), color = palette.text, style = OdinTypography.dataLabel,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
@@ -134,7 +136,7 @@ private fun DashboardCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val palette = LocalOdinPalette.current
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(OdinCorners.card)
     val requester = remember { BringIntoViewRequester() }
     LaunchedEffect(selected) {
         if (selected) {
@@ -149,7 +151,7 @@ private fun DashboardCard(
             modifier.bringIntoViewRequester(requester).clip(shape)
                 .background(if (selected) palette.selection else palette.surface)
                 .border(if (selected) 2.dp else 1.dp, if (selected) palette.accent else palette.border, shape)
-                .then(touch).padding(12.dp),
+                .then(touch).padding(OdinSpacing.denseCard),
             content = content
         )
     }
@@ -159,10 +161,10 @@ private fun DashboardCard(
 private fun CardTitle(title: String, trailing: String = "") {
     val palette = LocalOdinPalette.current
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = palette.text, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium,
+        Text(title, color = palette.text, style = OdinTypography.dataLabel, fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(trailing, color = palette.textDim,
-            fontSize = 10.sp, lineHeight = 12.sp, maxLines = 1)
+            style = OdinTypography.micro, maxLines = 1)
     }
 }
 
@@ -172,9 +174,9 @@ private fun StorageCards(internal: StorageUsage, external: List<ExternalStorageU
         StorageCard(internal, Modifier.fillMaxWidth().height(136.dp))
     } else {
         // Each volume keeps its own capacity; extra volumes add rows rather than merging disks.
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
             (0..external.size).chunked(2).forEach { indices ->
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
                     indices.forEach { index ->
                         if (index == 0) {
                             StorageCard(internal, Modifier.weight(1f).height(136.dp), compact = true)
@@ -201,12 +203,12 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
     val complete = total != null && categories.all { it != null && it >= 0 }
     DashboardCard(modifier) {
         CardTitle(strings.getString(R.string.text_internal_storage), if (compact) strings.getString(R.string.text_total_value, formatBytes(total)) else if (usage.loading) strings.getString(R.string.text_measuring) else "")
-        Row(Modifier.fillMaxWidth().padding(top = 3.dp), verticalAlignment = Alignment.Bottom) {
-            Text(formatBytes(used), color = palette.text, fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold)
-            Text(strings.getString(R.string.text_used), color = palette.textDim, fontSize = 10.sp, lineHeight = 12.sp, modifier = Modifier.padding(bottom = 3.dp))
+        Row(Modifier.fillMaxWidth().padding(top = OdinSpacing.xs), verticalAlignment = Alignment.Bottom) {
+            Text(formatBytes(used), color = palette.text, style = OdinTypography.dataValue, fontWeight = FontWeight.SemiBold)
+            Text(strings.getString(R.string.text_used), color = palette.textDim, style = OdinTypography.micro, modifier = Modifier.padding(bottom = OdinSpacing.xs))
             if (!compact) {
                 Spacer(Modifier.weight(1f))
-                Text(strings.getString(R.string.text_total_value, formatBytes(total)), color = palette.textDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.padding(bottom = 3.dp))
+                Text(strings.getString(R.string.text_total_value, formatBytes(total)), color = palette.textDim, style = OdinTypography.dataCaption, modifier = Modifier.padding(bottom = OdinSpacing.xs))
             }
         }
         Spacer(Modifier.height(7.dp))
@@ -219,17 +221,17 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
         }
         val categoryNames = listOf(strings.getString(R.string.text_system_2), strings.getString(R.string.text_apps), strings.getString(R.string.text_other), strings.getString(R.string.text_free))
         if (compact) {
-            Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.padding(top = OdinSpacing.sm), verticalArrangement = Arrangement.spacedBy(OdinSpacing.xs)) {
                 categoryNames.indices.chunked(2).forEach { indices ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)) {
                         indices.forEach { index ->
                             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                                 Canvas(Modifier.size(5.dp)) { drawCircle(categoryColors[index]) }
                                 Spacer(Modifier.width(3.dp))
-                                Text(categoryNames[index], color = categoryColors[index], fontSize = 10.sp, lineHeight = 14.sp, fontWeight = FontWeight.Medium)
-                                Text(formatBytes(categories[index]), color = categoryColors[index], fontSize = 10.sp, lineHeight = 14.sp,
+                                Text(categoryNames[index], color = categoryColors[index], style = OdinTypography.micro, fontWeight = FontWeight.Medium)
+                                Text(formatBytes(categories[index]), color = categoryColors[index], style = OdinTypography.micro,
                                     fontWeight = FontWeight.SemiBold,
-                                    modifier = Modifier.weight(1f).padding(start = 3.dp),
+                                    modifier = Modifier.weight(1f).padding(start = OdinSpacing.xs),
                                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
                                     maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
@@ -238,15 +240,15 @@ private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolea
                 }
             }
         } else {
-            Row(Modifier.fillMaxWidth().padding(top = 7.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth().padding(top = OdinSpacing.sm), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)) {
                 categoryNames.forEachIndexed { index, title ->
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Canvas(Modifier.size(5.dp)) { drawCircle(categoryColors[index]) }
                             Spacer(Modifier.width(4.dp))
-                            Text(title, color = categoryColors[index], fontSize = 10.sp, lineHeight = 12.sp, fontWeight = FontWeight.Medium)
+                            Text(title, color = categoryColors[index], style = OdinTypography.micro, fontWeight = FontWeight.Medium)
                         }
-                        Text(formatBytes(categories[index]), color = categoryColors[index], fontSize = 11.sp, lineHeight = 14.sp,
+                        Text(formatBytes(categories[index]), color = categoryColors[index], style = OdinTypography.dataCaption,
                             fontWeight = FontWeight.SemiBold,
                             maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
@@ -272,21 +274,21 @@ private fun ExternalStorageCard(usage: ExternalStorageUsage, modifier: Modifier)
     val used = if (total != null && free != null) (total - free).coerceIn(0, total) else null
     DashboardCard(modifier) {
         CardTitle(usage.label.ifBlank { strings.getString(R.string.text_external_storage) }, if (usage.readOnly) strings.getString(R.string.text_read_only) else "")
-        Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.Bottom) {
-            Text(formatBytes(total), color = palette.text, fontSize = 21.sp, lineHeight = 26.sp,
+        Row(Modifier.padding(top = OdinSpacing.xs), verticalAlignment = Alignment.Bottom) {
+            Text(formatBytes(total), color = palette.text, style = OdinTypography.dataValue,
                 fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Text(strings.getString(R.string.text_total), color = palette.textDim, fontSize = 10.sp, lineHeight = 12.sp,
-                modifier = Modifier.padding(bottom = 3.dp))
+            Text(strings.getString(R.string.text_total), color = palette.textDim, style = OdinTypography.micro,
+                modifier = Modifier.padding(bottom = OdinSpacing.xs))
         }
         Spacer(Modifier.height(7.dp))
         UsageBar(if (used != null && total != null) used.toFloat() / total else null,
             palette.accent, remainingColor = palette.storageFree)
-        Column(Modifier.padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.padding(top = OdinSpacing.sm), verticalArrangement = Arrangement.spacedBy(OdinSpacing.xs)) {
             listOf(strings.getString(R.string.text_used_2) to used, strings.getString(R.string.text_free) to free).forEachIndexed { index, (title, bytes) ->
                 val color = if (index == 0) palette.accent else palette.storageFree
                 Row(Modifier.fillMaxWidth()) {
-                    Text(title, color = color, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.weight(1f))
-                    Text(formatBytes(bytes), color = color, fontSize = 11.sp, lineHeight = 14.sp, maxLines = 1)
+                    Text(title, color = color, style = OdinTypography.dataCaption, modifier = Modifier.weight(1f))
+                    Text(formatBytes(bytes), color = color, style = OdinTypography.dataCaption, maxLines = 1)
                 }
             }
         }
@@ -302,16 +304,16 @@ private fun MemoryCard(usage: MemoryUsage, loading: Boolean, modifier: Modifier)
     val used = usage.usedBytes?.takeIf { it >= 0 }
     DashboardCard(modifier) {
         CardTitle(strings.getString(R.string.text_memory), "RAM")
-        Row(Modifier.fillMaxWidth().padding(top = 3.dp), verticalAlignment = Alignment.Bottom) {
-            Text(formatBytes(used), color = palette.text, fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold)
-            Text(" / ${formatBytes(total)}", color = palette.textDim, fontSize = 12.sp, lineHeight = 16.sp,
-                modifier = Modifier.padding(bottom = 3.dp))
+        Row(Modifier.fillMaxWidth().padding(top = OdinSpacing.xs), verticalAlignment = Alignment.Bottom) {
+            Text(formatBytes(used), color = palette.text, style = OdinTypography.dataValue, fontWeight = FontWeight.SemiBold)
+            Text(" / ${formatBytes(total)}", color = palette.textDim, style = OdinTypography.dataLabel,
+                modifier = Modifier.padding(bottom = OdinSpacing.xs))
         }
         Spacer(Modifier.height(7.dp))
         UsageBar(if (used != null && total != null) used.toFloat() / total else null, palette.accent)
-        Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(strings.getString(R.string.text_non_system_apps), color = palette.textDim, fontSize = 11.sp, lineHeight = 14.sp, modifier = Modifier.weight(1f))
-            Text(formatBytes(usage.nonSystemAppBytes), color = palette.text, fontSize = 15.sp, lineHeight = 19.sp,
+        Row(Modifier.fillMaxWidth().padding(top = OdinSpacing.md), verticalAlignment = Alignment.CenterVertically) {
+            Text(strings.getString(R.string.text_non_system_apps), color = palette.textDim, style = OdinTypography.dataCaption, modifier = Modifier.weight(1f))
+            Text(formatBytes(usage.nonSystemAppBytes), color = palette.text, style = OdinTypography.h3,
                 fontWeight = FontWeight.Medium)
         }
         MetricNote(usage.note ?: if (loading) strings.getString(R.string.text_reading_memory) else null)
@@ -331,18 +333,18 @@ private fun ProcessorCard(title: String, usage: ProcessorUsage, modifier: Modifi
     DashboardCard(modifier) {
         CardTitle(strings.getString(R.string.text_value_temperature, title))
         Text(temperature?.let { String.format(Locale.getDefault(), "%.0f °C", it) } ?: "— °C",
-            color = palette.text, fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.padding(top = 4.dp))
+            color = palette.text, style = OdinTypography.dataLarge, fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.padding(top = OdinSpacing.xs))
         // The scale and colors are visual guides, not OEM thermal policy thresholds.
-        Canvas(Modifier.fillMaxWidth().padding(top = 3.dp).height(5.dp).clip(RoundedCornerShape(3.dp))) {
+        Canvas(Modifier.fillMaxWidth().padding(top = OdinSpacing.xs).height(5.dp).clip(RoundedCornerShape(3.dp))) {
             drawRect(palette.track)
             temperature?.let {
                 drawRect(barColor, size = Size(size.width * (it / 105f).coerceIn(0f, 1f), size.height))
             }
         }
-        Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("0°", color = palette.textDim, fontSize = 9.sp, lineHeight = 12.sp)
-            Text("105°", color = palette.textDim, fontSize = 9.sp, lineHeight = 12.sp)
+        Row(Modifier.fillMaxWidth().padding(top = OdinSpacing.xs), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("0°", color = palette.textDim, style = OdinTypography.dataNote)
+            Text("105°", color = palette.textDim, style = OdinTypography.dataNote)
         }
     }
 }
@@ -359,11 +361,11 @@ private fun WifiCard(usage: WifiUsage, loading: Boolean, modifier: Modifier) {
     }
     DashboardCard(modifier) {
         CardTitle("Wi-Fi", if (usage.connected) strings.getString(R.string.text_connected) else strings.getString(R.string.text_offline))
-        Text(name, color = palette.text, fontSize = 15.sp, lineHeight = 19.sp, fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(top = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Row(Modifier.fillMaxWidth().padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("↑ ${formatRate(usage.txBytesPerSecond)}", color = palette.accent, fontSize = 11.sp, lineHeight = 14.sp)
-            Text("↓ ${formatRate(usage.rxBytesPerSecond)}", color = palette.text, fontSize = 11.sp, lineHeight = 14.sp)
+        Text(name, color = palette.text, style = OdinTypography.h3, fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(top = OdinSpacing.xs), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(Modifier.fillMaxWidth().padding(top = OdinSpacing.xs), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
+            Text("↑ ${formatRate(usage.txBytesPerSecond)}", color = palette.accent, style = OdinTypography.dataCaption)
+            Text("↓ ${formatRate(usage.rxBytesPerSecond)}", color = palette.text, style = OdinTypography.dataCaption)
         }
         MetricNote(usage.note ?: if (usage.needsLocationAccess) strings.getString(R.string.text_wi_fi_name_permission_is_off) else null)
     }
@@ -373,8 +375,8 @@ private fun WifiCard(usage: WifiUsage, loading: Boolean, modifier: Modifier) {
 private fun MetricNote(note: String?) {
     val palette = LocalOdinPalette.current
     if (!note.isNullOrBlank()) {
-        Text(note, color = palette.textDim, fontSize = 9.sp, lineHeight = 11.sp,
-            modifier = Modifier.padding(top = 3.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(note, color = palette.textDim, style = OdinTypography.dataNote,
+            modifier = Modifier.padding(top = OdinSpacing.xs), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

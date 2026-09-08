@@ -1,5 +1,10 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinSizes
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -33,7 +38,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.odin.desktop.service.fan.HardwareController
 import com.odin.desktop.ui.navigation.FocusZone
 
@@ -121,9 +125,9 @@ fun BottomDockBar(
         Row(
             modifier = modifier
                 .fillMaxWidth()
-                .height(58.dp)
-                .padding(horizontal = 24.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .height(OdinSizes.dockHeight)
+                .padding(horizontal = OdinSpacing.page, vertical = OdinSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
             dockItems.forEachIndexed { index, item ->
@@ -138,16 +142,16 @@ fun BottomDockBar(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(OdinCorners.control))
                         .background(bgColor)
-                        .border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(8.dp))
+                        .border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(OdinCorners.control))
                         .focusProperties { canFocus = false }
                         .clickable(role = Role.Button) { onItemClick(index) }
                         .clearAndSetSemantics {
                             contentDescription = item.title
                             stateDescription = item.value
                         }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                        .padding(OdinInsets.dockControl),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(
@@ -158,16 +162,16 @@ fun BottomDockBar(
                         Text(
                             text = strings.getString(compactTitles[index]),
                             color = palette.text,
-                            fontSize = 12.sp,
+                            style = OdinTypography.body,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false).padding(end = 5.dp)
+                            modifier = Modifier.weight(1f, fill = false).padding(end = OdinSpacing.xs)
                         )
                         Text(
                             text = compactValues[index],
                             color = item.stateColor,
-                            fontSize = 12.sp,
+                            style = OdinTypography.button,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis

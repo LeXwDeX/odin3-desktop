@@ -1,5 +1,9 @@
 package com.odin.desktop.ui.components.base
 
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -33,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 /**
  * Odin 3 掌机级原生模态框规范架构基类 (同一 Window 内原生全屏遮罩，避免任何 Window 劫持按键焦点)。
@@ -75,18 +78,18 @@ fun ConsoleModalDialog(
                 modifier = Modifier
                     .width(maxWidth)
                     .height(maxHeight)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(OdinCorners.dialog))
                     .background(palette.surface)
                     .border(
                         width = 1.dp,
                         color = palette.border,
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(OdinCorners.dialog)
                     )
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) { /* 消费点击防穿透 */ }
-                    .padding(20.dp)
+                    .padding(OdinSpacing.panel)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // 1. 标准化头部区域
@@ -98,7 +101,7 @@ fun ConsoleModalDialog(
                         Row(
                             modifier = Modifier.weight(1f).padding(end = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)
                         ) {
                             titleIcon?.invoke()
                             Text(
@@ -107,20 +110,20 @@ fun ConsoleModalDialog(
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                                 color = palette.text,
-                                fontSize = 18.sp,
+                                style = OdinTypography.h2,
                                 fontWeight = FontWeight.Bold
                             )
                             if (badgeText != null) {
                                 Box(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
+                                        .clip(RoundedCornerShape(OdinCorners.badge))
                                         .background(palette.accent.copy(alpha = 0.18f))
-                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                        .padding(OdinInsets.badge)
                                 ) {
                                     Text(
                                         text = badgeText,
                                         color = palette.accent,
-                                        fontSize = 11.sp,
+                                        style = OdinTypography.caption,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -132,12 +135,12 @@ fun ConsoleModalDialog(
                             text = strings.getString(R.string.text_b_or_tap_the_background_to_return_2),
                             modifier = Modifier.widthIn(max = 180.dp),
                             color = palette.textDim,
-                            fontSize = 12.sp,
+                            style = OdinTypography.body,
                             fontWeight = FontWeight.Normal
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(14.dp))
+                    Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
                     // 2. 模态框插槽内容区域
                     Box(
@@ -149,16 +152,16 @@ fun ConsoleModalDialog(
                     }
 
                     // 3. 标准化底部手柄快捷导航引导条
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(OdinSpacing.md))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.Start,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = footerHint ?: strings.getString(R.string.text_up_down_select_a_confirm_b_back),
                             color = palette.accent,
-                            fontSize = 12.sp,
+                            style = OdinTypography.button,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -208,21 +211,21 @@ fun ConsoleDialogItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(OdinCorners.control))
             .background(bgColor)
             .border(
                 width = if (isFocused) 2.dp else 1.dp,
                 color = borderColor,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(OdinCorners.control)
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(OdinInsets.optionRow),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md),
             modifier = Modifier.weight(1f)
         ) {
             icon?.invoke()
@@ -230,7 +233,7 @@ fun ConsoleDialogItem(
                 Text(
                     text = title,
                     color = contentColor,
-                    fontSize = 14.sp,
+                    style = OdinTypography.h3,
                     fontWeight = if (isFocused || isSelected) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -239,7 +242,7 @@ fun ConsoleDialogItem(
                     Text(
                         text = subtitle,
                         color = palette.textDim,
-                        fontSize = 11.sp,
+                        style = OdinTypography.caption,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -251,7 +254,7 @@ fun ConsoleDialogItem(
             Text(
                 text = trailingText,
                 color = if (isDanger) palette.danger else palette.accent,
-                fontSize = 12.sp,
+                style = OdinTypography.body,
                 fontWeight = FontWeight.Bold
             )
         }

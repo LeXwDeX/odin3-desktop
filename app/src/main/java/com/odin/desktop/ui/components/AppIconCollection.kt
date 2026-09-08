@@ -1,5 +1,8 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,7 +33,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.odin.desktop.R
 import com.odin.desktop.data.model.HOME_APP_LIMIT
 import com.odin.desktop.data.model.InstalledApp
@@ -159,7 +161,7 @@ fun AppIconCollection(
             } else if (isGrid) {
                 LazyVerticalGrid(columns = GridCells.Fixed(columns), state = grid,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
                     userScrollEnabled = drag.app == null, modifier = Modifier.fillMaxSize()) {
                     gridItemsIndexed(visibleApps, key = { _, app -> app.packageName }) { index, app ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -167,14 +169,14 @@ fun AppIconCollection(
                                 index, { onClick(app, index) },
                                 modifier = Modifier, compact = true, hidden = drag.app?.packageName == app.packageName,
                                 onLongClick = { onPick(app.packageName) })
-                            Text(app.label, color = palette.text, fontSize = 12.sp, maxLines = 1,
+                            Text(app.label, color = palette.text, style = OdinTypography.body, maxLines = 1,
                                 overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 6.dp))
                         }
                     }
                 }
             } else {
                 LazyRow(state = row, contentPadding = PaddingValues(horizontal = 48.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(OdinSpacing.lg), verticalAlignment = Alignment.CenterVertically,
                     userScrollEnabled = drag.app == null, modifier = Modifier.fillMaxSize()) {
                     itemsIndexed(visibleApps, key = { _, app -> app.packageName }) { index, app ->
                         AppCard(app, hasFocus && selectedIndex == index, isReordering, pickedIndex == index,
@@ -186,11 +188,11 @@ fun AppIconCollection(
                         val focused = hasFocus && selectedIndex == HOME_APP_LIMIT
                         Column(Modifier.size(128.dp).border(if (focused) 2.dp else 1.dp,
                             if (focused) palette.accent else palette.border,
-                            RoundedCornerShape(16.dp)).background(if (focused) palette.selection else palette.card, RoundedCornerShape(16.dp))
+                            RoundedCornerShape(OdinCorners.dialog)).background(if (focused) palette.selection else palette.card, RoundedCornerShape(OdinCorners.dialog))
                             .clickable(onClick = onAllApps).semantics { contentDescription = label },
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Text("+", fontSize = 48.sp, color = palette.accent)
-                            Text(label, fontSize = 13.sp, color = palette.text, maxLines = 2,
+                            Text("+", style = OdinTypography.symbol, color = palette.accent)
+                            Text(label, style = OdinTypography.body, color = palette.text, maxLines = 2,
                                 overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                 modifier = Modifier.padding(horizontal = 8.dp))
                         }

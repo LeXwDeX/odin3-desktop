@@ -1,5 +1,10 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.components.base.SettingsSectionHeader
+import com.odin.desktop.ui.theme.OdinCorners
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -21,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 internal fun DefaultHomeAndBootSection(
@@ -32,51 +36,50 @@ internal fun DefaultHomeAndBootSection(
     val palette = LocalOdinPalette.current
     val strings = LocalContext.current
     Column {
-        Text(strings.getString(R.string.text_default_home_and_startup), color = palette.text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Text(strings.getString(R.string.text_use_odin_desktop_as_the_system_home), color = palette.textDim, fontSize = 12.sp)
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsSectionHeader(strings.getString(R.string.text_default_home_and_startup),
+            strings.getString(R.string.text_use_odin_desktop_as_the_system_home))
+        Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
         // 设为系统默认桌面
         val isHomeFocused = inSubMenu
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(OdinCorners.card))
                 .background(if (isHomeFocused) palette.selection else palette.card)
                 .border(
                     width = if (isHomeFocused) 2.dp else 1.dp,
                     color = if (isHomeFocused) palette.accent else palette.border,
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(OdinCorners.card)
                 )
                 .clickable { onRequestDefaultHome() }
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(OdinSpacing.card)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)
             ) {
                 Text(
                     text = strings.getString(R.string.text_default_home_screen),
                     color = if (isHomeFocused) palette.accent else palette.text,
-                    fontSize = 15.sp,
+                    style = OdinTypography.h3,
                     fontWeight = FontWeight.Bold
                 )
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
+                        .clip(RoundedCornerShape(OdinCorners.badge))
                         .background(if (isDefaultHome) palette.active.copy(alpha = 0.15f) else palette.warning.copy(alpha = 0.15f))
                         .border(
                             width = 1.dp,
                             color = if (isDefaultHome) palette.active else palette.warning,
-                            shape = RoundedCornerShape(4.dp)
+                            shape = RoundedCornerShape(OdinCorners.badge)
                         )
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                        .padding(OdinInsets.badge)
                 ) {
                     Text(
                         text = if (isDefaultHome) strings.getString(R.string.text_set_as_default) else strings.getString(R.string.text_not_the_default),
                         color = if (isDefaultHome) palette.active else palette.warning,
-                        fontSize = 11.sp,
+                        style = OdinTypography.caption,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -84,22 +87,20 @@ internal fun DefaultHomeAndBootSection(
                     text = if (isDefaultHome) strings.getString(R.string.text_the_home_button_opens_odin_desktop)
                            else strings.getString(R.string.text_press_a_or_tap_to_choose_odin),
                     color = palette.textDim,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
+                    style = OdinTypography.body
                 )
                 Box(
                     modifier = Modifier
-                        .align(Alignment.End)
-                        .clip(RoundedCornerShape(6.dp))
+                        .align(Alignment.Start)
+                        .clip(RoundedCornerShape(OdinCorners.control))
                         .background(if (isHomeFocused) palette.accent else palette.surface)
-                        .border(1.dp, if (isHomeFocused) palette.accent else palette.border, RoundedCornerShape(6.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .border(1.dp, if (isHomeFocused) palette.accent else palette.border, RoundedCornerShape(OdinCorners.control))
+                        .padding(OdinInsets.button)
                 ) {
                     Text(
                         text = if (isDefaultHome) strings.getString(R.string.text_manage_home_settings_a) else strings.getString(R.string.text_set_as_default_a),
                         color = if (isHomeFocused) palette.background else (if (isDefaultHome) palette.text else palette.accent),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
+                        style = OdinTypography.button
                     )
                 }
             }

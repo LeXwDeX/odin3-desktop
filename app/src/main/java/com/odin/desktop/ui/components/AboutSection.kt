@@ -1,5 +1,8 @@
 package com.odin.desktop.ui.components
 
+import com.odin.desktop.ui.components.base.SettingsSectionHeader
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import androidx.compose.ui.platform.LocalContext
 import com.odin.desktop.R
@@ -13,16 +16,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 internal fun AboutSection() {
     val palette = LocalOdinPalette.current
     val strings = LocalContext.current
     Column {
-        Text(strings.getString(R.string.text_odin_3_handheld_launcher), color = palette.accent, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        Text("Odin Desktop ${com.odin.desktop.BuildConfig.VERSION_NAME}", color = palette.textDim, fontSize = 13.sp)
-        Spacer(modifier = Modifier.height(16.dp))
+        SettingsSectionHeader(strings.getString(R.string.text_odin_3_handheld_launcher),
+            "Odin Desktop ${com.odin.desktop.BuildConfig.VERSION_NAME}")
+        Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
         Text(
             text = strings.getString(R.string.text_a_desktop_and_system_controls_for_ayn) +
@@ -35,8 +37,7 @@ internal fun AboutSection() {
                     "- Room Persistence Library\n" +
                     "- Kotlin Coroutines\n",
             color = palette.text,
-            fontSize = 13.sp,
-            lineHeight = 22.sp
+            style = OdinTypography.body
         )
     }
 }

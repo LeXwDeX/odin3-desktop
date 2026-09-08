@@ -118,7 +118,7 @@ Use **JDK 17**, **Android SDK 35**, and the Gradle Wrapper. The project includes
 git clone https://github.com/LeXwDeX/odin3-desktop.git
 cd odin3-desktop
 python3 tools/setup-android.py
-tools/android ./gradlew -PreleaseVersion=0.1.11 :app:assembleDebug
+tools/android ./gradlew -PreleaseVersion=0.1.12 :app:assembleDebug
 ```
 
 For other environments, configure `JAVA_HOME` and `ANDROID_HOME`, then run the Gradle Wrapper directly. A locally generated debug key may differ from the release key; keep the original signing key when you need an in-place update.
@@ -140,3 +140,5 @@ Further developer notes are currently in Chinese: [development and device valida
 Please include your app version, Odin firmware, language, display/font size, and reproduction steps when [reporting an issue](https://github.com/LeXwDeX/odin3-desktop/issues). A screenshot helps with layout issues.
 
 This is a community project and is not an official AYN launcher. The repository does not currently include a unified first-party LICENSE file. Third-party notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Historical shader sources and their licenses remain in [shaders/](shaders/README.md); they are not included in the APK.
+
+The native UI follows a shared [design system](docs/design-system.md) for typography, component insets, alignment, colors and focus states.
