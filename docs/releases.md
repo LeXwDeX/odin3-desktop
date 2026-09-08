@@ -157,3 +157,22 @@ Debug 交互验证前后数据库所有表与偏好文件一致，保留 3 个�
 正式版 Dashboard 的新配色及两个存储条的空闲颜色已实际查看；“全部应用”的 `[+]` 展开 29 个应用，一屏显示 6 列 × 3 行，Tab、硬件 Dock 和系统栏均隐藏，B 返回来源分类的 `[+]`。灯光与方向设置菜单实际打开，README 的三张英文图片直接来自此次正式版实机截图，逐张检查后原样复制，截图文件哈希与原件一致。
 
 Debug 交互前与正式安装前，数据库所有表记录和偏好文件一致，保留 3 个分类和 47 条应用归属。最终应用数据目录 inode、默认 HOME、禁用应用列表、充电开关与基线一致，TF 卡保持挂载；英文截图完成后恢复 `[zh-Hans]` 和 `1.0` 字体大小，设备停留在中文 Dashboard。当前应用进程未记录崩溃，UI 调试辅助进程已停止。附件、私有数据比对、布局和原始截图保存在本机忽略目录 `.android-local/device-analysis/palette-v0110/`；短时检查不代表长期运行或所有语言、字体配置的穷尽验收。
+
+
+## v0.1.13 共享 UI Kit 与多语言对齐
+
+2026-09-08，[v0.1.13](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.13) 的[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34202857802)和[对应主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34202793536)均成功，标签与构建提交为 `39d32a7dad24f284edc48a54a80cfe6981960b66`。
+
+页面从共享控件、文字、标签、容器、图片槽和图表重新组合，具体注册与逐页推导见 [UI Kit](design-system.md)。动作、选择和输入使用同一个外框与文字规则，基准高度 44 dp、水平内边距 12 dp；同排输入/按钮按实际内容求等高。Edit tabs 固定四个操作槽，不可用项灰色且不接受点击或手柄焦点；All apps 的移除操作沿用同一能力约束。
+
+电量、转速和 24 小时 `HH:mm` 时钟共用双行状态组件：首行主信息、次行灰色辅助信息。两行的实际基线统一，时钟按分钟边界更新，顶部可见 L1/R1 提示移除。Dock 英文短名称为 PERF/FAN/LED/PWR/AIR，日文为 性能/ファン/ライト/充電/機内；名称和状态分开，空间不足时五项统一隐藏装饰图标。内置存储、TF 与内存均以 Used 为主值、Total 为总量。
+
+本地及云端构建、47 项单元测试、280 个多语言键与共享回归通过；本地 Lint 为 0 个错误、87 个警告。Debug 组件板直接实例化生产组件，在 en/ja/zh-Hans × 1.0/1.3 字体倍率的六组测量中，同排控件、标签与输入/动作均对齐，三组状态的首行和末行基线一致，禁用按钮回调为零。设备 1920 × 1080 / 369 dpi 下，普通控件实际高度为 101/110 px，标签为 64/72 px；顶部和 Dock 的六组原始页面截图也已检查。
+
+正式 APK 的 SHA-256 为 `4b8d8c541fc1a2e24b4f5204ad6f0c9a1da190608416799c0ef2f546924a1429`，与 GitHub 资产摘要、校验附件及掌机安装路径中的 APK 一致。包名 `com.odin.desktop`，版本 `0.1.13 / 1014`，不可调试，签名证书 `55365fd0f34296a9a23cf798b40a412bd7df300d3e3b72a3b1eecd7e0c972163` 与之前安装版一致，正式清单不含 Debug UI Kit Activity。已保存旧 APK，在重新确认连接的 Odin3 / Android 15 上使用 `adb install -r` 保留数据安装 GitHub 正式附件。
+
+正式版 Dashboard、29 个应用的全屏页、排序与应用操作菜单已实际打开；英文六个设置页，以及日文 Default home / Edit tabs / Language 已逐张查看。全屏应用页没有 Tab、硬件 Dock 或系统栏，B 可返回来源页。README 的应用库、灯光与方向三张图片直接复制自正式版英文原始截图，副本哈希与原件一致；用户分类名称没有为截图改写。此次 Release 说明也使用英文。
+
+Debug 验证前与正式安装前，数据库所有应用表记录和偏好文件一致，保留 3 个分类和 47 条应用归属。安装后应用数据目录 inode 仍为 `258045`。安装前后 HOME 角色均为 `com.odin.desktop`，最终 HOME intent 也解析到 `.ui.MainActivity`；早期基线中的泛化 intent 查询曾返回 ResolverActivity，原始结果保留在本机记录中，未以该字符串单独判断默认桌面。禁用应用列表保持不变，TF 卡仍挂载。
+
+验收期间用户确认手动从 5V 3A 切到 9V 3A，最终保留该选择，读回 `charging_limit_power_limit=0`、`percent_80_charge_limit=0`。拍摄后恢复 `[zh-Hans]` 和 `1.0` 字体大小，设备位于中文 Dashboard；当前应用进程没有记录崩溃，UI 调试辅助进程已停止。旧 APK、正式附件、数据比对、实际布局与原始截图保存在本机忽略目录 `.android-local/device-analysis/design-v0113/`。
