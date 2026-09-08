@@ -1,60 +1,287 @@
-# UI design system
+# Odin Desktop UI Kit：从最小定义推导全部页面
 
-Odin Desktop uses a compact, left-aligned native interface for a landscape handheld. The verified Odin 3 display is 1920 × 1080 at 369 dpi (about 833 × 468 dp, font scale 1.0). Pixels are not layout units. Compactness comes from a consistent type scale and component insets, while focus remains visible and long translations can grow vertically.
+> 状态：设计规划，尚未按本文重写生产 UI。2026-09-08 用户要求先停止改代码，重新梳理，再由 UI Kit 创建页面。本文取代此前按现有实现汇总样式的版本，是本次重建设计的唯一入口。
+>
+> 当前工作区中暂停前的 UI 改动保留，不能据此认定本文方案已经实现或验收。v0.1.11、v0.1.12 发布运行已取消。本文不触发新的构建、发布或安装。
 
-The implementation lives in `OdinDesign.kt`, `OdinPalette.kt`, `SettingsSectionHeader` and `ConsoleModalDialog` / `ConsoleDialogItem`. Material controls receive the same typography, colors and corner scale through `OdinDesktopTheme`.
+## 1. 工作方法
 
-## Element families and hierarchy
+先建立最小 UI Kit，逐页观察并验证。每个元素先尝试使用已有定义；只有明确说明“为什么现有定义不能满足”后，才允许增加类型。先更新 Kit，再由页面实例化。页面不能自行补画一套相似控件。
 
-| Family | Roles / levels | Shared design |
+用户提出的 `50 × 100`、`50 × 120` 和单一 `H1` 是工作方法的示例，不是本项目已经确定的尺寸。
+
+每一次迭代记录五件事：
+
+1. 页面和元素是什么。
+2. 当前准备复用哪一个定义。
+3. 实际观察到什么问题，而不是仅仅觉得可以换个样式。
+4. 结论是直接复用、修改原定义，还是增加一个确有必要的类型。
+5. 哪些已有页面需要同步重新检查。
+
+**不以旧页面之间已经存在的差异证明需要新类型。那些差异正是本次要消除的问题。**
+
+## 2. 先把抽象概念分清楚
+
+| 概念 | 决定什么 | 不决定什么 | 例子 |
+| --- | --- | --- | --- |
+| 网格规则 | 单位、列线、槽位、跨度、行高、间距、排列与换行 | 文案、业务回调 | 输入框占剩余列，Add 占操作列，两者同高 |
+| 文字定义 | 字体、字号、行高、字重、字形留白、语义颜色引用 | 某一页面的独立字号 | 同级按钮标签共用一种文字定义 |
+| 文字在容器中的放置规则 | 上下左右内边距、基线、水平/垂直对齐、图文间隔 | 页面外部间距 | 控件标签始终垂直居中，左右内边距由控件定义 |
+| 外观定义 | 背景、边框、圆角、图标处理、层级 | 选哪个业务项 | 控件与 tag 的外观由 Kit 决定 |
+| 组件类型 | 几何、文字、外观、交互语义的完整组合 | 每个实例的具体文字 | Action、Choice、TextField、Tag |
+| 尺寸档 | 同一组件确实需要的有限尺寸变体 | 任意宽高微调 | 图标浏览卡的标准/密集档；不是首页专属组件 |
+| 状态 | 当前是否可用、选中、聚焦、按下、失败 | 新的组件类型 | 禁用的 Delete 仍是同一个 Action |
+| 实例 | 内容、值、状态和回调 | 重新决定尺寸、颜色、字体、内边距 | Language 的 English、Japanese 是 Choice 的两个实例 |
+| 组合模式 | 多个组件之间固定的关系 | 子组件内部样式 | 输入框 + Add；一行四个操作；标题 + 内容 |
+| 页面模板 | 页头、内容区、导航区、滚动区的组织 | 各控件的细节画法 | 两栏设置模板、全屏应用模板 |
+
+输入框和按钮可以具有不同的交互语义，但必须使用同一个控件几何基类。其文字区域、顶边、底边和垂直中心由同一份定义决定。不能因为一个负责输入、一个负责点击，就接受不同的外形高度。
+
+同一类型可以有多个不同宽度的实例：宽度来自父网格的列跨度，不能通过新增一个页面专属组件来解决。同一操作列在所有行中的宽度、起点和终点必须相同。
+
+## 3. 从一个网格和一种文字起步
+
+### 初始定义 K0
+
+| 编号 | 初始定义 | 来源 / 待验证内容 |
 | --- | --- | --- |
-| Page and navigation | Page, top tabs, hardware dock, full-screen app library | 24 dp horizontal page inset; 64 dp header and dock with matching content reservations; the library removes both reservations |
-| Containers | Page surface, settings panel, normal card, dense telemetry card, modal | Insets 24 / 24 / 16 / 12 / 24 dp; neutral surfaces; rounded corners by role |
-| Headings | H1 page title, H2 section/dialog title, H3 item title | 22/28 bold, 16/24 semibold, 14/20 medium (size/line height in sp) |
-| Reading text | Body, caption, small annotation, input | 12/18, 11/16, 10/14, 14/20 sp; body and heading share the same leading edge |
-| Data | Prominent value, card value, metric label, legend, note | 28/34, 20/26, 12/16, 11/14, 10/12 sp; separate compact scale for comparable telemetry |
-| Actions | Standard text button, compact text button, arrow/icon action, hardware control | Explicit family insets; action text 12/18 medium; no spaces inserted into strings for alignment |
-| Selection and input | Settings option row, modal option row, text input, tab edit controls | Option titles H3; supporting captions; weighted text region; consistent Material input type and shapes |
-| Status | Badge, keyboard/controller hint, active mark, warning/error | Caption or button role; short badge insets; color plus label/checkmark/border |
-| Application artwork | Home app card, compact library card, modal app icon | Preserve real artwork and aspect ratio; card inset 16 or 12 dp; labels use shared roles and bounded overflow |
-| Symbols and charts | Expansion symbol, navigation arrows, telemetry symbols, storage bars and legends | Expansion symbol 48/56 sp; arrows have equal action slots; chart and legend use the same semantic color |
-| Overlays | Modal backdrop, modal header/body/footer, AFK black screen and hint | Shared modal geometry and left-aligned footer; AFK remains a separate black-screen mode with its native 14 sp hint |
-| Interaction states | Normal, focused, selected, disabled, dangerous | Neutral normal border, accent focus, subdued selected fill, reduced disabled emphasis, danger color for destructive actions |
+| G1 标准控件槽 | 单行基准高度暂定 44 dp；宽度由列分配；内容垂直居中；同排元素等高 | 以用户认可的 Language 密度为起点；44 dp 为首轮候选，不代表已批准最终尺寸 |
+| T1 基础文字 | 暂定 14 sp / 20 sp 行高；默认正文颜色；同级标签共用字重 | 覆盖选项文字、按钮文字、输入内容、占位文字；先不按页面创建字体 |
+| P1 控件文字放置 | 水平内边距暂定 16 dp；上下留白由 G1 与行高共同求得；左对齐，符号在方形槽居中 | 单行纯文本在 44 dp 高度、20 sp 目标行盒下，对称留白目标各 12 dp；实际字体排版需量测 |
 
-## Insets are component properties
+此时没有“Language 按钮”“Default home 按钮”“Edit tabs 按钮”。只有使用 G1 + T1 + P1 的实例。
 
-`OdinSpacing` defines the base scale: 4, 8, 12, 16, 24, 32 dp. It describes relationships between elements: title/description 4, adjacent controls 8 or 12, heading/content 16, panel/page edge 24.
+掌机实测为 1920 × 1080，369 dpi，横屏约 833 × 468 dp，当前字体倍率 1.0。几何使用 dp，文字使用 sp。文本换行和字体缩放后，不能把固定 44 dp 当作裁切文字的理由。
 
-`OdinInsets` defines the inside of each component independently. Equal numbers do not make two component roles interchangeable. Start/end respect text direction.
+候选 4 dp 为基础步长；8 / 12 / 16 / 24 是同一尺度的引用，不是四种网格。页面边缘暂定 24 dp，普通相邻间隔暂定 8 dp。具体数值在首轮 Kit 展示板中统一校准，页面无权单独调整。
 
-| Component role | Start | Top | End | Bottom | Text role |
-| --- | ---: | ---: | ---: | ---: | --- |
-| Standard button | 16 | 12 | 16 | 12 | Button 12/18 |
-| Compact button | 16 | 8 | 16 | 8 | Button 12/18 |
-| Option row | 16 | 12 | 16 | 12 | H3 14/20, caption below when present |
-| Navigation tab | 12 | 8 | 12 | 8 | Body / button |
-| Hardware dock control | 8 | 4 | 8 | 4 | Compact label and state within a 48 dp surface |
-| Badge / controller hint | 8 | 4 | 8 | 4 | Caption |
+### 文字间距的归属
 
-All values are dp. A standard one-line custom text button is 42 dp high (12 + 18 + 12); Material buttons retain their minimum interaction size. Arrow actions retain a 44 dp minimum slot. Multi-line text may increase height; do not squeeze a translated label to preserve an arbitrary height. Insets surround the text line box, not the visible ink of individual glyphs. Android font padding is disabled for Compose text to make the line box predictable across roles.
+文字样式和文字在网格里的位置需要一起登记，但只有一个负责方：
 
-## Surfaces, color and states
+- T1 决定字形和行盒。
+- P1 决定 T1 在 G1 中如何摆放。
+- 标准控件引用 T1 + P1，页面不再给文字额外补 padding。
+- 图标或 tag 的行盒比文字更高时，组件先计算这一行的共同内容高度，再对整行居中；不能挤压文字或悄悄抬高某个实例。
+- 同一个组合行需要换行时，以该行所需最大高度统一分配给所有单元，不能一个按钮长高、旁边输入框仍保持旧高度。
 
-Corners are 4 dp for badges, 8 for controls, 12 for cards and 16 for dialogs. Material shapes follow the same scale. Normal borders are 1 dp; focused controls use 2 dp where the component provides a border. Borders render inside existing bounds, so focus does not shift neighboring content.
+## 4. 逐页推导记录
 
-Use `OdinPalette` for background, surface, card, border, text, dim text, selection, accent, active, warning and danger. Large areas remain subdued. Color retains meaning: focus/navigation accent, active status, performance/charging states and storage categories. Storage free space uses one shared color for internal and removable storage. Hardware light swatches continue to show the actual preset colors.
+下表是本次从现有源码与此前实机截图获得的第一轮推导。结论区分“复用”“新增组合”“新增底层定义”。候选新尺寸仍需在 Kit 中统一验证，不能直接视作页面实现指令。
 
-## Language and layout rules
+| 顺序 | 页面 / 元素 | 尝试已有定义与观察 | 结论与 Kit 变化 |
+| --- | --- | --- | --- |
+| 01 | 首页顶部分类与 Settings 入口 | 都是单行、可选/可点击文字；不同文本长度不能成为独立高度的理由 | 复用 G1/T1；建立导航组合，选中/聚焦只是状态 |
+| 02 | 首页应用图标 | G1 的横向文字槽无法表达应用图片的方形画布，也无法留出聚焦/拖拽空间 | 新增 G2 图片槽：固定外槽 + 内部方形画布 + 可选标签；不改变周围排布 |
+| 03 | 首页第 11 个位置的 `[+]` | 它与应用图标占据同一条带，当前代码却单独画了另一种卡片 | 复用 G2，只更换中心内容和回调；不新增 PlusCard 的外形定义 |
+| 04 | 首页应用名与包名 | 包名、操作提示的优先级低于应用名；一个字号不足以区分主内容和辅助信息 | 新增 T2 辅助文字候选 12/16；标题先保留 T1，待通用标题比较时统一决定 |
+| 05 | 全屏当前分类应用页 | 与首页是同一种应用卡，但目标是容纳更多图标；此前实机能显示 6 列 × 3 完整行 | 复用 G2，新增一个密集尺寸档；不新增第二套卡片；页头/页脚和滚动网格是组合 |
+| 06 | 应用页底部 App options / Sort / Back / Done | 都是动作实例；现在仍混用默认 Material TextButton 与自定义按钮 | 统一引用 G1/T1 的 Action；是否带底色是统一外观档，不改变行高和文字 |
+| 07 | 设置主框架与左侧菜单 | 页头、左导航、右内容需要稳定列线；菜单本身仍是普通单行控件 | 新增两栏页面组合；菜单复用 G1/T1，不新建设置按钮尺寸 |
+| 08 | Language | 用户明确认为这一档高度更好；四个选项只有内容、回调和状态不同 | 作为 G1 对照页；所有选项直接实例化同一个 Choice |
+| 09 | Orientation | 同为单选设置，长标题和 Active tag 不构成独立设计理由 | 直接复用 Language 的 Choice；文字长时使用组件统一换行规则 |
+| 10 | Default home 操作 | 管理/设为默认是普通动作，当前页面还有整张卡片点击与内按钮并存 | 复用 Action；只保留清楚的交互目标，避免父子同动作双重焦点 |
+| 11 | Default home 的默认状态 | 状态无需一个可点击控件大小；它与 Home tab 都表达默认已生效 | 新增 G3 标签槽；统一 Tag，状态颜色由语义决定；不是绿色和橙色两套组件 |
+| 12 | Edit tabs 创建区 | 输入框与 Add 并排，原默认输入框和按钮存在高度差 | 建立 FieldActionRow；TextField 与 Action 共用 G1/T1/P1，高度与上下边严格一致；不增加新尺寸 |
+| 13 | Edit tabs 操作区 | 上移/下移/设为首页/删除因条件隐藏导致列移动；不同规则还影响焦点 | 新增 FixedActionRow 组合，固定四列；所有操作复用 Action；禁用保留占位并跳过焦点 |
+| 14 | Edit tabs 的 Home tab / Game category | 两者都是 tag，差异是“状态”和“类别”语义，不是形状或字体 | 全部复用 G3 + Tag；默认状态使用相同样式和图示规则 |
+| 15 | Light color | 颜色本身是可选择的真实硬件值；普通文字按钮不能替代色样展示 | 基于 G2 图片/符号槽建立 ColorChoice 组合；等宽列、等大色样、共同标签线；色样颜色不参与主题去饱和 |
+| 16 | About | 由标题、版本和说明组成，没有特殊交互 | 复用已有文字与内容堆叠；不新增 About 专用排版 |
+| 17 | 所有页面/分区/弹窗标题 | 页面标题、分区标题、控件文字需要可读层级；旧代码字号很多，但不逐个保留 | 在跨页对照板中评估 T3 主标题 22/28、T4 分区标题 16/24；同级标题只保留一个定义，禁止按页微调 |
+| 18 | 排序菜单 | 一组选项加说明与返回；选项本质与 Language 相同 | 复用 Choice、T2、Action；放入统一 Modal 组合；不新增排序专用按钮 |
+| 19 | 应用选项 / 目标分类选择 | 选项可能带图标、副标题、tag；内容多于单行按钮 | 扩展标准控件的结构化内容槽，仍共用 G1 的行高推导和内边距；副标题增加内容行，不新增固定 57/61 等高度 |
+| 20 | 分类应用管理 | 搜索输入、两侧统计、图片+主副文字+已添加状态、空搜索结果 | 搜索复用 TextField；列表复用双行 Choice/Toggle；状态复用 Tag；统计和空态复用已有文字 |
+| 21 | Dashboard 的存储、RAM、CPU、GPU、Wi-Fi | 同一信息层级的卡片应相同容器；内容数量不同，不应每张卡单独决定 padding | 新增 MetricCard 组合，内部由标题、值、图、图例、说明插槽构成；按行等高、按列跨度排列 |
+| 22 | Dashboard 关键数值 | 数值和单位需迅速辨认，沿用普通控件文字会失去数据主次 | 新增 T5 数值候选 24/28；CPU/GPU、已用/总量复用；单位引用 T2，不另造数字字号族 |
+| 23 | 存储条、温度条、图例 | 都由轨道和数据段组成，但段数、含义不同 | 新增 Bar 原语，单段/多段是数据实例；图例复用颜色标记+T2；空闲语义全局唯一 |
+| 24 | Dashboard 快捷入口 | 文件/系统设置/Odin 设置是三个同级动作；原设计采用图标在上、文字在下 | 首轮尝试 G1 的图标+文字 Action，使其紧凑等高；仅当实机证明确需竖排，才新增统一 TileAction 尺寸档 |
+| 25 | 底部 Dock | 五个硬件项是重复的控制实例；标题缩写与状态颜色变化不构成五类控件 | 复用标准控件，组合图标/短标签/值；五等分列；状态变化不改变占位 |
+| 26 | L1/R1、A/B 等按键提示 | 它们是输入提示，不是选中状态或普通按钮 | 复用 G3 的紧凑几何，KeyHint 为语义组件；与 tag 共用字体和圆角，不使用“成功”颜色 |
+| 27 | 拖拽、拾取、编辑抖动、焦点 | 都是同一应用卡的状态；放大不能推动网格 | 复用 G2 外槽；统一状态转场，变换只作用于内部画布 |
+| 28 | 空分类、无搜索结果、未采样、未知、权限不足、失败 | 这些是内容/数据状态，不是新增页面或另一套字号 | 建立统一反馈语义；用已有文字、状态标签和说明区域表达，不把“未知”画成 0 |
+| 29 | AFK 遮罩与提示、系统 Tile/Toast | AFK 纯黑有明确功能含义；系统 Tile/Toast 的外壳由 Android 绘制 | AFK 提示复用字体/内边距定义，保留纯黑行为；系统外壳只管理文字、图标和状态映射，不自行换皮 |
 
-- Translate system-owned labels only. Preserve stored user category text, including case and legacy category names that older migrations marked as defaults.
-- Align a section heading, description and its action group to one leading edge. Within a card, align the card title, description and button to its inner edge.
-- Default home uses a vertical title, status, explanation and left-aligned action. A long status cannot steal width from the title or button.
-- Allocate independent width to labels, state and actions. Allow descriptions to wrap; use ellipsis only for bounded navigation/app labels whose complete context is available elsewhere.
-- Use the same up/down symbols and action widths in every language. Do not shrink text separately for English or Japanese.
-- Full-screen application browsing shows the current category and returns with B to the source location.
+### 本轮能够归并掉的重复设计
 
-## Validation boundary
+- “Language 按钮”和“Orientation 按钮”归并为同一个 Choice。
+- Default home、Edit tabs、弹窗中的普通动作归并为同一个 Action。
+- 输入框与按钮共用同一个控件槽、文字样式和垂直放置规则。
+- 设置页、排序页、应用列表中的标题/副标题选项归并为同一控件的内容配置。
+- 默认桌面、默认分类、已添加、当前启用的标签归并为同一个 Tag 的语义状态。
+- 首页、全屏页、拖拽预览与 `[+]` 共用应用槽；不同内容不重新决定外框。
+- 内部存储、TF 卡、内存和处理器卡使用同一个数据卡组合与同一个条形图原语。
 
-Check actual device screenshots and accessibility bounds at the target density. Check English and Japanese default-home status, left alignment, full language choices, tab-edit actions, app library, dialogs and Dashboard. Preserve stored categories, app membership and preferences during visual checks. A successful build does not prove visual correctness, and the default-size device pass is not exhaustive coverage of every font scale or translation.
+## 5. 第一轮 UI Kit 注册表
 
-The initial device pass covered all six settings sections in English and Japanese, plus the English Dashboard, full-screen library, sort menu and app options. The library retained six columns and three complete rows; the language menu showed all options. Default-home status stayed on one line in both languages, with its action aligned to the card content. Light presets use equal-width columns and centered labels.
+以下是第 4 节逐项推导后的候选集合，不是预先创建几十个控件的目录。新增或删除类型时，必须回到推导记录解释原因。
+
+### 5.1 几何与排布
+
+| 注册项 | 唯一负责的内容 | 复用位置 |
+| --- | --- | --- |
+| G1 标准控件槽 | 单行基准高度、行盒摆放、文字内边距、图标/tag 插槽、内容增长规则 | 动作、选择、输入、导航、列表项、Dock |
+| G2 图片槽 | 方形画布、外侧焦点余量、标签区域、标准/密集尺寸档 | 应用图标、`[+]`、色样、拖拽预览 |
+| G3 标签槽 | 紧凑行盒、四侧内边距、圆角、单行/受限长标签规则 | 全局 tag、键位提示 |
+| Row / Stack / Grid | 行列排列、间距、跨度、同排等高、断点重排 | 所有页面；不拥有子控件的字号和颜色 |
+| Surface | 内容容器、统一内边距、背景层级、裁切边界 | 设置面板、内容卡、数据卡、弹窗 |
+| Viewport | 可用屏幕、系统栏 inset、顶部/底部区域与滚动范围 | 普通首页、全屏分类、设置、弹窗 |
+
+Surface 与 Row 是组合基础，不应给每种内容预设固定高度。数据卡高度从插槽内容推导，同行统一取最大值。无 TF 卡是内部存储扩大列跨度，不是另一种存储卡。
+
+G2 的两个尺寸档需要在同一展示板中比较后定值，不能直接沿用旧页面的每一个数字。G3 首轮候选为 24 dp 行盒、水平 8 dp / 垂直 4 dp 内边距、T2 16 sp 行高；普通状态标签与按键提示共同验证。
+
+### 5.2 文字与文字放置
+
+| 类型 | 候选规格 | 使用规则 |
+| --- | --- | --- |
+| T1 常规文字 | 14/20 sp | 控件标签、输入内容、普通信息；同级控件绝不另设 buttonFont 与 languageFont |
+| T2 辅助文字 | 12/16 sp | 说明、包名、tag、单位、图例、快捷键提示 |
+| T3 页面标题 | 22/28 sp | 页面/主要上下文标题，仅保留一个 H1 定义 |
+| T4 分区标题 | 16/24 sp | 设置分区、弹窗标题、内容组标题，共用一个 H2 定义 |
+| T5 关键数值 | 24/28 sp | Dashboard 主数值；数字替换不改变布局 |
+
+H3 若确有语义需要，先映射 T1 的统一字重，不新增第三个近似的标签字号。不要自动保留现有的 micro/dataNote/dataCaption/button/input 等多个相近大小；只有字体对照板证明不能合并时，才增加新项。
+
+文字的颜色通过语义引用，不能由页面写 RGB 值。T1 同时记录正常、弱化、聚焦、禁用时的颜色映射。字形本身不重复承担 padding；控件与标签的放置规则引用文字定义并由所属组件统一实施。
+
+### 5.3 组件
+
+| 组件 | 几何 / 内容 | 页面可传入的内容 | 页面不可重新定义的内容 |
+| --- | --- | --- | --- |
+| Action | G1 + T1 | 文案、图标、enabled、focus、危险语义、回调 | 高度、字号、padding、圆角、焦点边框 |
+| Choice / Toggle | 与 Action 共用 G1 和文字呈现 | 文案、副文案、选中值、tag、回调、单选/多选语义 | “某页面专用”选择行外观 |
+| TextField | G1 + 同一 T1/P1，保留编辑语义 | value、placeholder、输入规则、值变化回调 | 独立默认高度、不同占位字大小 |
+| Tag | G3 + T2 | text、semanticRole、可选语义图示 | 高度、底色透明度、边框、页内私有样式 |
+| KeyHint | G3 + T2 | 按键与动作说明 | 装成可点击按钮或成功标签 |
+| ImageTile | G2 | 图片/符号、标签、尺寸档、状态、回调 | 页面私有图片 padding 和聚焦余量 |
+| Bar | 公共轨道 / 段 | 值、上限、分段、语义颜色、未知状态 | 内部/TF 各自定义空闲颜色 |
+| Feedback | 已有文字/Tag/图示的组合 | 信息、级别、动作、显示时机 | 为每个错误新增一种弹窗尺寸 |
+
+Action 与 Choice 保持行为语义不同，但使用相同的控件外壳和内容排版实现。TextField 的输入引擎可以不同，外层几何与文字契约不能不同。不要把所有行为塞进一个无限扩张、任意可改样式的万能参数组件。
+
+### 5.4 状态不是类型
+
+| 状态 / 语义 | 统一表现 | 布局与交互规则 |
+| --- | --- | --- |
+| Normal | 中性表面、标准文字 | 默认占位 |
+| Focused | 清楚的焦点轮廓与适度背景强调 | 不改宽高、不推动邻居 |
+| Selected / Active | 标签或选中标记说明当前值 | 与 Focused 独立；可同时存在 |
+| Disabled | 灰色文字、弱化边框与表面 | 保留原尺寸和列位置；点击无效；从焦点候选中剔除 |
+| Pressed | 同一组件短暂反馈 | 不制造另一个尺寸档 |
+| Danger | 危险动作的语义强调 | 禁用时仍按灰色禁用表现，不保持鲜红可操作感 |
+| Pending / Unknown / Error | 可辨认的状态文字或统一 tag | 不把等待当成功，不把未读到的数据当零；不改变输入回调逻辑 |
+| Dragging / Picked | 图片槽内部的拾取/移动效果 | 保留外网格和原目标位置；不改变其它卡片大小 |
+
+所有 Tag 的视觉语法完全相同：同字号、同行高、同 padding、同圆角、同边框规则。颜色只映射语义。`Set as default` 和 `Home tab` 都引用 Active/Default；`Game category` 引用 Info。星号表示收藏的习惯与默认含义容易混淆，默认状态统一采用同一种状态图示；不保留一个页面星号、另一个页面勾号的偶然差异。
+
+## 6. 对齐契约：从网格到可见文字
+
+| 层面 | 必须保持一致的项目 | 验收方式 |
+| --- | --- | --- |
+| 页面网格 | 同类页面左边缘、内容列、导航宽度、页头/页脚预留 | 叠加列线比较，不靠肉眼估计 |
+| 同排外框 | top、bottom、height；固定列的 start/end | 输入框/Add、每行四个操作逐个测量 bounds |
+| 控件内部 | 内容中心线、首行基线、图文间距、四侧 inset | 在组件展示板比较，不在各页面补偏移 |
+| 同类 tag | 行盒、内边距、边框、圆角、文本位置 | 将不同页面 tag 放到同一行比较 |
+| 图标光学对齐 | 源图片透明区、符号视觉中心 | 几何框不动；必要补偿仅写在图标适配层，并全局生效 |
+| 状态变化 | 焦点、选中、禁用前后占位稳定 | 同状态组合下比较坐标与焦点路径 |
+| 多语言 | 同类控件沿用同一 Kit 规则 | 中文/英文/日文相同位置对照；长文触发统一增长或整组重排 |
+
+同一类型的高度不能只做到“最低差不多”。默认字体下的单行控件必须实际等高。所有选项行预留相同的 trailing 槽高度；有 tag 与无 tag 不能造成相邻行高度不同。
+
+Tag 超长时按统一策略移到次行，整行增长；不能为了给 tag 腾位置而把主标题挤成竖排。操作区中文本换行，则整排按共同高度增长，或整个操作组切换到相同的两行网格；不能只有某一行的某个按钮错位。
+
+## 7. 从 UI Kit 创建页面
+
+这里列的是组件实例树，不是新页面各自重新画控件。
+
+| 页面 / 区域 | 组合方式 | 需要复用的定义 |
+| --- | --- | --- |
+| 普通首页 | Viewport → HeaderNavigation + PageHeading + ImageCollection + ActionFooter + HardwareDock | G1/G2/G3、T1/T2/T3、Action、KeyHint、ImageTile |
+| 全屏当前分类 | Viewport → PageHeading + Dense ImageCollection + ActionFooter | 相同 ImageTile 的密集档；不包含 Tab/Dock；B 返回来源 |
+| Dashboard | HeaderNavigation + MetricGrid + QuickActions + HardwareDock | 同一 MetricCard、Bar、Legend、Action、数据文字 |
+| 设置外框 | SettingsLayout → PageHeading + NavigationColumn + ContentPanel | 导航和右侧控件引用同一 G1，容器共用 Surface |
+| Light color | SectionHeading + EqualWidth ColorChoice Row | G2、Choice 状态、T1/T2 |
+| Orientation | SectionHeading + ChoiceList | 与 Language 相同 Choice |
+| Default home | SectionHeading + InformationGroup(Tag, Text, Action) | 共用 Tag；Action 与 Edit tabs 使用同一实现 |
+| Edit tabs | SectionHeading + FieldActionRow + CategoryRowList | TextField/Action 等高；每个 CategoryRow = 文本+Tags+固定四列 Action |
+| Language | SectionHeading + ChoiceList | 单一 Choice 模板，仅文案、值与回调不同 |
+| About | SectionHeading + BodyStack | 同一标题、正文、辅助文字和块间距 |
+| 排序弹窗 | Modal(Header, ChoiceList, SupportingText, FooterAction) | 复用设置页 Choice |
+| 应用操作 / 目标分类 | Modal(Header + AppImage + Tag, ActionList/ChoiceList, KeyHints) | 复用双行内容槽与全局 Tag |
+| 分类应用管理 | Modal(Header + Tag, SearchField, SummaryRow, ToggleList/EmptyState, KeyHints) | 搜索复用 TextField；列表复用 Choice/Toggle；不保留另一套搜索框高度 |
+| AFK | BlackoutViewport + TemporaryHint | 保留功能性纯黑；提示引用共用文字和放置规则 |
+
+### Edit tabs 的固定网格
+
+```text
+内容区左边缘                                           内容区右边缘
+│ 输入框：占剩余列                         │ Add：操作列 │  同一行高
+│
+│ 序号 + 分类名称                  默认 Tag / 类别 Tag │
+│ 上移 │ 下移 │ 设为首页：操作列       │ 删除：操作列  │  同一行高
+│
+│ 序号 + 分类名称                  默认 Tag / 类别 Tag │
+│ 上移 │ 下移 │ 设为首页：操作列       │ 删除：操作列  │  同一行高
+```
+
+四个操作列永远存在。第一行上移灰色，最后一行下移灰色，默认分类的设为首页灰色，受保护分类的删除灰色。FocusModel 和按钮 enabled 必须来自同一动作能力列表，不能 UI 灰了、手柄却仍可选中。空输入时 Add 同样禁用。
+
+达到分类数量上限时，创建区域保持版面位置并显示不可用原因；不因创建栏突然消失造成列表整体上移。该行为属于本次拟议设计，尚未实现。
+
+## 8. 全量元素盘点与代码对应
+
+覆盖范围为当前项目内应用拥有的界面、共享组件及直接显示提示的入口。Android 系统设置、权限对话框、输入法、其他应用界面不属于可重新绘制的页面。无源码入口的猜测功能不加入 Kit。
+
+| 来源文件 / 区域 | 实际包含的元素 | 归属 |
+| --- | --- | --- |
+| `ui/screens/LauncherScreen.kt` | 背景、主标题/包名、普通/全屏内容区、页脚提示与动作、各弹层入口 | Viewport / Page / Heading / Footer |
+| `TopTabBar.kt` | 左右肩键提示、Dashboard、用户分类、Settings、电池与风扇遥测 | Navigation / KeyHint / Control / DataText |
+| `BottomDockBar.kt` | 性能、风扇、灯光、充电、飞行模式的图示/短标签/值/焦点 | HardwareDock / Control / State |
+| `AppCard.kt` | 真实图标、图片框、固定外槽、焦点、拾取、抖动、隐藏占位 | ImageTile / Motion |
+| `AppIconCollection.kt` | 横向条带、全屏网格、名称、`[+]`、空分类、拖拽浮层、滚动边界 | Collection / Grid / ImageTile / EmptyState |
+| `DashboardContent.kt` | 内置与 TF 存储、RAM、温度、Wi-Fi、单位、总量、图表、图例、备注、未知值、三个快捷入口 | MetricCard / Bar / Legend / Feedback / Action |
+| `ConfigDialog.kt` | 页面标题、B 提示、两栏面板、六项左导航、右侧内容与滚动 | SettingsLayout / Navigation / KeyHint |
+| `ColorSection.kt` | 分区标题、六个硬件颜色样本、颜色名称、当前/焦点状态 | ColorChoice |
+| `OrientationSection.kt` | 标题、说明、方向选项、Active | Choice / Tag |
+| `DefaultHomeAndBootSection.kt` | 标题、说明、状态卡、默认 tag、管理/设为默认动作 | InformationGroup / Tag / Action |
+| `TabEditSection.kt` | 标题/数量、引导、名称输入、Add、序号、用户分类名、默认/游戏 tag、四个操作、滚动 | FieldActionRow / CategoryRow / FixedActionRow |
+| `LanguageSection.kt` | 标题、说明、四个语言选择、当前状态、焦点滚动 | ChoiceList |
+| `AboutSection.kt` | 标题、版本、功能说明、致谢 | Heading / BodyStack |
+| `AppSortMenu.kt` | 标题、四种排序、当前标记、权限说明、说明文字、返回 | Modal / Choice / Tag / Action |
+| `AppActionDialog.kt` | 应用图片、标题、当前分类、动作主副文案、危险项、目标分类列表 | Modal / Image / Action / Choice / Tag |
+| `AppBatchManageDialog.kt` | 搜索、匹配数量/归属数量、应用图片、名称/包名、已添加/未添加、空结果 | TextField / Summary / Toggle / Tag / Feedback |
+| `base/ConsoleModalDialog.kt` | 遮罩、面板、头部、图标、tag、B 提示、滚动内容、底部手柄说明 | Modal 模板 |
+| `ui/theme/*`、`base/*` | 当前已有和暂停中的字体、颜色、尺寸、控件、tag 抽取 | 迁移候选；以本文重新评估，不自动认可为完成品 |
+| `service/afk/AfkOverlayService.kt` | 纯黑遮罩、临时退出提示、失败 Toast | Blackout / Feedback |
+| `service/afk/AfkTileService.kt`、`AfkActionActivity.kt`、`res/drawable/ic_tile_afk.xml` | 系统 Tile 图标/状态、权限和失败提示 | 系统宿主组件的内容适配 |
+| `dashboard/DashboardActions.kt`、`ui/viewmodel/LauncherHardwareControls.kt`、`LauncherViewModel.kt` | 启动失败、权限、硬件失败、数量上限、归属/默认/排序结果等 Toast | 全局反馈语义；不改平台外壳 |
+
+分类编辑函数中保留的重命名回调不等于当前页面有可见重命名输入；本轮不凭回调新增功能。预览函数和 Debug 探针也不计作用户页面。
+
+图谱核验项目为 `Users-suntao-Documents-odin3_device-odin3_desktop`，本轮代次 `2026-09-08T06:38:08Z`。45 个组件目录函数的发现结果已读完；相关文件及 UI/AFK 范围的覆盖检查未记录缺口，关键渲染入口另经源码核对。这是当前代码范围的盘点，不等于所有语言、分辨率和交互状态已经通过实机验收。
+
+## 9. 从设计到实现的顺序
+
+1. 完成本文的类型注册和逐页推导；消除含义重复的类型。
+2. 创建 Kit 展示板，先只展示 G1/T1：普通动作、语言选项、输入框+按钮，所有状态并排比较。
+3. 逐个加入已证明必要的 G2/G3、标题/辅助/数值文字、图表与组合；每次回查已有实例。
+4. 先重建 Language 作为基准页，再用同一个组件创建 Orientation、Default home、Edit tabs。页面只填写实例数据与回调。
+5. 迁移其它设置、应用菜单、应用列表、Dashboard、Dock、全屏页和 AFK 提示。页面的布局不同不允许顺带重新设计相同按钮。
+6. 移除重复样式来源与旧组件，防止新旧两套底层继续并存。
+7. 用共享组件级断言验证 enabled/焦点能力，使用实际布局测量验证对齐；再做中英日、长文本、字体缩放和手柄路径验收。
+8. 只有组件与页面均通过后，再构建、发布、安装并更新英文 README 截图。
+
+本文阶段只进行第 1 步。后续代码重写须沿用这里的注册和推导，不能跳回逐页面打补丁。
+
+## 10. 验收条件
+
+- 每个页面里的可见元素都能找到 Kit 类型或组合，不存在无法归类的临时控件。
+- 同级控件的高度、行高、字体、圆角、内边距由同一个对象决定，页面只传内容、状态与回调。
+- 输入框与相邻按钮外框实际等高，上下边一致；不能只凭相同 minHeight 声称对齐。
+- 同排 tag / 图标 / 文字的对齐有统一规则，不能通过页面私有偏移修图。
+- Edit tabs 每一行的操作列坐标一致，所有不可用项灰色、不能触发、不能获得手柄焦点。
+- 全局 tag 使用同一外形；相同默认语义同色、同图示、同字重。
+- 选中、聚焦、禁用、数据刷新不改变已有槽位；需要长文本重排时按组合整体处理。
+- 全屏分类页只展示当前分类，并保持 B 返回、10 项后的 `[+]`、已有数据和排序逻辑。
+- 大面积配色保持柔和，信息颜色仍可分辨；实际硬件颜色样本保持原义。
+- README 正文和最终展示截图为英文；用户自定义名称不为截图被翻译或改写。
