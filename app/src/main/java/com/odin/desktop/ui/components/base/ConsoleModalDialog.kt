@@ -78,8 +78,8 @@ fun ConsoleModalDialog(
                     .clip(RoundedCornerShape(16.dp))
                     .background(palette.surface)
                     .border(
-                        width = 1.5.dp,
-                        color = palette.accent.copy(alpha = 0.85f),
+                        width = 1.dp,
+                        color = palette.border,
                         shape = RoundedCornerShape(16.dp)
                     )
                     .clickable(
@@ -186,14 +186,13 @@ fun ConsoleDialogItem(
 ) {
     val palette = LocalOdinPalette.current
     val bgColor = when {
-        isFocused && isDanger -> palette.danger
-        isFocused -> palette.accent
+        isFocused && isDanger -> palette.danger.copy(alpha = 0.16f)
+        isFocused -> palette.selection
         isSelected -> palette.accent.copy(alpha = 0.12f)
         else -> palette.background
     }
 
     val contentColor = when {
-        isFocused -> palette.background
         isDanger -> palette.danger
         isSelected -> palette.accent
         else -> palette.text
@@ -239,7 +238,7 @@ fun ConsoleDialogItem(
                 if (subtitle != null) {
                     Text(
                         text = subtitle,
-                        color = if (isFocused) palette.background.copy(alpha = 0.7f) else palette.textDim,
+                        color = palette.textDim,
                         fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -251,7 +250,7 @@ fun ConsoleDialogItem(
         if (trailingText != null) {
             Text(
                 text = trailingText,
-                color = if (isFocused) palette.background else palette.accent,
+                color = if (isDanger) palette.danger else palette.accent,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )

@@ -105,11 +105,11 @@ fun AppCard(
                 .scale(scale)
                 .size(if (compact) 76.dp else 110.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(if (isPicked) palette.accent.copy(alpha = 0.15f) else palette.card)
+                .background(if (isPicked || isFocused) palette.selection else palette.card)
                 .border(
                     width = when {
-                        isPicked -> 3.5.dp
-                        isFocused -> 2.5.dp
+                        isPicked -> 3.dp
+                        isFocused -> 2.dp
                         isReordering -> 1.5.dp
                         else -> 1.dp
                     },

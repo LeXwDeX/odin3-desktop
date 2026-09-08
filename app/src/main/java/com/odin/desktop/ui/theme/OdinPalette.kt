@@ -7,10 +7,13 @@ import androidx.compose.ui.graphics.Color
 /** Semantic colors for the launcher. Skin adapters supply values, never navigation or hardware code. */
 @Immutable
 data class OdinPalette(
-    val background: Color = PureBlack,
+    val background: Color = DarkBackground,
     val surface: Color = DarkSurface,
     val card: Color = CardBackground,
     val border: Color = CardBorder,
+    val selection: Color = SelectionBackground,
+    val track: Color = UsageTrack,
+    val storageFree: Color = StorageFree,
     val accent: Color = CyanAccent,
     val accentGlow: Color = CyanAccentGlow,
     val text: Color = TextWhite,

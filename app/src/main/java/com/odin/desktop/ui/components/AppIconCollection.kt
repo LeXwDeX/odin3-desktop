@@ -183,9 +183,10 @@ fun AppIconCollection(
                     }
                     if (hasMore) item(key = "all-apps-entry") {
                         val label = stringResource(R.string.app_library)
-                        Column(Modifier.size(128.dp).border(2.dp,
-                            if (hasFocus && selectedIndex == HOME_APP_LIMIT) palette.accent else palette.border,
-                            RoundedCornerShape(16.dp)).background(palette.card, RoundedCornerShape(16.dp))
+                        val focused = hasFocus && selectedIndex == HOME_APP_LIMIT
+                        Column(Modifier.size(128.dp).border(if (focused) 2.dp else 1.dp,
+                            if (focused) palette.accent else palette.border,
+                            RoundedCornerShape(16.dp)).background(if (focused) palette.selection else palette.card, RoundedCornerShape(16.dp))
                             .clickable(onClick = onAllApps).semantics { contentDescription = label },
                             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                             Text("+", fontSize = 48.sp, color = palette.accent)

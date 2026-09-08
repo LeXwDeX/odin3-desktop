@@ -19,11 +19,22 @@ fun OdinDesktopTheme(
             colorScheme = darkColorScheme(
                 primary = palette.accent,
                 secondary = palette.active,
+                tertiary = palette.special,
                 background = palette.background,
                 surface = palette.surface,
+                surfaceVariant = palette.card,
+                primaryContainer = palette.selection,
+                outline = palette.border,
+                outlineVariant = palette.border,
+                error = palette.danger,
                 onPrimary = palette.background,
+                onSecondary = palette.background,
+                onTertiary = palette.background,
+                onPrimaryContainer = palette.text,
+                onError = palette.background,
                 onBackground = palette.text,
-                onSurface = palette.text
+                onSurface = palette.text,
+                onSurfaceVariant = palette.textDim
             ),
             typography = typography,
             shapes = shapes,

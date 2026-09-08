@@ -88,7 +88,7 @@ fun TopTabBar(
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(6.dp))
-                .background(if (isConfigSelected) palette.accent.copy(alpha = 0.2f) else palette.surface)
+                .background(if (isConfigSelected) palette.selection else palette.surface)
                 .border(
                     width = 1.dp,
                     color = if (isConfigSelected) palette.accent else Color.Transparent,
@@ -113,7 +113,7 @@ private fun HomeTab(label: String, selected: Boolean, focusZone: FocusZone, onCl
     val focused = selected && focusZone == FocusZone.TABS
     Box(
         Modifier.widthIn(max = 150.dp).clip(RoundedCornerShape(6.dp))
-            .background(if (focused) palette.accent.copy(alpha = 0.2f) else Color.Transparent)
+            .background(if (focused) palette.selection else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
@@ -129,7 +129,7 @@ fun ShoulderButtonBadge(label: String) {
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))
             .background(palette.surface)
-            .border(1.dp, Color(0xFF333333), RoundedCornerShape(4.dp))
+            .border(1.dp, palette.border, RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(

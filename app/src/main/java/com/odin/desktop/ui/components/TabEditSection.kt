@@ -161,7 +161,7 @@ internal fun TabEditSection(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(Color(0xFFFFB300))
+                                    .background(palette.warning)
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(

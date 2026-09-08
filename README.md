@@ -28,6 +28,8 @@ The library fills the screen: no tab bar and no hardware dock. Navigate with the
 
 Android status and navigation bars stay hidden while using the launcher, including after unlocking or returning from another app. Swipe from a screen edge to reveal them temporarily.
 
+The interface uses a soft dark palette with clear information colors: cyan marks focus, green/orange/red distinguish control states, and storage bars share their colors with the corresponding labels. Internal storage and SD cards use the same gray for free space.
+
 App names can be shortened in the grid; the selected app's name also appears above it. Installed apps supply their own icons and names. No games, ROMs, or emulators are bundled.
 
 ### Organizing apps

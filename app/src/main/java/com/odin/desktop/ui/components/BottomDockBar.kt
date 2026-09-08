@@ -129,10 +129,10 @@ fun BottomDockBar(
             dockItems.forEachIndexed { index, item ->
                 val isFocused = index == selectedDockIndex && focusZone == FocusZone.DOCK
                 val borderColor by animateColorAsState(
-                    if (isFocused) palette.accent else Color(0xFF292929), label = "dock_border"
+                    if (isFocused) palette.accent else palette.border, label = "dock_border"
                 )
                 val bgColor by animateColorAsState(
-                    if (isFocused) palette.accent.copy(alpha = 0.16f) else palette.surface, label = "dock_bg"
+                    if (isFocused) palette.selection else palette.surface, label = "dock_bg"
                 )
                 Box(
                     modifier = Modifier

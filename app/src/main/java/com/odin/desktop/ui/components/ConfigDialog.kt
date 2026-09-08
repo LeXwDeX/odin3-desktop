@@ -133,8 +133,8 @@ fun ConfigDialog(
                         .clip(RoundedCornerShape(12.dp))
                         .background(palette.surface)
                         .border(
-                            width = if (!inSubMenu) 1.5.dp else 1.dp,
-                            color = if (!inSubMenu) palette.accent.copy(alpha = 0.8f) else palette.border,
+                            width = 1.dp,
+                            color = palette.border,
                             shape = RoundedCornerShape(12.dp)
                         )
                         .padding(12.dp),
@@ -149,7 +149,7 @@ fun ConfigDialog(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
-                                    if (isMenuFocused) palette.accent.copy(alpha = 0.25f)
+                                    if (isMenuFocused) palette.selection
                                     else if (isSelected) palette.accent.copy(alpha = 0.12f)
                                     else Color.Transparent
                                 )
@@ -179,8 +179,8 @@ fun ConfigDialog(
                         .clip(RoundedCornerShape(12.dp))
                         .background(palette.surface)
                         .border(
-                            width = if (inSubMenu) 1.5.dp else 1.dp,
-                            color = if (inSubMenu) palette.accent.copy(alpha = 0.5f) else palette.border,
+                            width = 1.dp,
+                            color = palette.border,
                             shape = RoundedCornerShape(12.dp)
                         )
                         .padding(24.dp)
