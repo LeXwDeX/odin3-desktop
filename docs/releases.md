@@ -105,3 +105,15 @@ tools/android ./gradlew -PreleaseVersion=0.1.1 :app:assembleDebug :app:assembleR
 安装后应用数据目录 inode、默认 HOME 与禁用应用列表和安装前一致。Power 休眠的倒计时、纯黑遮罩、唤醒不恢复三个场景已通过独立设备读回，详见 [挂机验收](afk-launcher-device-validation.md#power-休眠自动退出挂机v016)。原始证据、旧 APK 和正式附件在本机忽略目录 `.android-local/device-analysis/afk-power/`。
 
 正式版桌面与设置页已实际打开，既有分类和设置菜单正常显示，应用进程没有记录 AndroidRuntime 崩溃。UI 调试辅助进程已停止，验收后回到原前台应用，挂机保持关闭。
+
+## v0.1.7 多语言 UI 与全屏应用页
+
+2026-09-08，[v0.1.7](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.7) 的[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34182478031)和[对应主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34182473465)均成功，标签与构建提交为 `71dc6b9d811e5d0bbdb3c77f6cb30232114ee072`。功能和测试范围见 [UI 记录](ui-v017.md)。
+
+正式附件 `odin3-desktop-v0.1.7.apk` 的 SHA-256 为 `583fef389260f189905230670697de7671cccd4532c207d7d89ad992a47ea99d`，与 GitHub 资产摘要、校验附件及安装路径中的 APK 一致。包名 `com.odin.desktop`，版本 `0.1.7 / 1008`，不可调试，新旧 APK 签名一致。保存旧 v0.1.6 APK 后，先使用同版本 Debug 构建进行交互验证，最终在重新确认连接的 Odin3 / Android 15 上以 `adb install -r` 保留数据覆盖安装 GitHub 正式附件。
+
+正式版实测 `[+]` 打开 29 个应用的全屏库，默认显示配置下一屏可见 6 列 × 3 行图标，顶部 Tab、顶部遥测和底部硬件 Dock 隐藏；发送手柄 B 事件后返回来源分类的 `[+]` 位置。设置页、灯光菜单和方向菜单正常打开，README 的三张英文图片均来自最终正式版实机截图。
+
+交互测试前后的数据库所有表记录一致，包括 3 个分类和 47 条应用归属；正式版安装前的全部偏好文件也与测试前逐字节一致。最终安装前后数据目录 inode 不变，原有自定义分类仍可见，默认 HOME 和禁用应用列表一致。英文截图完成后已恢复原来的 `[zh-Hans]` 应用语言和 `1.0` 字体大小，设备回到 Odin Desktop；当前应用进程没有记录崩溃，UI 调试辅助进程已停止。
+
+旧 APK、数据保留校验、原始截图、布局与正式附件保存在本机忽略目录 `.android-local/device-analysis/ui-v017/`。Dashboard 的 6/30 秒调度由生产 Flow 的虚拟时钟测试验证；本次设备检查覆盖所改交互，不代表所有语言、字体倍数与长时间负载场景的穷尽验收。
