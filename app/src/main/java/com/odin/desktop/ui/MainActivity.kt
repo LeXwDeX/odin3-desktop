@@ -65,10 +65,7 @@ class MainActivity : AppCompatActivity() {
 
         // 全屏沉浸模式（隐藏系统导航条与状态栏，滑动临时浮现）
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowInsetsControllerCompat(window, window.decorView).apply {
-            hide(WindowInsetsCompat.Type.systemBars())
-            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        }
+        hideSystemBars()
 
         val dashboardActions = DashboardActions(this)
         lifecycleScope.launch {
@@ -96,6 +93,24 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+
+    private fun hideSystemBars() {
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideSystemBars()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Unlocking or closing another window can restore the system bars without recreating Home.
+        if (hasFocus) hideSystemBars()
     }
 
     override fun onStart() {

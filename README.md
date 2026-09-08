@@ -26,6 +26,8 @@ Each group's home row shows up to **10 apps**. When the group contains more than
 
 The library fills the screen: no tab bar and no hardware dock. Navigate with the D-pad or stick, scroll by touch, and press **B** to return to the original group and its [+] tile. On the Odin 3 at its default display and font settings, the grid shows three rows of six icons. The column count adapts to the available width.
 
+Android status and navigation bars stay hidden while using the launcher, including after unlocking or returning from another app. Swipe from a screen edge to reveal them temporarily.
+
 App names can be shortened in the grid; the selected app's name also appears above it. Installed apps supply their own icons and names. No games, ROMs, or emulators are bundled.
 
 ### Organizing apps

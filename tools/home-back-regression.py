@@ -74,7 +74,7 @@ class KeyEvent(val action: Int, val keyCode: Int, val repeatCount: Int = 0, val 
 ''' + "\n".join(f"const val {key} = {index + 3}" for index, key in enumerate(keys)) + '''
     }
 }
-class Window { val decorView = Any() }
+class Window { val decorView = Any(); var hiddenTypes = 0; var barBehavior = 0 }
 ''',
     "settings": '''package android.provider
 object Settings { object Secure {
@@ -100,6 +100,7 @@ open class ComponentActivity: android.content.Context() {
     open fun onStart() {}
     open fun onResume() {}
     open fun onPause() {}
+    open fun onWindowFocusChanged(hasFocus: Boolean) {}
     open fun onStop() {}
     open fun onDestroy() {}
     open fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean { defaultKeyDispatches++; return false }
@@ -135,11 +136,13 @@ fun androidx.lifecycle.Scope.launch(block: () -> Unit) {}
 ''',
     "window": '''package androidx.core.view
 object WindowCompat { fun setDecorFitsSystemWindows(window: android.view.Window, fits: Boolean) {} }
-object WindowInsetsCompat { object Type { fun systemBars() = 0 } }
-class WindowInsetsControllerCompat(window: android.view.Window, decorView: Any) {
-    var systemBarsBehavior = 0
-    fun hide(types: Int) {}
-    companion object { const val BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE = 0 }
+object WindowInsetsCompat { object Type { fun systemBars() = 3 } }
+class WindowInsetsControllerCompat(private val window: android.view.Window, decorView: Any) {
+    var systemBarsBehavior: Int
+        get() = window.barBehavior
+        set(value) { window.barBehavior = value }
+    fun hide(types: Int) { window.hiddenTypes = types }
+    companion object { const val BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE = 2 }
 }
 ''',
     "hardware": '''package com.odin.desktop.service.fan
@@ -189,8 +192,19 @@ import com.odin.desktop.ui.viewmodel.LauncherViewModel
 fun main() {
     val activity = MainActivity()
     activity.onCreate(null)
+    check(activity.window.hiddenTypes == 3 && activity.window.barBehavior == 2) {
+        "Initial launch must hide system bars and permit temporary swipe access"
+    }
     activity.onStart()
     activity.onResume()
+    activity.window.hiddenTypes = 0
+    activity.onWindowFocusChanged(false)
+    check(activity.window.hiddenTypes == 0) { "Do not re-hide another window's system bars while unfocused" }
+    activity.onWindowFocusChanged(true)
+    check(activity.window.hiddenTypes == 3) { "Unlock/window focus must restore immersive mode" }
+    activity.window.hiddenTypes = 0
+    activity.onResume()
+    check(activity.window.hiddenTypes == 3) { "Returning to a resumed launcher must restore immersive mode" }
     val vm = LauncherViewModel.instance
     activity.resultCallback?.invoke(Any()) ?: error("HOME request must register an Activity Result contract")
     check(vm.homeStatusRefreshes == 1) { "Returning from HOME selection must refresh role state" }
@@ -226,7 +240,12 @@ fun main() {
     check(vm.backCalls == backCalls) { "Held BACK repeats must not cascade through navigation" }
     activity.onPause(); activity.onStop()
     check(!vm.visible) { "Dashboard work must stop after leaving the desktop" }
+    activity.window.hiddenTypes = 0
     activity.onStart(); activity.onResume()
+    check(activity.window.hiddenTypes == 3 && activity.window.barBehavior == 2) {
+        "Returning from another app must hide bars and preserve swipe access"
+    }
+    println("PASS: immersive bars restored on resume/focus; transient swipe access preserved")
     check(vm.visible) { "Returning from another app must restore dashboard work" }
     check(vm.hardwareLoads > initialHardware) { "Returning from another app must refresh hardware" }
     if (activity.onBackPressedDispatcher.callbacks.isNotEmpty()) {
