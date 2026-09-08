@@ -1,22 +1,15 @@
 package com.odin.desktop.ui.components
 
-import com.odin.desktop.ui.theme.OdinCorners
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinTypography
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed as gridItemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,15 +21,17 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.odin.desktop.R
 import com.odin.desktop.data.model.HOME_APP_LIMIT
 import com.odin.desktop.data.model.InstalledApp
+import com.odin.desktop.ui.components.base.ImageTileSize
+import com.odin.desktop.ui.components.base.OdinImageTile
 import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import kotlin.math.roundToInt
 
 private class IconDragState {
@@ -68,12 +63,12 @@ fun AppIconCollection(
     val drop by rememberUpdatedState(onDrop)
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
-    val iconSize = with(density) { (if (isGrid) 88.dp else 128.dp).toPx() }
+    val iconSize = with(density) { (if (isGrid) ImageTileSize.DENSE.slot.dp else ImageTileSize.STANDARD.slot.dp).toPx() }
     val edge = with(density) { 48.dp.toPx() }
     val speed = with(density) { 560.dp.toPx() }
 
     BoxWithConstraints(modifier) {
-        val columns = (maxWidth / 128.dp).toInt().coerceAtLeast(1)
+        val columns = (maxWidth / ImageTileSize.STANDARD.slot.dp).toInt().coerceAtLeast(1)
         val width = constraints.maxWidth.toFloat()
         val height = constraints.maxHeight.toFloat()
         SideEffect { if (isGrid) onColumns(columns) }
@@ -160,7 +155,7 @@ fun AppIconCollection(
                     modifier = Modifier.align(Alignment.Center))
             } else if (isGrid) {
                 LazyVerticalGrid(columns = GridCells.Fixed(columns), state = grid,
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    contentPadding = PaddingValues(horizontal = OdinSpacing.page, vertical = OdinSpacing.xs),
                     verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
                     userScrollEnabled = drag.app == null, modifier = Modifier.fillMaxSize()) {
                     gridItemsIndexed(visibleApps, key = { _, app -> app.packageName }) { index, app ->
@@ -170,12 +165,12 @@ fun AppIconCollection(
                                 modifier = Modifier, compact = true, hidden = drag.app?.packageName == app.packageName,
                                 onLongClick = { onPick(app.packageName) })
                             Text(app.label, color = palette.text, style = OdinTypography.body, maxLines = 1,
-                                overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 6.dp))
+                                overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = OdinSpacing.xs))
                         }
                     }
                 }
             } else {
-                LazyRow(state = row, contentPadding = PaddingValues(horizontal = 48.dp),
+                LazyRow(state = row, contentPadding = PaddingValues(horizontal = OdinSpacing.page),
                     horizontalArrangement = Arrangement.spacedBy(OdinSpacing.lg), verticalAlignment = Alignment.CenterVertically,
                     userScrollEnabled = drag.app == null, modifier = Modifier.fillMaxSize()) {
                     itemsIndexed(visibleApps, key = { _, app -> app.packageName }) { index, app ->
@@ -186,15 +181,13 @@ fun AppIconCollection(
                     if (hasMore) item(key = "all-apps-entry") {
                         val label = stringResource(R.string.app_library)
                         val focused = hasFocus && selectedIndex == HOME_APP_LIMIT
-                        Column(Modifier.size(128.dp).border(if (focused) 2.dp else 1.dp,
-                            if (focused) palette.accent else palette.border,
-                            RoundedCornerShape(OdinCorners.dialog)).background(if (focused) palette.selection else palette.card, RoundedCornerShape(OdinCorners.dialog))
-                            .clickable(onClick = onAllApps).semantics { contentDescription = label },
-                            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                            Text("+", style = OdinTypography.symbol, color = palette.accent)
-                            Text(label, style = OdinTypography.body, color = palette.text, maxLines = 2,
-                                overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 8.dp))
+                        OdinImageTile(label = label, onClick = onAllApps, focused = focused) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(OdinSpacing.xs)) {
+                                Text("+", style = OdinTypography.metric, color = palette.accent)
+                                Text(label, style = OdinTypography.caption, color = palette.text, maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            }
                         }
                     }
                 }

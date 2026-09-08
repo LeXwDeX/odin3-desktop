@@ -1,7 +1,5 @@
 package com.odin.desktop.service.afk
 
-import com.odin.desktop.locale.AppLanguageContext
-import com.odin.desktop.locale.AppLanguage
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
@@ -30,6 +28,9 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.odin.desktop.OdinDesktopApplication
 import com.odin.desktop.R
+import com.odin.desktop.locale.AppLanguage
+import com.odin.desktop.locale.AppLanguageContext
+import com.odin.desktop.ui.theme.applyOdinHintStyle
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -196,12 +197,7 @@ class AfkOverlayService : Service() {
         }
 
         val textView = TextView(this).apply {
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.argb(230, 32, 32, 32))
-            val padding = (16 * resources.displayMetrics.density).toInt()
-            setPadding(padding, padding, padding, padding)
-            textSize = 14f
-            gravity = Gravity.CENTER
+            applyOdinHintStyle()
             text = getString(R.string.afk_overlay_unlock_hint)
         }
 

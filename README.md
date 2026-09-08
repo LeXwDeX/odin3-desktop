@@ -48,14 +48,14 @@ The home screen provides five controls: performance, fan, stick lights, charging
 
 | Control | Labels | Meaning |
 | --- | --- | --- |
-| Performance | `P1` / `P2` / `P3` | Normal / Performance / Maximum |
+| Performance | `L1` / `L2` / `L3` | Normal / Performance / Maximum |
 | Fan | `OFF` / `S` / `M` | Off / Smart / Maximum |
 | Stick lights | `ON` / `OFF` | Enable or disable the lights |
 | Charging | `5V 3A` / `9V 3A` | Charging power selection |
 | Charging bypass | `5V BP` / `9V BP` | Bypass enabled at the selected voltage |
 | Airplane mode | `ON` / `OFF` | Enable or disable airplane mode |
 
-The fan can also report `Q` for Quiet or `SYS` for another firmware mode. An unavailable reading uses `—`. Performance labels use `P` to distinguish them from the **L1 / R1** shoulder buttons.
+The fan can also report `Q` for Quiet or `SYS` for another firmware mode. An unavailable reading uses `—`. Dock titles use `PERF`, `FAN`, `LED`, `PWR`, and `AIR` in English; state labels remain separate from the function name.
 
 **Smart fan mode belongs to the firmware.** Odin Desktop has no automatic fan policy or fan watchdog. It does not change fan modes in response to charging, sleep, temperature, or the foreground game. A user-initiated performance change retains the existing cooling coordination: Maximum fan stays selected; other modes use Off with Normal performance and Smart with higher performance levels.
 
@@ -118,7 +118,7 @@ Use **JDK 17**, **Android SDK 35**, and the Gradle Wrapper. The project includes
 git clone https://github.com/LeXwDeX/odin3-desktop.git
 cd odin3-desktop
 python3 tools/setup-android.py
-tools/android ./gradlew -PreleaseVersion=0.1.12 :app:assembleDebug
+tools/android ./gradlew -PreleaseVersion=0.1.13 :app:assembleDebug
 ```
 
 For other environments, configure `JAVA_HOME` and `ANDROID_HOME`, then run the Gradle Wrapper directly. A locally generated debug key may differ from the release key; keep the original signing key when you need an in-place update.

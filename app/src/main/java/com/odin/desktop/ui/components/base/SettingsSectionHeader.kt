@@ -23,6 +23,6 @@ internal fun SettingsSectionHeader(
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(OdinSpacing.xs)) {
         Text(title, style = OdinTypography.h2, color = LocalOdinPalette.current.text,
             modifier = Modifier.semantics { heading() })
-        if (description != null) Text(description, style = OdinTypography.body, color = descriptionColor)
+        if (description != null) Text(description, style = OdinTypography.caption, color = descriptionColor)
     }
 }

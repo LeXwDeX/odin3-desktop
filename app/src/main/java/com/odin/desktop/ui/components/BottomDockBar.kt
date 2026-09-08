@@ -1,45 +1,32 @@
 package com.odin.desktop.ui.components
 
-import com.odin.desktop.ui.theme.OdinCorners
-import com.odin.desktop.ui.theme.OdinSizes
-import com.odin.desktop.ui.theme.OdinInsets
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinTypography
-import com.odin.desktop.ui.theme.LocalOdinPalette
-import androidx.compose.ui.platform.LocalContext
-import com.odin.desktop.R
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.rememberTextMeasurer
+import com.odin.desktop.R
 import com.odin.desktop.service.fan.HardwareController
+import com.odin.desktop.ui.components.base.*
 import com.odin.desktop.ui.navigation.FocusZone
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.ui.theme.OdinSizes
+import com.odin.desktop.ui.theme.OdinInsets
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 
 @Composable
 fun BottomDockBar(
@@ -121,63 +108,41 @@ fun BottomDockBar(
         strings.getString(if (airplaneMode) R.string.dock_on else R.string.dock_off)
     )
 
-    ProvideTextStyle(TextStyle(platformStyle = PlatformTextStyle(includeFontPadding = false))) {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(OdinSizes.dockHeight)
-                .padding(horizontal = OdinSpacing.page, vertical = OdinSpacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    val titles = compactTitles.map(strings::getString)
+    val icons = listOf("⚡", "🌀", "💡", "🔋", "✈")
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
+    val textMeasurer = rememberTextMeasurer()
+    BoxWithConstraints(modifier.fillMaxWidth().height(OdinSizes.chromeHeight())
+        .padding(horizontal = OdinSpacing.page, vertical = OdinSpacing.sm)) {
+        val columnWidth = (maxWidth - OdinSpacing.sm * (dockItems.size - 1)) / dockItems.size
+        val insets = OdinInsets.control.calculateLeftPadding(direction) + OdinInsets.control.calculateRightPadding(direction) +
+            OdinInsets.badge.calculateLeftPadding(direction) + OdinInsets.badge.calculateRightPadding(direction)
+        // Keep every name and state legible. Decorative icons are removed from the whole row together.
+        val showIcons = titles.indices.all { index ->
+            val textWidth = textMeasurer.measure(titles[index], OdinTypography.body, softWrap = false).size.width +
+                textMeasurer.measure(compactValues[index], OdinTypography.caption, softWrap = false).size.width
+            textWidth + with(density) { (insets + OdinSizes.icon + OdinSpacing.sm * 2).toPx() } <=
+                with(density) { columnWidth.toPx() }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)) {
             dockItems.forEachIndexed { index, item ->
-                val isFocused = index == selectedDockIndex && focusZone == FocusZone.DOCK
-                val borderColor by animateColorAsState(
-                    if (isFocused) palette.accent else palette.border, label = "dock_border"
-                )
-                val bgColor by animateColorAsState(
-                    if (isFocused) palette.selection else palette.surface, label = "dock_bg"
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(OdinCorners.control))
-                        .background(bgColor)
-                        .border(if (isFocused) 2.dp else 1.dp, borderColor, RoundedCornerShape(OdinCorners.control))
-                        .focusProperties { canFocus = false }
-                        .clickable(role = Role.Button) { onItemClick(index) }
-                        .clearAndSetSemantics {
-                            contentDescription = item.title
-                            stateDescription = item.value
-                        }
-                        .padding(OdinInsets.dockControl),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = strings.getString(compactTitles[index]),
-                            color = palette.text,
-                            style = OdinTypography.body,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false).padding(end = OdinSpacing.xs)
-                        )
-                        Text(
-                            text = compactValues[index],
-                            color = item.stateColor,
-                            style = OdinTypography.button,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                OdinControl(text = titles[index],
+                    onClick = { onItemClick(index) }, focused = index == selectedDockIndex && focusZone == FocusZone.DOCK,
+                    badge = compactValues[index], badgeRole = when (item.stateColor) {
+                        palette.active -> BadgeRole.ACTIVE
+                        palette.warning -> BadgeRole.WARNING
+                        palette.danger -> BadgeRole.DANGER
+                        palette.textDim -> BadgeRole.NEUTRAL
+                        else -> BadgeRole.INFO
+                    },
+                    icon = if (showIcons) {
+                        { Box(Modifier.size(OdinSizes.icon), contentAlignment = Alignment.Center) {
+                            Text(icons[index], style = OdinTypography.body, color = palette.text)
+                        } }
+                    } else null,
+                    accessibilityLabel = item.title + ": " + item.value,
+                    modifier = Modifier.weight(1f).fillMaxHeight(), maxLines = 1)
             }
         }
     }

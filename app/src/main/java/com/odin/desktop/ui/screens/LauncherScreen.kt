@@ -1,41 +1,41 @@
 package com.odin.desktop.ui.screens
 
-import com.odin.desktop.ui.theme.OdinSizes
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinTypography
-import com.odin.desktop.ui.theme.LocalOdinPalette
-import androidx.compose.ui.platform.LocalContext
-import com.odin.desktop.R
-import com.odin.desktop.data.model.displayName
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.odin.desktop.R
+import com.odin.desktop.data.model.HOME_APP_LIMIT
+import com.odin.desktop.data.model.displayName
 import com.odin.desktop.ui.components.AppActionDialog
 import com.odin.desktop.ui.components.AppBatchManageDialog
 import com.odin.desktop.ui.components.AppIconCollection
 import com.odin.desktop.ui.components.AppSortMenu
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.TextButton
-import com.odin.desktop.data.model.HOME_APP_LIMIT
-import com.odin.desktop.ui.components.DashboardContent
 import com.odin.desktop.ui.components.BottomDockBar
 import com.odin.desktop.ui.components.ConfigDialog
+import com.odin.desktop.ui.components.DashboardContent
 import com.odin.desktop.ui.components.TopTabBar
+import com.odin.desktop.ui.components.base.OdinActionButton
 import com.odin.desktop.ui.navigation.FocusZone
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.ui.theme.OdinSizes
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 import com.odin.desktop.ui.viewmodel.LauncherViewModel
 
 @Composable
@@ -111,7 +111,7 @@ fun LauncherScreen(
                 selectedControl = selectedDashboardControl,
                 hasFocus = focusZone == FocusZone.DASHBOARD,
                 onAction = viewModel::onDashboardAction,
-                modifier = Modifier.fillMaxSize().padding(top = OdinSizes.headerHeight, bottom = OdinSizes.dockHeight)
+                modifier = Modifier.fillMaxSize().padding(top = OdinSizes.headerHeight(), bottom = OdinSizes.chromeHeight())
             )
         } else {
             val isMoreSelected = !isAllAppsOpen && !isReorderingApps &&
@@ -119,8 +119,8 @@ fun LauncherScreen(
             val hoveredApp = if (isMoreSelected) null else currentTabApps.getOrNull(selectedAppIndex)
             Column(
                 Modifier.fillMaxSize().padding(
-                    top = if (isAllAppsOpen) OdinSpacing.md else OdinSizes.headerHeight,
-                    bottom = if (isAllAppsOpen) OdinSpacing.xs else OdinSizes.dockHeight
+                    top = if (isAllAppsOpen) OdinSpacing.md else OdinSizes.headerHeight(),
+                    bottom = if (isAllAppsOpen) OdinSpacing.xs else OdinSizes.chromeHeight()
                 )
             ) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = OdinSpacing.page)) {
@@ -131,7 +131,7 @@ fun LauncherScreen(
                             else hoveredApp?.label ?: strings.getString(R.string.text_no_apps_in_this_category),
                         color = if (focusZone == FocusZone.APPS) palette.accent else palette.text,
                         style = OdinTypography.h1,
-                        fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = if (isAllAppsOpen) hoveredApp?.label ?: "" else hoveredApp?.packageName ?: "",
@@ -147,7 +147,7 @@ fun LauncherScreen(
                         onClick = viewModel::onAppClick, onPick = viewModel::pickAppForDrag,
                         onMove = viewModel::moveDraggedApp, onDrop = viewModel::finishAppDrag,
                         onAllApps = viewModel::openAllApps, onColumns = viewModel::setGridColumns,
-                        modifier = if (isAllAppsOpen) Modifier.fillMaxSize().padding(top = 4.dp)
+                        modifier = if (isAllAppsOpen) Modifier.fillMaxSize().padding(top = OdinSpacing.xs)
                             else Modifier.fillMaxWidth().height(164.dp)
                     )
                 }
@@ -161,19 +161,11 @@ fun LauncherScreen(
                         color = palette.textDim, style = OdinTypography.caption,
                         modifier = Modifier.weight(1f)
                     )
-                    if (isReorderingApps) TextButton(onClick = viewModel::exitReorderMode) {
-                        Text(strings.getString(R.string.app_order_done), color = palette.accent)
-                    } else {
-                        TextButton(onClick = viewModel::openAppActionDialog) {
-                            Text(strings.getString(R.string.app_actions), color = palette.accent)
-                        }
-                        TextButton(onClick = viewModel::openSortMenu) {
-                            Text(strings.getString(R.string.app_sort_button), color = palette.accent)
-                        }
+                    if (isReorderingApps) OdinActionButton(strings.getString(R.string.app_order_done), viewModel::exitReorderMode, Modifier.widthIn(max = 132.dp)) else {
+                        OdinActionButton(strings.getString(R.string.app_actions), viewModel::openAppActionDialog, Modifier.widthIn(max = 132.dp))
+                        OdinActionButton(strings.getString(R.string.app_sort_button), viewModel::openSortMenu, Modifier.widthIn(max = 132.dp))
                     }
-                    if (isAllAppsOpen) TextButton(onClick = viewModel::onBack) {
-                        Text(strings.getString(R.string.app_library_back_button), color = palette.accent)
-                    }
+                    if (isAllAppsOpen) OdinActionButton(strings.getString(R.string.app_library_back_button), viewModel::onBack, Modifier.widthIn(max = 132.dp))
                 }
             }
         }

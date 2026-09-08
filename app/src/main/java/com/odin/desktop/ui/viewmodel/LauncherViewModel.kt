@@ -1,8 +1,5 @@
 package com.odin.desktop.ui.viewmodel
 
-import com.odin.desktop.data.model.displayName
-import com.odin.desktop.R
-import com.odin.desktop.locale.AppLanguage
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -10,31 +7,35 @@ import android.provider.Settings
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.odin.desktop.R
 import com.odin.desktop.dashboard.DashboardAction
 import com.odin.desktop.dashboard.DashboardRepository
 import com.odin.desktop.dashboard.DashboardState
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.receiveAsFlow
 import com.odin.desktop.data.entity.TabEntity
-import com.odin.desktop.data.model.InstalledApp
-import com.odin.desktop.data.model.orderAllApps
 import com.odin.desktop.data.model.AppSortMode
 import com.odin.desktop.data.model.HOME_APP_LIMIT
+import com.odin.desktop.data.model.InstalledApp
+import com.odin.desktop.data.model.displayName
 import com.odin.desktop.data.model.homeAppCount
-import com.odin.desktop.data.model.sortApps
 import com.odin.desktop.data.model.moveApp
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import com.odin.desktop.data.model.orderAllApps
+import com.odin.desktop.data.model.sortApps
+import com.odin.desktop.locale.AppLanguage
 import com.odin.desktop.service.fan.HardwareController
-import com.odin.desktop.ui.navigation.FocusZone
 import com.odin.desktop.ui.components.AppActionType
+import com.odin.desktop.ui.components.getAvailableAppActions
+import com.odin.desktop.ui.navigation.FocusZone
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
@@ -566,9 +567,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         _appActionTabPickerFocusIndex.value -= 1
                     }
                 } else {
-                    if (_appActionFocusIndex.value > 0) {
-                        _appActionFocusIndex.value -= 1
-                    }
+                    getAvailableAppActions(activeAppTab(), _tabs.value).lastOrNull {
+                        it.ordinal < _appActionFocusIndex.value
+                    }?.let { _appActionFocusIndex.value = it.ordinal }
                 }
             }
             FocusZone.APP_BATCH_MANAGE_MODAL -> {
@@ -627,9 +628,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                         _appActionTabPickerFocusIndex.value += 1
                     }
                 } else {
-                    if (_appActionFocusIndex.value < AppActionType.entries.lastIndex) {
-                        _appActionFocusIndex.value += 1
-                    }
+                    getAvailableAppActions(activeAppTab(), _tabs.value).firstOrNull {
+                        it.ordinal > _appActionFocusIndex.value
+                    }?.let { _appActionFocusIndex.value = it.ordinal }
                 }
             }
             FocusZone.APP_BATCH_MANAGE_MODAL -> {
@@ -1093,7 +1094,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (!_isAllAppsOpen.value && !_isReorderingApps.value && _selectedAppIndex.value >= HOME_APP_LIMIT) return
         val app = _currentTabApps.value.getOrNull(_selectedAppIndex.value) ?: return
         _appUnderAction.value = app
-        _appActionFocusIndex.value = 0
+        _appActionFocusIndex.value = getAvailableAppActions(activeAppTab(), _tabs.value).first().ordinal
         _appActionInTabPicker.value = false
         _appActionTabPickerFocusIndex.value = 0
         _isAppActionDialogOpen.value = true
@@ -1107,7 +1108,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun setAppActionFocusIndex(index: Int) {
-        _appActionFocusIndex.value = index.coerceIn(0, AppActionType.entries.lastIndex)
+        _appActionFocusIndex.value = getAvailableAppActions(activeAppTab(), _tabs.value)
+            .minBy { kotlin.math.abs(it.ordinal - index) }.ordinal
     }
 
     fun setAppActionTabPickerFocusIndex(index: Int) {
@@ -1115,6 +1117,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun executeAppAction(type: AppActionType) {
+        if (type !in getAvailableAppActions(activeAppTab(), _tabs.value)) return
         val app = _appUnderAction.value ?: return
         when (type) {
             AppActionType.MOVE_TO_TAB -> {

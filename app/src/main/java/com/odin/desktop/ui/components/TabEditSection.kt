@@ -1,307 +1,94 @@
 package com.odin.desktop.ui.components
 
-import com.odin.desktop.ui.components.base.SettingsSectionHeader
-import com.odin.desktop.ui.theme.OdinCorners
-import com.odin.desktop.ui.theme.OdinInsets
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinTypography
-import com.odin.desktop.ui.theme.LocalOdinPalette
-import com.odin.desktop.data.model.displayName
-import androidx.compose.ui.platform.LocalContext
-import com.odin.desktop.R
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import com.odin.desktop.R
+import com.odin.desktop.data.entity.TabAction
 import com.odin.desktop.data.entity.TabEntity
+import com.odin.desktop.data.entity.getAvailableTabActions
+import com.odin.desktop.data.model.displayName
+import com.odin.desktop.ui.components.base.*
+import com.odin.desktop.ui.theme.*
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun TabEditSection(
-    tabs: List<TabEntity>,
-    inSubMenu: Boolean,
-    subFocusIndex: Int,
-    tabActionFocusIndex: Int,
-    onAddTab: (String, Boolean) -> Unit,
-    onRenameTab: (TabEntity, String) -> Unit,
-    onDeleteTab: (TabEntity) -> Unit,
-    onMoveTabUp: (TabEntity) -> Unit,
-    onMoveTabDown: (TabEntity) -> Unit,
-    onSetDefaultTab: (TabEntity) -> Unit
+    tabs: List<TabEntity>, inSubMenu: Boolean, subFocusIndex: Int, tabActionFocusIndex: Int,
+    onAddTab: (String, Boolean) -> Unit, onRenameTab: (TabEntity, String) -> Unit,
+    onDeleteTab: (TabEntity) -> Unit, onMoveTabUp: (TabEntity) -> Unit,
+    onMoveTabDown: (TabEntity) -> Unit, onSetDefaultTab: (TabEntity) -> Unit
 ) {
     val palette = LocalOdinPalette.current
     val strings = LocalContext.current
     var newTabName by remember { mutableStateOf("") }
-
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(OdinSpacing.lg)) {
         SettingsSectionHeader(strings.getString(R.string.text_tab_groups_and_order_value_10, tabs.size),
-            strings.getString(R.string.text_up_down_tab_left_right_action_a), descriptionColor = palette.accent)
-        Spacer(modifier = Modifier.height(OdinSpacing.lg))
-
-        if (tabs.size < 10) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
-            ) {
-                OutlinedTextField(
-                    value = newTabName,
-                    onValueChange = { newTabName = it },
-                    placeholder = { Text(strings.getString(R.string.text_new_tab_name), color = palette.textDim) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = palette.text,
-                        unfocusedTextColor = palette.text,
-                        focusedBorderColor = palette.accent,
-                        unfocusedBorderColor = palette.border
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-                Button(
-                    onClick = {
-                        if (newTabName.isNotBlank()) {
-                            onAddTab(newTabName.trim(), false)
-                            newTabName = ""
-                        }
-                    },
-                    shape = RoundedCornerShape(OdinCorners.control),
-                    contentPadding = OdinInsets.button,
-                    colors = ButtonDefaults.buttonColors(containerColor = palette.accent)
-                ) {
-                    Text(strings.getString(R.string.text_add), color = palette.background, fontWeight = FontWeight.Bold)
-                }
-            }
+            strings.getString(R.string.text_up_down_tab_left_right_action_a), descriptionColor = palette.textDim)
+        OdinEqualHeightRow {
+            OdinTextField(newTabName, { newTabName = it }, strings.getString(R.string.text_new_tab_name),
+                modifier = Modifier.weight(1f).fillMaxHeight(), enabled = tabs.size < 10)
+            OdinActionButton(strings.getString(R.string.text_add),
+                enabled = tabs.size < 10 && newTabName.isNotBlank(),
+                modifier = Modifier.width(OdinSizes.fieldActionWidth).fillMaxHeight(),
+                onClick = { onAddTab(newTabName.trim(), false); newTabName = "" })
         }
-
-        Spacer(modifier = Modifier.height(OdinSpacing.lg))
-
+        if (tabs.size >= 10) Text(strings.getString(R.string.text_you_can_create_up_to_10_tabs),
+            style = OdinTypography.caption, color = palette.textDim)
         val listState = rememberLazyListState()
         LaunchedEffect(subFocusIndex, inSubMenu) {
-            if (inSubMenu && subFocusIndex in tabs.indices) {
-                listState.animateScrollToItem(subFocusIndex)
-            }
+            if (inSubMenu && subFocusIndex in tabs.indices) listState.animateScrollToItem(subFocusIndex)
         }
-
-        LazyColumn(
-            state = listState,
-            verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            itemsIndexed(tabs) { index, tab ->
-                val isRowFocused = inSubMenu && subFocusIndex == index
-                val availableActions = remember(tab, index, tabs.size) {
-                    com.odin.desktop.data.entity.getAvailableTabActions(tab, index, tabs.size)
-                }
-                val focusedAction = if (isRowFocused) availableActions.getOrNull(tabActionFocusIndex) else null
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(OdinCorners.control))
-                        .background(if (isRowFocused) palette.accent.copy(alpha = 0.12f) else palette.card)
-                        .border(
-                            width = if (isRowFocused) 2.dp else 1.dp,
-                            color = if (isRowFocused) palette.accent.copy(alpha = 0.7f) else palette.border,
-                            shape = RoundedCornerShape(OdinCorners.control)
-                        )
-                        .padding(OdinInsets.optionRow),
-                    verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)
-                    ) {
-                        Text(
-                            text = "#${index + 1}",
-                            color = if (isRowFocused) palette.accent else palette.textDim,
-                            style = OdinTypography.button,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = tab.displayName(strings),
-                            modifier = Modifier.weight(1f),
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            color = if (isRowFocused) palette.accent else palette.text,
-                            style = OdinTypography.h3,
-                            fontWeight = if (isRowFocused || tab.isDefault) FontWeight.Bold else FontWeight.Normal
-                        )
-                        if (tab.isDefault) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(OdinCorners.badge))
-                                    .background(palette.warning)
-                                    .padding(OdinInsets.badge)
-                            ) {
-                                Text(
-                                    text = strings.getString(R.string.text_home_tab),
-                                    color = palette.background,
-                                    style = OdinTypography.caption,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                        if (tab.isGameTab) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(OdinCorners.badge))
-                                    .background(palette.accent.copy(alpha = 0.15f))
-                                    .padding(OdinInsets.badge)
-                            ) {
-                                Text(
-                                    text = strings.getString(R.string.text_game_category),
-                                    color = palette.accent,
-                                    style = OdinTypography.caption
-                                )
-                            }
-                        }
+        LazyColumn(state = listState, modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm)) {
+            itemsIndexed(tabs, key = { _, tab -> tab.id }) { index, tab ->
+                val available = getAvailableTabActions(tab, index, tabs.size)
+                val focused = if (inSubMenu && subFocusIndex == index) available.getOrNull(tabActionFocusIndex) else null
+                OdinSurface(Modifier.fillMaxWidth(), role = SurfaceRole.DENSE) {
+                    FlowRow(modifier = Modifier.heightIn(min = OdinSizes.tagHeight()).wrapContentHeight(),
+                        horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(OdinSpacing.xs)) {
+                        Text("#${index + 1}", style = OdinTypography.caption, color = palette.textDim,
+                            modifier = Modifier.align(Alignment.CenterVertically))
+                        Text(tab.displayName(strings), style = OdinTypography.body, color = palette.text,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).align(Alignment.CenterVertically))
+                        if (tab.isDefault) OdinBadge(strings.getString(R.string.text_home_tab), BadgeRole.ACTIVE)
+                        if (tab.isGameTab) OdinBadge(strings.getString(R.string.text_game_category), BadgeRole.INFO)
                     }
-
-                    // 排序与操作按钮区 (支持左右光标高亮聚焦或手柄键位直达)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
-                    ) {
-                        // 上移按钮
-                        if (index > 0) {
-                            val isBtnFocused = focusedAction == com.odin.desktop.data.entity.TabAction.MOVE_UP
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(OdinCorners.control))
-                                    .background(if (isBtnFocused) palette.accent else palette.surface)
-                                    .border(
-                                        width = if (isBtnFocused) 2.dp else 1.dp,
-                                        color = if (isBtnFocused) palette.accent else palette.border,
-                                        shape = RoundedCornerShape(OdinCorners.control)
-                                    )
-                                    .clickable(role = Role.Button) { onMoveTabUp(tab) }
-                                    .clearAndSetSemantics { contentDescription = strings.getString(R.string.text_move_up) }
-                                    .size(44.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "▲",
-                                    color = if (isBtnFocused) palette.background else palette.text,
-                                    style = OdinTypography.button,
-                                    fontWeight = if (isBtnFocused) FontWeight.Bold else FontWeight.Normal
-                                )
+                    Spacer(Modifier.height(OdinSpacing.sm))
+                    OdinEqualHeightRow {
+                        TabAction.entries.forEach { action ->
+                            val symbol = action == TabAction.MOVE_UP || action == TabAction.MOVE_DOWN
+                            val label = when (action) {
+                                TabAction.MOVE_UP -> "▲"
+                                TabAction.MOVE_DOWN -> "▼"
+                                TabAction.SET_DEFAULT -> strings.getString(R.string.text_set_as_home)
+                                TabAction.DELETE -> strings.getString(R.string.text_delete)
                             }
-                        }
-
-                        // 下移按钮
-                        if (index < tabs.size - 1) {
-                            val isBtnFocused = focusedAction == com.odin.desktop.data.entity.TabAction.MOVE_DOWN
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(OdinCorners.control))
-                                    .background(if (isBtnFocused) palette.accent else palette.surface)
-                                    .border(
-                                        width = if (isBtnFocused) 2.dp else 1.dp,
-                                        color = if (isBtnFocused) palette.accent else palette.border,
-                                        shape = RoundedCornerShape(OdinCorners.control)
-                                    )
-                                    .clickable(role = Role.Button) { onMoveTabDown(tab) }
-                                    .clearAndSetSemantics { contentDescription = strings.getString(R.string.text_move_down) }
-                                    .size(44.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "▼",
-                                    color = if (isBtnFocused) palette.background else palette.text,
-                                    style = OdinTypography.button,
-                                    fontWeight = if (isBtnFocused) FontWeight.Bold else FontWeight.Normal
-                                )
-                            }
-                        }
-
-                        // 设为默认首页按钮
-                        if (!tab.isDefault) {
-                            val isBtnFocused = focusedAction == com.odin.desktop.data.entity.TabAction.SET_DEFAULT
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(OdinCorners.control))
-                                    .background(if (isBtnFocused) palette.accent else palette.accent.copy(alpha = 0.2f))
-                                    .border(
-                                        width = if (isBtnFocused) 2.dp else 1.dp,
-                                        color = palette.accent,
-                                        shape = RoundedCornerShape(OdinCorners.control)
-                                    )
-                                    .clickable(role = Role.Button) { onSetDefaultTab(tab) }
-                                    .weight(1f)
-                                    .heightIn(min = 44.dp)
-                                    .padding(OdinInsets.compactButton),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = strings.getString(R.string.text_set_as_home),
-                                    color = if (isBtnFocused) palette.background else palette.accent,
-                                    style = OdinTypography.button,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        // 删除按钮
-                        if (!tab.isDefault && tab.kind != com.odin.desktop.data.entity.TabKind.ALL_APPS) {
-                            val isBtnFocused = focusedAction == com.odin.desktop.data.entity.TabAction.DELETE
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(OdinCorners.control))
-                                    .background(if (isBtnFocused) palette.danger else palette.danger.copy(alpha = 0.15f))
-                                    .border(
-                                        width = if (isBtnFocused) 2.dp else 1.dp,
-                                        color = if (isBtnFocused) palette.danger else palette.danger.copy(alpha = 0.5f),
-                                        shape = RoundedCornerShape(OdinCorners.control)
-                                    )
-                                    .clickable(role = Role.Button) { onDeleteTab(tab) }
-                                    .weight(1f)
-                                    .heightIn(min = 44.dp)
-                                    .padding(OdinInsets.compactButton),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = strings.getString(R.string.text_delete),
-                                    color = if (isBtnFocused) palette.background else palette.danger,
-                                    style = OdinTypography.button,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            OdinActionButton(label, enabled = action in available, focused = focused == action,
+                                dangerous = action == TabAction.DELETE, iconOnly = symbol,
+                                accessibilityLabel = when (action) {
+                                    TabAction.MOVE_UP -> strings.getString(R.string.text_move_up)
+                                    TabAction.MOVE_DOWN -> strings.getString(R.string.text_move_down)
+                                    else -> null
+                                },
+                                modifier = (if (symbol) Modifier.width(OdinSizes.scaledControlHeight()) else Modifier.weight(1f)).fillMaxHeight(),
+                                onClick = {
+                                    when (action) {
+                                        TabAction.MOVE_UP -> onMoveTabUp(tab)
+                                        TabAction.MOVE_DOWN -> onMoveTabDown(tab)
+                                        TabAction.SET_DEFAULT -> onSetDefaultTab(tab)
+                                        TabAction.DELETE -> onDeleteTab(tab)
+                                    }
+                                })
                         }
                     }
                 }

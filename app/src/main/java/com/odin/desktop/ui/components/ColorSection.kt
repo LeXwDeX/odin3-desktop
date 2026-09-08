@@ -1,34 +1,31 @@
 package com.odin.desktop.ui.components
 
-import com.odin.desktop.ui.components.base.SettingsSectionHeader
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinTypography
-import com.odin.desktop.ui.theme.LocalOdinPalette
-import androidx.compose.ui.platform.LocalContext
-import com.odin.desktop.R
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.odin.desktop.R
+import com.odin.desktop.ui.components.base.ImageTileSize
+import com.odin.desktop.ui.components.base.OdinImageTile
+import com.odin.desktop.ui.components.base.SettingsSectionHeader
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 
 @Composable
 internal fun ColorSection(
@@ -59,26 +56,18 @@ internal fun ColorSection(
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f).clickable { onColorSelect(hex) }
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(Color(android.graphics.Color.parseColor(hex)))
-                            .border(
-                                width = if (isFocused) 3.5.dp else if (isSelected) 2.dp else 1.dp,
-                                color = if (isFocused) palette.accent else if (isSelected) palette.text else palette.border,
-                                shape = CircleShape
-                            )
-                    )
+                    OdinImageTile(label = label, onClick = { onColorSelect(hex) }, size = ImageTileSize.SWATCH,
+                        focused = isFocused, selected = isSelected) {
+                        Box(Modifier.size(48.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(hex))))
+                    }
                     Spacer(modifier = Modifier.height(OdinSpacing.sm))
                     Text(
                         text = label,
                         textAlign = TextAlign.Center,
                         color = if (isFocused) palette.accent else if (isSelected) palette.text else palette.textDim,
-                        style = OdinTypography.body,
-                        fontWeight = if (isFocused || isSelected) FontWeight.Bold else FontWeight.Normal
+                        style = OdinTypography.caption
                     )
                 }
             }

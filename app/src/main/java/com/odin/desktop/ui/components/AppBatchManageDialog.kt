@@ -1,17 +1,6 @@
 package com.odin.desktop.ui.components
 
-import com.odin.desktop.ui.theme.OdinCorners
-import com.odin.desktop.ui.theme.OdinInsets
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinTypography
-import com.odin.desktop.ui.theme.LocalOdinPalette
-import com.odin.desktop.data.model.displayName
-import androidx.compose.ui.platform.LocalContext
-import com.odin.desktop.R
 import android.widget.ImageView
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,32 +9,32 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.odin.desktop.R
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.model.InstalledApp
+import com.odin.desktop.data.model.displayName
+import com.odin.desktop.ui.components.base.BadgeRole
 import com.odin.desktop.ui.components.base.ConsoleModalDialog
+import com.odin.desktop.ui.components.base.OdinControl
+import com.odin.desktop.ui.components.base.OdinTextField
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.ui.theme.OdinSizes
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 
 @Composable
 fun AppBatchManageDialog(
@@ -94,27 +83,9 @@ fun AppBatchManageDialog(
         Column(modifier = Modifier.fillMaxSize()) {
             // 1. 顶部即时搜索框
             val isSearchFocused = focusIndex == -1
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchChange,
-                placeholder = { Text(strings.getString(R.string.text_filter_by_app_or_package_name_down), color = palette.textDim, style = OdinTypography.body) },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = palette.text,
-                    unfocusedTextColor = palette.text,
-                    focusedBorderColor = palette.accent,
-                    unfocusedBorderColor = if (isSearchFocused) palette.accent else palette.border,
-                    focusedContainerColor = palette.background,
-                    unfocusedContainerColor = palette.background
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = if (isSearchFocused) 2.dp else 0.dp,
-                        color = if (isSearchFocused) palette.accent else Color.Transparent,
-                        shape = RoundedCornerShape(OdinCorners.control)
-                    )
-            )
+            OdinTextField(searchQuery, onSearchChange,
+                strings.getString(R.string.text_filter_by_app_or_package_name_down),
+                modifier = Modifier.fillMaxWidth(), highlighted = isSearchFocused)
 
             Spacer(modifier = Modifier.height(OdinSpacing.md))
 
@@ -127,13 +98,12 @@ fun AppBatchManageDialog(
                 Text(
                     text = strings.getString(R.string.text_matching_apps_value, filteredApps.size),
                     color = palette.textDim,
-                    style = OdinTypography.body
+                    style = OdinTypography.caption
                 )
                 Text(
                     text = strings.getString(R.string.text_this_category_contains_value_apps, currentTabAppPackages.size),
                     color = palette.accent,
-                    style = OdinTypography.body,
-                    fontWeight = FontWeight.Bold
+                    style = OdinTypography.caption
                 )
             }
 
@@ -145,7 +115,7 @@ fun AppBatchManageDialog(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(strings.getString(R.string.text_no_matching_apps), color = palette.textDim, style = OdinTypography.h3)
+                    Text(strings.getString(R.string.text_no_matching_apps), color = palette.textDim, style = OdinTypography.body)
                 }
             } else {
                 LazyColumn(
@@ -157,89 +127,18 @@ fun AppBatchManageDialog(
                         val isRowFocused = focusIndex == index
                         val isAdded = currentTabAppPackages.contains(app.packageName)
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(OdinCorners.control))
-                                .background(if (isRowFocused) palette.accent else palette.background)
-                                .border(
-                                    width = if (isRowFocused) 2.dp else 1.dp,
-                                    color = if (isRowFocused) palette.accent else palette.border,
-                                    shape = RoundedCornerShape(OdinCorners.control)
-                                )
-                                .clickable { onToggleApp(app) }
-                                .padding(OdinInsets.optionRow),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md),
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                AndroidView(
-                                    factory = { context ->
-                                        ImageView(context).apply {
-                                            scaleType = ImageView.ScaleType.FIT_CENTER
-                                        }
-                                    },
-                                    update = { imageView ->
-                                        imageView.setImageDrawable(app.icon)
-                                    },
-                                    modifier = Modifier.size(28.dp)
-                                )
-
-                                Column {
-                                    Text(
-                                        text = app.label,
-                                        color = if (isRowFocused) palette.background else palette.text,
-                                        style = OdinTypography.h3,
-                                        fontWeight = if (isRowFocused) FontWeight.Bold else FontWeight.Normal,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = app.packageName,
-                                        color = if (isRowFocused) palette.background.copy(alpha = 0.7f) else palette.textDim,
-                                        style = OdinTypography.caption,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
+                        OdinControl(
+                            text = app.label, subtitle = app.packageName,
+                            onClick = { onToggleApp(app) }, focused = isRowFocused, selected = isAdded,
+                            toggle = true,
+                            badge = strings.getString(if (isAdded) R.string.text_added else R.string.text_not_added),
+                            badgeRole = if (isAdded) BadgeRole.ACTIVE else BadgeRole.NEUTRAL,
+                            modifier = Modifier.fillMaxWidth(),
+                            icon = {
+                                AndroidView(factory = { context -> ImageView(context).apply { scaleType = ImageView.ScaleType.FIT_CENTER } },
+                                    update = { it.setImageDrawable(app.icon) }, modifier = Modifier.size(OdinSizes.imageIcon))
                             }
-
-                            // 状态标签 / 勾选开关
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(OdinCorners.badge))
-                                    .background(
-                                        when {
-                                            isRowFocused && isAdded -> palette.background
-                                            isRowFocused && !isAdded -> palette.background.copy(alpha = 0.2f)
-                                            isAdded -> palette.accent.copy(alpha = 0.2f)
-                                            else -> palette.surface
-                                        }
-                                    )
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isRowFocused) palette.background else (if (isAdded) palette.accent else palette.border),
-                                        shape = RoundedCornerShape(OdinCorners.badge)
-                                    )
-                                    .padding(OdinInsets.badge)
-                            ) {
-                                Text(
-                                    text = if (isAdded) strings.getString(R.string.text_added) else strings.getString(R.string.text_not_added),
-                                    color = when {
-                                        isRowFocused && isAdded -> palette.accent
-                                        isRowFocused && !isAdded -> palette.background
-                                        isAdded -> palette.accent
-                                        else -> palette.textDim
-                                    },
-                                    style = OdinTypography.caption,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+                        )
                     }
                 }
             }

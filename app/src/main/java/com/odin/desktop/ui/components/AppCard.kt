@@ -1,8 +1,5 @@
 package com.odin.desktop.ui.components
 
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinCorners
-import com.odin.desktop.ui.theme.LocalOdinPalette
 import android.widget.ImageView
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -12,28 +9,21 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.viewinterop.AndroidView
 import com.odin.desktop.data.model.InstalledApp
+import com.odin.desktop.ui.components.base.ImageTileSize
+import com.odin.desktop.ui.components.base.OdinImageTile
+import com.odin.desktop.ui.theme.LocalOdinPalette
 
 @Composable
 fun AppCard(
@@ -93,55 +83,15 @@ fun AppCard(
         remember { mutableFloatStateOf(0f) }
     }
 
-    // 固定外层槽位尺寸 128.dp，保证卡片放大或抖动时绝对不挤压或推移上下左右邻近元素
-    Box(
-        modifier = modifier.size(if (compact) 88.dp else 128.dp).graphicsLayer { alpha = if (hidden) 0f else 1f },
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .graphicsLayer {
-                    rotationZ = if (isPicked) 0f else jiggleRotation
-                    translationY = if (isPicked) -8f else jiggleTranslationY
-                }
-                .scale(scale)
-                .size(if (compact) 76.dp else 110.dp)
-                .clip(RoundedCornerShape(OdinCorners.dialog))
-                .background(if (isPicked || isFocused) palette.selection else palette.card)
-                .border(
-                    width = when {
-                        isPicked -> 3.dp
-                        isFocused -> 2.dp
-                        isReordering -> 1.5.dp
-                        else -> 1.dp
-                    },
-                    color = when {
-                        isPicked -> palette.accent
-                        isFocused -> palette.accent
-                        isReordering -> palette.border.copy(alpha = 0.8f)
-                        else -> palette.border
-                    },
-                    shape = RoundedCornerShape(OdinCorners.dialog)
-                )
-                .clickable(enabled = interactive) { onClick() }
-                .semantics {
-                    contentDescription = app.label
-                    if (interactive) onLongClick { onLongClick(); true }
-                }
-                .padding(if (compact) OdinSpacing.md else OdinSpacing.lg),
-            contentAlignment = Alignment.Center
-        ) {
-            AndroidView(
-                factory = { context ->
-                    ImageView(context).apply {
-                        scaleType = ImageView.ScaleType.FIT_CENTER
-                    }
-                },
-                update = { imageView ->
-                    imageView.setImageDrawable(app.icon)
-                },
-                modifier = Modifier.size(if (compact) 50.dp else 72.dp)
-            )
-        }
+    OdinImageTile(label = app.label, onClick = onClick, modifier = modifier,
+        size = if (compact) ImageTileSize.DENSE else ImageTileSize.STANDARD,
+        focused = isFocused || isPicked, selected = isPicked, hidden = hidden,
+        interactive = interactive, onLongClick = onLongClick,
+        transform = Modifier.graphicsLayer {
+            rotationZ = if (isPicked) 0f else jiggleRotation
+            translationY = if (isPicked) -8f else jiggleTranslationY
+        }.scale(scale)) {
+        AndroidView(factory = { context -> ImageView(context).apply { scaleType = ImageView.ScaleType.FIT_CENTER } },
+            update = { it.setImageDrawable(app.icon) }, modifier = Modifier.fillMaxSize())
     }
 }

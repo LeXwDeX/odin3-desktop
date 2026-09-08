@@ -1,19 +1,6 @@
 package com.odin.desktop.ui.components
 
-import com.odin.desktop.ui.theme.OdinCorners
-import com.odin.desktop.ui.theme.OdinInsets
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinTypography
-import com.odin.desktop.ui.theme.LocalOdinPalette
-import androidx.compose.ui.platform.LocalContext
-import com.odin.desktop.R
-import com.odin.desktop.locale.AppLanguage
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -28,19 +15,26 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.odin.desktop.R
 import com.odin.desktop.data.entity.TabEntity
+import com.odin.desktop.locale.AppLanguage
+import com.odin.desktop.ui.components.base.OdinControl
+import com.odin.desktop.ui.components.base.OdinSurface
+import com.odin.desktop.ui.components.base.SurfaceRole
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 
 /**
  * 掌机控制台级原生全屏设置浮层 (避免 Android Dialog Window 劫持手柄焦点)
@@ -113,13 +107,12 @@ fun ConfigDialog(
                     text = strings.getString(R.string.text_system_settings),
                     color = palette.accent,
                     style = OdinTypography.h1,
-                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f).padding(end = OdinSpacing.lg)
                 )
                 Text(
                     text = strings.getString(R.string.text_b_or_tap_the_background_to_return),
                     color = palette.textDim,
-                    style = OdinTypography.body,
+                    style = OdinTypography.caption,
                     modifier = Modifier.widthIn(max = 280.dp)
                 )
             }
@@ -131,66 +124,29 @@ fun ConfigDialog(
                 horizontalArrangement = Arrangement.spacedBy(OdinSpacing.xl)
             ) {
                 // 左侧设置分类导航
-                LazyColumn(
-                    state = menuScrollState,
-                    modifier = Modifier
-                        .width(220.dp)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(OdinCorners.card))
-                        .background(palette.surface)
-                        .border(
-                            width = 1.dp,
-                            color = palette.border,
-                            shape = RoundedCornerShape(OdinCorners.card)
-                        )
-                        .padding(OdinSpacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
-                ) {
-                    itemsIndexed(sections) { index, title ->
-                        val isSelected = selectedSection == index
-                        val isMenuFocused = !inSubMenu && isSelected
+                OdinSurface(Modifier.width(220.dp).fillMaxHeight(), SurfaceRole.NAVIGATION) {
+                    LazyColumn(
+                        state = menuScrollState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(OdinSpacing.sm)
+                    ) {
+                        itemsIndexed(sections) { index, title ->
+                            val isSelected = selectedSection == index
+                            val isMenuFocused = !inSubMenu && isSelected
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(OdinCorners.control))
-                                .background(
-                                    if (isMenuFocused) palette.selection
-                                    else if (isSelected) palette.accent.copy(alpha = 0.12f)
-                                    else Color.Transparent
-                                )
-                                .border(
-                                    width = if (isMenuFocused) 1.5.dp else 0.dp,
-                                    color = if (isMenuFocused) palette.accent else Color.Transparent,
-                                    shape = RoundedCornerShape(OdinCorners.control)
-                                )
-                                .clickable { onSectionClick(index) }
-                                .padding(OdinInsets.optionRow)
-                        ) {
-                            Text(
+                            OdinControl(
                                 text = title,
-                                color = if (isMenuFocused || isSelected) palette.accent else palette.text,
-                                style = OdinTypography.h3,
-                                fontWeight = if (isMenuFocused || isSelected) FontWeight.Bold else FontWeight.Normal
+                                onClick = { onSectionClick(index) },
+                                selected = isSelected,
+                                focused = isMenuFocused,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
                     }
                 }
 
                 // 右侧子内容配置区
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(OdinCorners.card))
-                        .background(palette.surface)
-                        .border(
-                            width = 1.dp,
-                            color = palette.border,
-                            shape = RoundedCornerShape(OdinCorners.card)
-                        )
-                        .padding(OdinSpacing.panel)
-                ) {
+                OdinSurface(Modifier.weight(1f).fillMaxHeight(), SurfaceRole.PANEL) {
                     when (selectedSection) {
                         0 -> ColorSection(currentJoystickColor, inSubMenu, subFocusIndex, onColorSelect)
                         1 -> OrientationSection(currentOrientation, inSubMenu, subFocusIndex, onOrientationSelect)

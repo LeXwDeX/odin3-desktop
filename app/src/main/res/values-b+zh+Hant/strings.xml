@@ -125,7 +125,7 @@
     <string name="text_up_down_tab_left_right_action_a" formatted="false">"【上下键选Tab • 左右光标选中按钮 • A键确认】"</string>
     <string name="text_new_tab_name" formatted="false">"输入新 Tab 名称..."</string>
     <string name="text_add" formatted="false">"添加"</string>
-    <string name="text_home_tab" formatted="false">"★ 默认首页"</string>
+    <string name="text_home_tab" formatted="false">"✓ 默认首页"</string>
     <string name="text_game_category" formatted="false">"游戏分类"</string>
     <string name="text_move_up" formatted="false">"▲ 上移"</string>
     <string name="text_move_down" formatted="false">"▼ 下移"</string>
@@ -263,11 +263,11 @@
     <string name="app_sort_usage_missing">最后运行：未取得记录</string>
 
     <!-- Compact controls; full labels remain available to accessibility. -->
-    <string name="dock_performance_title">⚡ 性能</string>
-    <string name="dock_fan_title">🌀 风扇</string>
-    <string name="dock_lights_title">💡 摇杆灯</string>
-    <string name="dock_charging_title">🔋 充电</string>
-    <string name="dock_airplane_title">✈ 飞行</string>
+    <string name="dock_performance_title">性能</string>
+    <string name="dock_fan_title">风扇</string>
+    <string name="dock_lights_title">摇杆灯</string>
+    <string name="dock_charging_title">充电</string>
+    <string name="dock_airplane_title">飞行</string>
     <string name="dock_performance_normal">默认</string>
     <string name="dock_performance_medium">性能</string>
     <string name="dock_performance_maximum">最高</string>
@@ -282,4 +282,5 @@
     <string name="dock_bypass_9v">9V 分离</string>
     <string name="app_sort_button">排序</string>
     <string name="app_library_back_button">B · 返回</string>
+    <string name="header_time">时间</string>
 </resources>

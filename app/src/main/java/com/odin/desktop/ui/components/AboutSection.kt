@@ -1,27 +1,25 @@
 package com.odin.desktop.ui.components
 
-import com.odin.desktop.ui.components.base.SettingsSectionHeader
-import com.odin.desktop.ui.theme.OdinSpacing
-import com.odin.desktop.ui.theme.OdinTypography
-import com.odin.desktop.ui.theme.LocalOdinPalette
-import androidx.compose.ui.platform.LocalContext
-import com.odin.desktop.R
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import com.odin.desktop.R
+import com.odin.desktop.ui.components.base.SettingsSectionHeader
+import com.odin.desktop.ui.theme.LocalOdinPalette
+import com.odin.desktop.ui.theme.OdinSpacing
+import com.odin.desktop.ui.theme.OdinTypography
 
 @Composable
 internal fun AboutSection() {
     val palette = LocalOdinPalette.current
     val strings = LocalContext.current
-    Column {
+    Column(Modifier.verticalScroll(rememberScrollState())) {
         SettingsSectionHeader(strings.getString(R.string.text_odin_3_handheld_launcher),
             "Odin Desktop ${com.odin.desktop.BuildConfig.VERSION_NAME}")
         Spacer(modifier = Modifier.height(OdinSpacing.lg))
