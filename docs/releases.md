@@ -176,3 +176,13 @@ Debug 交互前与正式安装前，数据库所有表记录和偏好文件一�
 Debug 验证前与正式安装前，数据库所有应用表记录和偏好文件一致，保留 3 个分类和 47 条应用归属。安装后应用数据目录 inode 仍为 `258045`。安装前后 HOME 角色均为 `com.odin.desktop`，最终 HOME intent 也解析到 `.ui.MainActivity`；早期基线中的泛化 intent 查询曾返回 ResolverActivity，原始结果保留在本机记录中，未以该字符串单独判断默认桌面。禁用应用列表保持不变，TF 卡仍挂载。
 
 验收期间用户确认手动从 5V 3A 切到 9V 3A，最终保留该选择，读回 `charging_limit_power_limit=0`、`percent_80_charge_limit=0`。拍摄后恢复 `[zh-Hans]` 和 `1.0` 字体大小，设备位于中文 Dashboard；当前应用进程没有记录崩溃，UI 调试辅助进程已停止。旧 APK、正式附件、数据比对、实际布局与原始截图保存在本机忽略目录 `.android-local/device-analysis/design-v0113/`。
+
+## v0.1.14 应用管理与排序按钮 Emoji
+
+2026-09-10，[v0.1.14](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.14) 已正式发布，[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34481974300) 与[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34481991615)均成功；标签提交为 `8562383a55b60168cd3ffc1b4c36548168fd967d`。
+
+应用列表的“应用管理”和“排序”按钮分别补上 🛠️ 与 🔃，同步英文、日文和两套中文资源，复用现有按钮和行为。本地 Debug/Release 构建、多语言与架构回归通过，Lint 为 0 个错误、87 个警告。
+
+正式 APK 的包名为 `com.odin.desktop`，版本 `0.1.14 / 1015`，不可调试；签名校验通过，证书 SHA-256 为 `55365fd0f34296a9a23cf798b40a412bd7df300d3e3b72a3b1eecd7e0c972163`。文件 SHA-256 为 `66a070b6bd77718a665cbb60af23cef6e46560d7ceec3b94386f2898ac50b2a4`，与校验附件及 GitHub 资产摘要一致。附件保存在 `.android-local/releases/v0.1.14/`。
+
+两次 ADB 检查均无已连接设备：已发布、未安装，待安装版本为 v0.1.14；尚未完成 Emoji 的实机显示验收。
