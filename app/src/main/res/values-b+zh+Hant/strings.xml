@@ -247,7 +247,7 @@
     <string name="app_library_count">%1$s · %2$d 个应用</string>
     <string name="app_library_close">返回</string>
     <string name="app_order_done">完成排序</string>
-    <string name="app_actions">应用管理</string>
+    <string name="app_actions">🛠️ 应用管理</string>
     <string name="app_order_hint">点选图标，再点目标位置 · 长按拖拽 · A 拿起/放下 · B 返回</string>
     <string name="app_browse_hint">长按图标或按 Y 调整顺序 · START 展示排序</string>
     <string name="app_sort_current">排序：%1$s</string>
@@ -280,7 +280,7 @@
     <string name="dock_unknown">—</string>
     <string name="dock_bypass_5v">5V 分离</string>
     <string name="dock_bypass_9v">9V 分离</string>
-    <string name="app_sort_button">排序</string>
+    <string name="app_sort_button">🔃 排序</string>
     <string name="app_library_back_button">B · 返回</string>
     <string name="header_time">时间</string>
 </resources>

@@ -250,7 +250,7 @@
     <string name="app_library_count">%1$s · %2$d apps</string>
     <string name="app_library_close">Back</string>
     <string name="app_order_done">Done</string>
-    <string name="app_actions">App options</string>
+    <string name="app_actions">🛠️ App options</string>
     <string name="app_order_hint">Tap an icon, then its destination · Hold and drag · A: pick/drop · B: back</string>
     <string name="app_browse_hint">Hold an icon or press Y to reorder · START: sort</string>
     <string name="app_sort_current">Sort: %1$s</string>
@@ -283,7 +283,7 @@
     <string name="dock_unknown">—</string>
     <string name="dock_bypass_5v">5V BP</string>
     <string name="dock_bypass_9v">9V BP</string>
-    <string name="app_sort_button">Sort</string>
+    <string name="app_sort_button">🔃 Sort</string>
     <string name="app_library_back_button">B · Back</string>
     <string name="header_time">Time</string>
 </resources>
