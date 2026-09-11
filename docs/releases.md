@@ -204,3 +204,16 @@ Debug 实机 en / ja / zh-Hans × 1.0 / 1.3 六组布局验证通过；文字起
 正式 APK 版本 `0.1.15 / 1016`，包名 `com.odin.desktop`，不可调试，签名证书与旧版一致。SHA-256 为 `d49e7331d0f189c21bfb9348700e96468439ed169cdae3e45fc2b1cb06da079c`，与校验附件、GitHub 资产摘要及掌机安装文件一致。旧 v0.1.14 正式附件保留于 `.android-local/releases/v0.1.14/`。
 
 正式版中文截图与布局再次确认应用管理、排序、设置和五个 Dock 控件的文字起点均为 101 px；设置页打开与返回正常。首次安装时间、数据目录 inode `258045`、默认 HOME 与禁用应用列表保持不变，UI 辅助进程已停止。附件在 `.android-local/releases/v0.1.15/`，实机原始证据在 `.android-local/device-analysis/emoji-kit-v0115/`；六组字体语言测量来自同版本 Debug 构建，正式版完成中文 1.0 倍字体复核。
+
+
+## v0.1.16 分类清理正确性与批量写入
+
+2026-09-11，[v0.1.16](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.16) 已发布并在重新确认的 AYN Odin3（`a782c9a1`）上保留数据覆盖安装。标签提交为 `3c5fc292d85d0f26e04fd5c4428de92bf3bafaa5`；[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34548632176) 与[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34548633974)均成功。
+
+扫描不再把启动入口缺失直接判定为卸载。清理覆盖所有分类及隐藏映射，补查安装状态，保留禁用和无入口的已安装应用；包可见性受限或查询异常时不据此删除。确认卸载的包通过分批 SQL 在一个 Room 事务内删除。无需 schema 迁移。本地 51 项单元测试、Debug/Release 构建和架构回归通过；Lint 0 错误、87 个原有警告。Android 12L / 15 的 Room 测试核验了保留记录的 ID、排序、自定义名称和隐藏状态。
+
+正式 APK 为 `com.odin.desktop / 0.1.16 / 1017`，不可调试，新旧签名证书一致。SHA-256 为 `65a72a7b3beb799ff92ca483a5cba3aec4285df5e48f2844d0d18105efbef8f3`，与校验附件及设备安装路径中的实际 APK 一致。旧 APK 保存在 `.android-local/device-analysis/cleanup-v0116/old.apk`，正式附件及校验报告在 `.android-local/releases/v0.1.16/`。
+
+安装后首次安装时间、数据目录 inode `258045`、默认 HOME 和禁用应用列表保持不变。游戏分类当前可见的六个应用及顺序与安装前一致；设置页打开和返回正常，UI 检查辅助进程已退出。设备未进行禁用/卸载用户应用的破坏性场景测试，也未直接读取私有数据库逐行比较；该边界由上述 Room 回归覆盖。未做扫描性能基准，不声明启动提速。
+
+界面对照另观察到风扇档位由“智能”显示为“关闭”。本次命令没有设置风扇或其他硬件档位，原因未确认，保留当前状态；不将此项报告为配置保持不变。布局和截图保存在 `.android-local/device-analysis/cleanup-v0116/`。
