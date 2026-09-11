@@ -228,7 +228,7 @@
     <string name="text_up_down_select_a_confirm_b_back" formatted="false">"上下：選択・A：決定・B：戻る"</string>
     <string name="text_b_or_tap_the_background_to_return_2" formatted="false">"Bまたは背景をタップして戻る"</string>
     <string name="page_dashboard" formatted="false">"ダッシュボード"</string>
-    <string name="page_config" formatted="false">"⚙️ 設定"</string>
+    <string name="page_config" formatted="false">"設定"</string>
     <string name="language_section" formatted="false">"5. 言語"</string>
     <string name="text_6_about" formatted="false">"6. このアプリについて"</string>
     <string name="language_title" formatted="false">"アプリの言語"</string>
@@ -248,7 +248,7 @@
     <string name="app_library_count">%1$s · %2$d 個</string>
     <string name="app_library_close">戻る</string>
     <string name="app_order_done">並べ替え完了</string>
-    <string name="app_actions">🛠️ アプリ管理</string>
+    <string name="app_actions">アプリ管理</string>
     <string name="app_order_hint">アイコン→移動先をタップ · 長押しでドラッグ · A 選択/配置 · B 戻る</string>
     <string name="app_browse_hint">長押し・Yで並べ替え · START 表示順</string>
     <string name="app_sort_current">表示順：%1$s</string>
@@ -281,7 +281,7 @@
     <string name="dock_unknown">—</string>
     <string name="dock_bypass_5v">5V BP</string>
     <string name="dock_bypass_9v">9V BP</string>
-    <string name="app_sort_button">🔃 並び順</string>
+    <string name="app_sort_button">並び順</string>
     <string name="app_library_back_button">B · 戻る</string>
     <string name="header_time">時刻</string>
 </resources>

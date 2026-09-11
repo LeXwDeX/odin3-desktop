@@ -325,3 +325,13 @@ tools/android python3 tools/ui-kit-device-check.py --serial <已确认设备> --
 脚本在 en / ja / zh-Hans、1.0 / 1.3 字体倍率下测量真实边界，核对输入+按钮、普通/选项/禁用按钮、标签组以及双行内容组的顶边和高度，以及三组状态的首行/末行实际基线，并点击禁用实例检查回调未触发。临时语言和字体设置在 finally 中恢复。
 
 1920 × 1080 / 369 dpi 的首轮六组测量均通过：1.0 字体下控件 101 px、tag 64 px；1.3 下控件 110 px、tag 72 px。像素结果来自设备实际 sp 换算与舍入，不用理论 dp 计算替代。英文、日文的六个设置页均另行采集原始截图；组件测量不能替代长文本、滚动、焦点路径和正式附件验收。
+
+### Emoji 动作按钮修正（2026-09-11）
+
+v0.1.14 将应用管理与排序的 Emoji 拼进翻译文案，使图文间距取决于空格字宽，未遵守 P1。修正后，`OdinActionButton` 接收独立 `emoji` 内容，复用 `OdinControl` 的图标槽；`OdinEmojiIcon` 从 Dock 原有实现提取，统一 24 dp 方形居中，图文间距继续由 `OdinControl` 的 `OdinSpacing.sm`（8 dp）控制。Dock 同时复用这一 Emoji 定义，页面不单独设置图标尺寸、内边距或间距。装饰图标不重复进入无障碍朗读，翻译资源仅保存按钮文字。
+
+应用底栏同时使用现有 `OdinEqualHeightRow`：英文与日文在 1.3 倍字体下标签换行时，同排动作统一按最大内容高度排列；不通过缩小字体或页面专用高度规避。
+
+Odin3 实测 en / ja / zh-Hans × 1.0 / 1.3 六组：两按钮文字起点均距外框左侧 101 px，与 1.0 倍字体下五个 Dock 控件一致；两按钮在每组中的顶边与底边一致。原始布局、测量脚本与截图位于本机忽略目录 `.android-local/device-analysis/emoji-kit-v0115/`。
+
+顶部 Settings 入口也使用相同 `OdinEmojiIcon` 和 `OdinControl` 图标槽，移除翻译中的齿轮 Emoji；当前页面的设置、应用管理、排序与 Dock 共用同一图文间距。

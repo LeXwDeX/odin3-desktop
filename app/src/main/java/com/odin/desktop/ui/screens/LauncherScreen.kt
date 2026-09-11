@@ -4,8 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -31,6 +31,7 @@ import com.odin.desktop.ui.components.ConfigDialog
 import com.odin.desktop.ui.components.DashboardContent
 import com.odin.desktop.ui.components.TopTabBar
 import com.odin.desktop.ui.components.base.OdinActionButton
+import com.odin.desktop.ui.components.base.OdinEqualHeightRow
 import com.odin.desktop.ui.navigation.FocusZone
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import com.odin.desktop.ui.theme.OdinSizes
@@ -151,21 +152,17 @@ fun LauncherScreen(
                             else Modifier.fillMaxWidth().height(164.dp)
                     )
                 }
-                Row(
-                    Modifier.fillMaxWidth().padding(horizontal = OdinSpacing.page),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(OdinSpacing.xs)
-                ) {
+                OdinEqualHeightRow(Modifier.padding(horizontal = OdinSpacing.page)) {
                     Text(
                         strings.getString(if (isReorderingApps) R.string.app_order_hint else R.string.app_browse_hint),
                         color = palette.textDim, style = OdinTypography.caption,
                         modifier = Modifier.weight(1f)
                     )
-                    if (isReorderingApps) OdinActionButton(strings.getString(R.string.app_order_done), viewModel::exitReorderMode, Modifier.widthIn(max = 132.dp)) else {
-                        OdinActionButton(strings.getString(R.string.app_actions), viewModel::openAppActionDialog, Modifier.widthIn(max = 132.dp))
-                        OdinActionButton(strings.getString(R.string.app_sort_button), viewModel::openSortMenu, Modifier.widthIn(max = 132.dp))
+                    if (isReorderingApps) OdinActionButton(strings.getString(R.string.app_order_done), viewModel::exitReorderMode, Modifier.widthIn(max = 132.dp).fillMaxHeight()) else {
+                        OdinActionButton(strings.getString(R.string.app_actions), viewModel::openAppActionDialog, Modifier.widthIn(max = 132.dp).fillMaxHeight(), emoji = "🛠️")
+                        OdinActionButton(strings.getString(R.string.app_sort_button), viewModel::openSortMenu, Modifier.widthIn(max = 132.dp).fillMaxHeight(), emoji = "🔃")
                     }
-                    if (isAllAppsOpen) OdinActionButton(strings.getString(R.string.app_library_back_button), viewModel::onBack, Modifier.widthIn(max = 132.dp))
+                    if (isAllAppsOpen) OdinActionButton(strings.getString(R.string.app_library_back_button), viewModel::onBack, Modifier.widthIn(max = 132.dp).fillMaxHeight())
                 }
             }
         }

@@ -86,7 +86,8 @@ fun TopTabBar(
         // 右侧固定 [CONFIG] 设置按钮
         val isConfigSelected = isConfigFocused && focusZone == FocusZone.TABS
         OdinControl(strings.getString(R.string.page_config), onClick = onConfigClick,
-            focused = isConfigSelected, modifier = Modifier.widthIn(max = 132.dp).width(IntrinsicSize.Max), maxLines = 1)
+            focused = isConfigSelected, modifier = Modifier.widthIn(max = 132.dp).width(IntrinsicSize.Max), maxLines = 1,
+            icon = { OdinEmojiIcon("⚙️") })
     }
 }
 
