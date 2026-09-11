@@ -12,6 +12,8 @@ import com.odin.desktop.data.entity.TabKind
 import com.odin.desktop.data.db.OdinDatabase
 import androidx.room.withTransaction
 import com.odin.desktop.data.model.InstalledApp
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -167,6 +169,31 @@ class AppRepository(
 
     suspend fun removeAppFromAllTabs(packageName: String) {
         appMappingDao.removeAppFromAllTabs(packageName)
+    }
+
+    suspend fun removeUninstalledAppMappings(launchablePackages: Set<String>) = withContext(Dispatchers.IO) {
+        // Without full package visibility, NameNotFound can mean hidden rather than uninstalled.
+        if (Build.VERSION.SDK_INT >= 30 && context.checkSelfPermission(
+                android.Manifest.permission.QUERY_ALL_PACKAGES
+            ) != PackageManager.PERMISSION_GRANTED) return@withContext
+        val removed = appMappingDao.getMappedPackageNames().filter { packageName ->
+            currentCoroutineContext().ensureActive()
+            if (packageName in launchablePackages) return@filter false
+            try {
+                @Suppress("DEPRECATION")
+                context.packageManager.getApplicationInfo(packageName, PackageManager.MATCH_DISABLED_COMPONENTS)
+                false
+            } catch (_: PackageManager.NameNotFoundException) {
+                true
+            } catch (_: RuntimeException) {
+                // A failed package-service query is not proof of removal.
+                false
+            }
+        }
+        if (removed.isNotEmpty()) database.withTransaction {
+            // Stay below SQLite's bind limit while committing the cleanup atomically.
+            removed.chunked(900).forEach { appMappingDao.removeAppsFromAllTabs(it) }
+        }
     }
 
     fun getAppsForTabFlow(tabId: Long): Flow<List<AppMappingEntity>> {

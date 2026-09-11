@@ -120,6 +120,47 @@ class AppRepositoryTest {
         assertEquals(123L, repo.getInstalledLaunchableApps().first().firstInstallTime)
     }
 
+    @Config(sdk = [32, 35])
+    @Test fun cleanupPreservesDisabledAndNonLaunchableAppsAcrossAllTabs() = runBlocking {
+        shadowOf(context).grantPermissions(android.Manifest.permission.QUERY_ALL_PACKAGES)
+        val first = repo.createTab("First")
+        val second = repo.createTab("Second")
+        for (pkg in listOf("disabled", "no.launcher")) {
+            shadowOf(context.packageManager).installPackage(PackageInfo().apply {
+                packageName = pkg
+                applicationInfo = ApplicationInfo().apply {
+                    packageName = pkg
+                    enabled = pkg != "disabled"
+                }
+            })
+        }
+        for (tab in listOf(first, second)) {
+            for (pkg in listOf("disabled", "no.launcher", "removed.one", "removed.two", "visible")) {
+                repo.addAppToTab(tab, pkg)
+            }
+        }
+        val hidden = db.appMappingDao().getAppsForTab(second).first { it.packageName == "disabled" }
+        db.appMappingDao().updateMapping(hidden.copy(isHidden = true, customLabel = "Keep my label"))
+        val before = listOf(first, second).associateWith { db.appMappingDao().getAppsForTab(it) }
+        repo.removeUninstalledAppMappings(setOf("visible"))
+        for (tab in listOf(first, second)) {
+            assertEquals(before.getValue(tab).filterNot { it.packageName.startsWith("removed.") },
+                db.appMappingDao().getAppsForTab(tab))
+        }
+        repo.removeUninstalledAppMappings(setOf("visible"))
+        assertEquals(3, db.appMappingDao().getAppsForTab(second).size)
+    }
+
+    @Config(sdk = [32, 35])
+    @Test fun cleanupDoesNotDeleteWhenPackageVisibilityIsRestricted() = runBlocking {
+        shadowOf(context).denyPermissions(android.Manifest.permission.QUERY_ALL_PACKAGES)
+        val tab = repo.createTab("Saved")
+        repo.addAppToTab(tab, "possibly.hidden")
+        val before = db.appMappingDao().getAppsForTab(tab)
+        repo.removeUninstalledAppMappings(emptySet())
+        assertEquals(before, db.appMappingDao().getAppsForTab(tab))
+    }
+
     @Test fun disappearedMoveTargetLeavesSourceIntact() = runBlocking {
         val source = repo.createTab("Source")
         val target = repo.createTab("Target")

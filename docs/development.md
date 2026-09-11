@@ -81,3 +81,9 @@ tools/android adb -s <serial> shell am instrument -w com.odin.desktop/com.odin.d
 温控回差、按需服务、FSR 移除及代码审计的最终验证见 [优化验收](optimization-audit.md)。
 
 握持横屏验收见 [补充记录](grip-fan-shader-fixes.md)，方向矩阵使用 `tools/android python3 tools/orientation-device-regression.py --serial <serial> --output <ignored-report.json>`。
+
+## 应用扫描与分类保留
+
+扫描结果只代表可启动入口，不能用来判定卸载。分类清理检查所有分类的映射（包括隐藏项），仅对本轮启动列表外的包补查安装状态；被禁用或没有入口的已安装应用保留原归属、顺序和自定义名称。Android 11+ 缺少完整包可见性，或包服务查询异常时，保留未确认的记录。确认不存在的包分批删除，并在同一 Room 事务提交；无需数据库迁移。
+
+`AppRepositoryTest` 在 Android 12L / 15 上覆盖跨分类删除、禁用及无入口应用保留、隐藏项与自定义名称保留、重复清理和包可见性受限场景。应用扫描仍在 IO 线程执行，本次未声明或引入未经测量的启动性能优化。

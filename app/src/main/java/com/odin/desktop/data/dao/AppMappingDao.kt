@@ -38,6 +38,12 @@ interface AppMappingDao {
     @Query("DELETE FROM app_mappings WHERE tabId = :tabId AND packageName = :packageName")
     suspend fun removeAppFromTab(tabId: Long, packageName: String)
 
+    @Query("SELECT DISTINCT packageName FROM app_mappings")
+    suspend fun getMappedPackageNames(): List<String>
+
+    @Query("DELETE FROM app_mappings WHERE packageName IN (:packageNames)")
+    suspend fun removeAppsFromAllTabs(packageNames: List<String>)
+
     @Query("DELETE FROM app_mappings WHERE packageName = :packageName")
     suspend fun removeAppFromAllTabs(packageName: String)
 }

@@ -306,13 +306,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             val apps = appRepository.getInstalledLaunchableApps()
             val currentInstalledPackages = apps.map { it.packageName }.toSet()
 
-            // 清理已卸载应用的残留分类映射
-            val currentTabPkgs = _currentTabAppPackages.value
-            for (pkg in currentTabPkgs) {
-                if (!currentInstalledPackages.contains(pkg)) {
-                    appRepository.removeAppFromAllTabs(pkg)
-                }
-            }
+            appRepository.removeUninstalledAppMappings(currentInstalledPackages)
 
             _usageStatsAvailable.value = appRepository.usageStatsAvailable
             _allInstalledApps.value = apps
