@@ -192,3 +192,15 @@ Debug 验证前与正式安装前，数据库所有应用表记录和偏好文�
 已重新确认 USB 目标为 AYN Odin3（`a782c9a1`），由 v0.1.13 / 1014 使用 `adb install -r` 保留数据覆盖安装到 v0.1.14 / 1015。安装前备份旧 APK，并确认新旧签名一致；安装后实际 APK SHA-256 与上述正式附件一致。首次安装时间、数据目录 inode `258045`、默认 HOME `com.odin.desktop` 与禁用应用列表保持不变。
 
 实际截图确认“🛠️ 应用管理”和“🔃 排序”完整显示；设置页打开正常，验收后返回桌面并停止 UI 调试辅助进程，`pidof` 确认无残留。旧 APK、布局和截图保存在 `.android-local/device-analysis/emoji-v0114/`。本次完成安装与中文按钮显示验收，未进行其他语言或长期稳定性测试。
+
+## v0.1.15 UI Kit 图标槽与动作行修正
+
+2026-09-11，[v0.1.15](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.15) 正式发布并已覆盖安装到重新确认的 Odin3（`a782c9a1`）。[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34547361029) 和[发布工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/34547381653)均成功，标签提交为 `8bae33915958c3ee2208345d580283c37d60d2b3`。
+
+修正 v0.1.14 将 Emoji 拼入文案导致间距不统一的问题：应用管理、排序、顶部设置和 Dock 共用 `OdinEmojiIcon` 的 24 dp 图标槽与 `OdinControl` 的 8 dp 图文间距，动作底栏复用 `OdinEqualHeightRow`。本地构建、47 项单元测试、多语言与架构回归通过，Lint 0 个错误、87 个警告。
+
+Debug 实机 en / ja / zh-Hans × 1.0 / 1.3 六组布局验证通过；文字起点与外框左侧相距 101 px，同排动作顶底边一致。英文、日文放大字体换行时仍等高。排序、应用管理菜单及全屏应用页实际打开检查，未执行分类、排序或应用管理写入；全屏页三个动作等高，返回正常。语言与字体恢复为 `[zh-Hans]` / `1.0`。
+
+正式 APK 版本 `0.1.15 / 1016`，包名 `com.odin.desktop`，不可调试，签名证书与旧版一致。SHA-256 为 `d49e7331d0f189c21bfb9348700e96468439ed169cdae3e45fc2b1cb06da079c`，与校验附件、GitHub 资产摘要及掌机安装文件一致。旧 v0.1.14 正式附件保留于 `.android-local/releases/v0.1.14/`。
+
+正式版中文截图与布局再次确认应用管理、排序、设置和五个 Dock 控件的文字起点均为 101 px；设置页打开与返回正常。首次安装时间、数据目录 inode `258045`、默认 HOME 与禁用应用列表保持不变，UI 辅助进程已停止。附件在 `.android-local/releases/v0.1.15/`，实机原始证据在 `.android-local/device-analysis/emoji-kit-v0115/`；六组字体语言测量来自同版本 Debug 构建，正式版完成中文 1.0 倍字体复核。
