@@ -17,7 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.odin.desktop.R
 import com.odin.desktop.data.model.HOME_APP_LIMIT
@@ -25,6 +24,7 @@ import com.odin.desktop.data.model.displayName
 import com.odin.desktop.ui.components.AppActionDialog
 import com.odin.desktop.ui.components.AppBatchManageDialog
 import com.odin.desktop.ui.components.AppIconCollection
+import com.odin.desktop.ui.components.base.OdinStableTextLine
 import com.odin.desktop.ui.components.AppSortMenu
 import com.odin.desktop.ui.components.BottomDockBar
 import com.odin.desktop.ui.components.ConfigDialog
@@ -125,18 +125,17 @@ fun LauncherScreen(
                 )
             ) {
                 Column(Modifier.fillMaxWidth().padding(horizontal = OdinSpacing.page)) {
-                    Text(
+                    OdinStableTextLine(
                         text = if (isAllAppsOpen) strings.getString(R.string.app_library_count,
                                 currentTab?.displayName(strings).orEmpty(), currentTabApps.size)
                             else if (isMoreSelected) currentTab?.displayName(strings).orEmpty()
                             else hoveredApp?.label ?: strings.getString(R.string.text_no_apps_in_this_category),
                         color = if (focusZone == FocusZone.APPS) palette.accent else palette.text,
-                        style = OdinTypography.h1,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis
+                        style = OdinTypography.h1
                     )
-                    Text(
+                    OdinStableTextLine(
                         text = if (isAllAppsOpen) hoveredApp?.label ?: "" else hoveredApp?.packageName ?: "",
-                        color = palette.textDim, style = OdinTypography.body, maxLines = 1, overflow = TextOverflow.Ellipsis
+                        color = palette.textDim, style = OdinTypography.body
                     )
                 }
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {

@@ -29,6 +29,7 @@ import com.odin.desktop.data.model.HOME_APP_LIMIT
 import com.odin.desktop.data.model.InstalledApp
 import com.odin.desktop.ui.components.base.ImageTileSize
 import com.odin.desktop.ui.components.base.OdinImageTile
+import com.odin.desktop.ui.components.base.OdinStableTextLine
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import com.odin.desktop.ui.theme.OdinSpacing
 import com.odin.desktop.ui.theme.OdinTypography
@@ -164,8 +165,8 @@ fun AppIconCollection(
                                 index, { onClick(app, index) },
                                 modifier = Modifier, compact = true, hidden = drag.app?.packageName == app.packageName,
                                 onLongClick = { onPick(app.packageName) })
-                            Text(app.label, color = palette.text, style = OdinTypography.body, maxLines = 1,
-                                overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = OdinSpacing.xs))
+                            OdinStableTextLine(app.label, color = palette.text, style = OdinTypography.body,
+                                modifier = Modifier.padding(horizontal = OdinSpacing.xs))
                         }
                     }
                 }
