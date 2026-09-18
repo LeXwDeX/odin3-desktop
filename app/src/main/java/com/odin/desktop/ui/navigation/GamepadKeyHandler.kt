@@ -82,14 +82,14 @@ object GamepadKeyHandler {
                     return true
                 }
 
-                // 实体 Y 键 (短按：图标排序模式；长按：应用管理菜单)
+                // 实体 Y 键 (短按：应用操作菜单；长按：图标排序模式)
                 KeyEvent.KEYCODE_BUTTON_Y -> {
                     if (event.repeatCount == 0) {
                         yKeyDownTime = event.eventTime
                     } else if (event.repeatCount > 0 && yKeyDownTime > 0) {
                         if (event.eventTime - yKeyDownTime >= LONG_PRESS_THRESHOLD_MS) {
                             yKeyDownTime = 0L
-                            viewModel.openAppActionDialog()
+                            viewModel.enterReorderMode()
                             return true
                         }
                     }
@@ -103,6 +103,11 @@ object GamepadKeyHandler {
                 KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1, KeyEvent.KEYCODE_BUTTON_START -> return true
                 KeyEvent.KEYCODE_BUTTON_X,
                 KeyEvent.KEYCODE_MENU -> {
+                    if (event.isCanceled) {
+                        // 手势或设备中断的取消松键不触发菜单。
+                        xKeyDownTime = 0L
+                        return true
+                    }
                     if (xKeyDownTime > 0) {
                         xKeyDownTime = 0L
                         viewModel.openBatchManageDialog()
@@ -110,17 +115,22 @@ object GamepadKeyHandler {
                     }
                 }
                 KeyEvent.KEYCODE_BUTTON_Y -> {
-                    if (yKeyDownTime > 0) {
+                    if (event.isCanceled) {
+                        // 取消松键只清除按下记录，长按松手绝不打开菜单。
                         yKeyDownTime = 0L
-                        // 短按 Y 键：进入/退出图标排序编辑状态 (iOS 抖动模式)
-                        if (viewModel.focusZone.value == FocusZone.APPS) {
-                            if (viewModel.isReorderingApps.value) {
-                                viewModel.exitReorderMode()
-                            } else {
-                                viewModel.enterReorderMode()
-                            }
+                        return true
+                    }
+                    if (yKeyDownTime > 0) {
+                        val heldMs = event.eventTime - yKeyDownTime
+                        yKeyDownTime = 0L
+                        if (heldMs >= LONG_PRESS_THRESHOLD_MS) {
+                            // 无重复事件时长按在松手时进入排序，仍不打开菜单。
+                            viewModel.enterReorderMode()
+                        } else if (viewModel.isReorderingApps.value) {
+                            // 保留的排序模式退出控制：短按 Y 退出。
+                            viewModel.exitReorderMode()
                         } else {
-                            viewModel.openAppActionDialog()
+                            viewModel.openAppActionDialogFromY()
                         }
                         return true
                     }

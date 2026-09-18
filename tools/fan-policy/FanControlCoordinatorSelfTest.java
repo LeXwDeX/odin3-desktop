@@ -30,13 +30,13 @@ public final class FanControlCoordinatorSelfTest {
     }
 
     public static void main(String[] args) throws Exception {
-        for (int fan : new int[]{0, 4, 5}) {
+        for (int fan : new int[]{0, 1, 4, 5}) {
             for (int performance = 0; performance < 3; performance++) {
                 FakeBackend backend = new FakeBackend();
                 backend.fan = backend.configuredFan = fan;
                 var result = new FanControlCoordinator().setPerformance(backend, performance);
                 check(result.performanceMode == performance, "performance readback");
-                check(result.fanMode == (fan == 5 ? 5 : performance == 0 ? 0 : 4), "existing manual performance linkage");
+                check(result.fanMode == fan, "performance switching preserves the selected fan");
                 check(backend.writes == 1, "one user request, one transaction");
             }
         }
@@ -45,18 +45,30 @@ public final class FanControlCoordinatorSelfTest {
         backend.configuredFan = 5; backend.fan = 0;
         check(controller.setPerformance(backend, 0).fanMode == 5, "configured MAX survives OEM mismatch");
         check(controller.setPerformance(backend, 1, 4).fanMode == 4, "explicit captured target is honored");
-        for (int fan : new int[]{0, 4, 5, 0}) {
+        check(controller.setPerformance(backend, 2, 1).fanMode == 1, "QUIET is retained at high performance");
+        check(controller.setPerformance(backend, 1, 0).fanMode == 0, "OFF is retained at elevated performance");
+        check(controller.setManualFan(backend, FanControlCoordinator.QUIET) == 1, "manual QUIET is a valid fan mode");
+        for (int fan : new int[]{0, 1, 4, 5, 0}) {
             check(controller.setManualFan(backend, fan) == fan, "manual fan choice is retained");
         }
         int writes = backend.writes;
-        for (int invalid : new int[]{-1, 1, 2, 3, 6}) {
+        for (int invalid : new int[]{-1, 2, 3, 6}) {
             try { controller.setManualFan(backend, invalid); throw new AssertionError("invalid mode accepted"); }
             catch (IllegalArgumentException expected) { checks++; }
         }
-        for (int performance : new int[]{1, 2}) {
-            try { controller.setPerformance(backend, performance, 0); throw new AssertionError("unsafe combined request accepted"); }
+        for (int performance : new int[]{-1, 3}) {
+            try { controller.setPerformance(backend, performance); throw new AssertionError("invalid performance accepted"); }
             catch (IllegalArgumentException expected) { checks++; }
         }
+        for (int invalid : new int[]{-1, 2, 3, 6}) {
+            try { controller.setPerformance(backend, 1, invalid); throw new AssertionError("invalid combined fan accepted"); }
+            catch (IllegalArgumentException expected) { checks++; }
+        }
+        FakeBackend unrepresentable = new FakeBackend();
+        unrepresentable.configuredFan = 6;
+        try { controller.setPerformance(unrepresentable, 0); throw new AssertionError("unrepresentable configured fan accepted"); }
+        catch (IllegalArgumentException expected) { checks++; }
+        check(unrepresentable.writes == 0, "invalid configured fan does not touch hardware");
         check(backend.writes == writes, "invalid requests do not touch hardware");
         backend.failNextFanWrite = true;
         expectFailure(() -> controller.setManualFan(backend, 5));

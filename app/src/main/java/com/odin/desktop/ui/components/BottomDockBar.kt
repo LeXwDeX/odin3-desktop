@@ -47,7 +47,7 @@ fun BottomDockBar(
         else -> strings.getString(R.string.text_offline) to palette.textDim
     }
 
-    // 2. 原厂风扇档位：关闭 / 智能 / 最高；不附加应用自动策略。
+    // 2. 原厂风扇档位：关闭 / 静音 / 智能 / 最高；不附加应用自动策略。
     val (fanLabel, fanColor) = when (fanMode) {
         HardwareController.FAN_OFF -> strings.getString(R.string.text_off) to palette.textDim
         HardwareController.FAN_SMART -> strings.getString(R.string.text_smart) to palette.active

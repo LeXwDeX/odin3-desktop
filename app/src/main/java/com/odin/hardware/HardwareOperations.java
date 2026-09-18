@@ -83,8 +83,9 @@ public class HardwareOperations {
             property = parts[1];
             reply = "PERFORMANCE\t" + parts[1];
         } else if (parts.length == 3 && "PERFORMANCE_FAN".equals(parts[0]) &&
-                parts[1].matches("[012]") && parts[2].matches("[045]") &&
-                ("0".equals(parts[1]) || !"0".equals(parts[2]))) {
+                parts[1].matches("[012]") && parts[2].matches("[0145]")) {
+            // Any performance mode may be combined with any preset fan mode; the observer
+            // acknowledgement below makes the selected fan survive the OEM's own rewrite.
             changes.put(PERFORMANCE, parts[1]);
             property = parts[1];
             requestedFan = parts[2];
@@ -104,8 +105,11 @@ public class HardwareOperations {
             if (property != null) {
                 String fan = store.get(FAN);
                 if (fan == null || !fan.matches("[0-6]")) throw new IOException("Invalid existing fan");
-                changes.put(FAN, requestedFan != null ? requestedFan :
-                    "5".equals(fan) ? "5" : "0".equals(property) ? "0" : "4");
+                // Performance switching preserves the configured fan mode. An existing
+                // selection outside the OEM presets cannot be preserved and is rejected
+                // before any write.
+                if (requestedFan == null && !allowed(FAN, fan)) return "ERR\tBAD_REQUEST";
+                changes.put(FAN, requestedFan != null ? requestedFan : fan);
             }
             for (String name : changes.keySet()) {
                 String old = store.get(name);
@@ -184,18 +188,30 @@ public class HardwareOperations {
 
     private String preparePerformanceObserver(String performance, String fan) throws Exception {
         if (Objects.equals(performance, store.get(PERFORMANCE))) return null;
-        // SystemUI has no completion API or fixed Handler delay. For transitions which could
-        // downgrade our final fan, use its deterministic fan write as an acknowledgement.
-        // Preselect MAX so NORMAL must produce 0, and STANDARD must produce QUIET (1).
-        if ((performance == null || "0".equals(performance)) && !"0".equals(fan)) {
+        // SystemUI has no completion API or fixed Handler delay. Its observer rewrites
+        // fan_mode when performance_mode changes: NORMAL always writes 0; STANDARD writes
+        // QUIET (1) unless the key already says SMART; HIGH writes MAX (5) from OFF/QUIET.
+        // For transitions which could rewrite our final fan, use that deterministic write
+        // as an acknowledgement: every preselect differs from the acknowledged value, so
+        // the bounded settle can only pass once the observer ran. Preselects are cooling
+        // presets or QUIET, never a temporary app-initiated fan stop.
+        if (performance == null || "0".equals(performance)) {
+            if ("0".equals(fan)) return null; // The observer's unconditional 0 equals the final fan.
             applyFan("4");
             return "0";
         }
-        if ("1".equals(performance) && "5".equals(fan)) {
+        if ("1".equals(performance)) {
+            // Uniform preselect: the observer's QUIET write also proves it ran before our
+            // final SMART re-arm, closing the same-value SMART race for every target.
             applyFan("5");
             return "1";
         }
-        return null;
+        if ("5".equals(fan)) return null; // HIGH rewrites OFF/QUIET to MAX, which is the final fan.
+        String prior = store.get(FAN);
+        if ("4".equals(fan) && ("4".equals(prior) || "5".equals(prior)))
+            return null; // The observer no-ops on SMART/MAX keys in every interleaving.
+        applyFan("1");
+        return "5";
     }
 
     private void restoreFan(String mode) throws Exception {
@@ -223,7 +239,7 @@ public class HardwareOperations {
 
     static boolean allowed(String name, String value) {
         if (PERFORMANCE.equals(name)) return value.matches("[012]");
-        if (FAN.equals(name)) return value.matches("[045]");
+        if (FAN.equals(name)) return value.matches("[0145]");
         if (LIGHT.equals(name) || HANDLE_LIGHT.equals(name)) return value.matches("(?:0,0|1,1)");
         if (CHARGE.equals(name) || POWER.equals(name) || CHARGING_SEPARATION.equals(name)) return value.matches("[01]");
         if (COLOR.equals(name)) return value.matches("#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?,#[0-9a-fA-F]{6}(?:[0-9a-fA-F]{2})?");
@@ -312,7 +328,7 @@ public class HardwareOperations {
             throw new ReadbackMismatch();
         }
         public boolean fanMatches(String mode) throws Exception {
-            if (!mode.matches("[045]")) return true; // Other OEM presets are reported as configured.
+            if (!mode.matches("[045]")) return true; // QUIET and other OEM presets are configuration-verified only.
             String[] values = command("/system/bin/cat", "/sys/class/gpio5_pwm2/state",
                 "/sys/class/gpio5_pwm2/duty", "/sys/class/gpio5_pwm2/period").split("\\s+");
             if (values.length != 3) return false;

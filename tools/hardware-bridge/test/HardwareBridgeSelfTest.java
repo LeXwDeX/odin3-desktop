@@ -3,6 +3,7 @@ package com.odin.hardware;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /** Exercises rejection and partial-write recovery without an Android device or shell commands. */
 public final class HardwareBridgeSelfTest {
@@ -15,6 +16,9 @@ public final class HardwareBridgeSelfTest {
         }
         normalOperations();
         performanceFanCoupling();
+        performanceRetainsSelectedFan();
+        quietFanProtocol();
+        quietRollbackRestoration();
         observerOverwriteAndFanRollback();
         performanceReadOnly();
         fanTelemetry();
@@ -211,7 +215,203 @@ public final class HardwareBridgeSelfTest {
         equal("OK\tPERFORMANCE\t1", bridge.execute("PERFORMANCE\t1"));
         equal("4", store.values.get(OdinHardwareBridge.FAN));
         equal("OK\tPERFORMANCE\t0", bridge.execute("PERFORMANCE\t0"));
-        equal("0", store.values.get(OdinHardwareBridge.FAN));
+        equal("4", store.values.get(OdinHardwareBridge.FAN));
+    }
+
+    private static void performanceRetainsSelectedFan() throws Exception {
+        // Requirement 2026-09-18: performance switching preserves the user's selected fan.
+        // ObserverStore emulates the OEM stack faithfully: every performance_mode *change*
+        // schedules exactly one SystemUI observer firing which, when it runs, rewrites
+        // fan_mode from the value it reads at that moment (NORMAL->0; STANDARD->1 unless
+        // the key already says SMART; HIGH->5 from OFF/QUIET). Firings land after a
+        // configurable number of fan reads: during the bounded settle wait, after it, or
+        // never within the window.
+        for (String fan : Arrays.asList("0", "1", "4", "5")) {
+            for (String performance : Arrays.asList("0", "1", "2")) {
+                ObserverStore store = new ObserverStore(3);
+                store.seed(rotate(performance), "0".equals(fan) ? "4" : "0");
+                equal("OK\tPERFORMANCE_FAN\t" + performance + "\t" + fan,
+                    bridge(store).execute("PERFORMANCE_FAN\t" + performance + "\t" + fan));
+                equal(fan, store.values.get(OdinHardwareBridge.FAN));
+                equal(performance, store.mode);
+                equal(performance, store.values.get(OdinHardwareBridge.PERFORMANCE));
+            }
+        }
+        for (String fan : Arrays.asList("0", "1", "4", "5")) {
+            for (String performance : Arrays.asList("0", "1", "2")) {
+                // A plain PERFORMANCE request keeps the configured fan instead of defaulting it.
+                ObserverStore store = new ObserverStore(3);
+                store.seed(rotate(performance), fan);
+                equal("OK\tPERFORMANCE\t" + performance, bridge(store).execute("PERFORMANCE\t" + performance));
+                equal(fan, store.values.get(OdinHardwareBridge.FAN));
+                equal(performance, store.mode);
+            }
+        }
+        // All six directed performance transitions retain each fan mode under varied,
+        // realistic observer latencies (immediate, early, and late within the window).
+        for (String[] edge : new String[][] {{"0", "1"}, {"0", "2"}, {"1", "0"}, {"1", "2"}, {"2", "0"}, {"2", "1"}}) {
+            for (String fan : Arrays.asList("0", "1", "4", "5")) {
+                for (int delay : new int[] {0, 1, 5}) {
+                    ObserverStore store = new ObserverStore(delay);
+                    store.seed(edge[0], "0".equals(fan) ? "4" : "0");
+                    equal("OK\tPERFORMANCE_FAN\t" + edge[1] + "\t" + fan,
+                        bridge(store).execute("PERFORMANCE_FAN\t" + edge[1] + "\t" + fan));
+                    equal(fan, store.values.get(OdinHardwareBridge.FAN));
+                    equal(edge[1], store.mode);
+                }
+            }
+        }
+        // A same-value performance change notifies no observer: a pure fan change.
+        ObserverStore same = new ObserverStore(0);
+        same.seed("1", "4");
+        equal("OK\tPERFORMANCE_FAN\t1\t0", bridge(same).execute("PERFORMANCE_FAN\t1\t0"));
+        equal("0", same.values.get(OdinHardwareBridge.FAN));
+        equal("1", same.mode);
+        // An observer firing later than the bounded settle window must fail the
+        // transaction, never silently succeed; inputs are restored afterwards.
+        ObserverStore late = new ObserverStore(100000);
+        late.seed("0", "4");
+        equal("ERR\tROLLBACK_INCOMPLETE", bridge(late).execute("PERFORMANCE_FAN\t2\t1"));
+        late.drain();
+        equal("4", late.values.get(OdinHardwareBridge.FAN));
+        equal("0", late.values.get(OdinHardwareBridge.PERFORMANCE));
+        equal("0", late.mode);
+        ObserverStore lateStandard = new ObserverStore(100000);
+        lateStandard.seed("2", "5");
+        equal("ERR\tWRITE_REJECTED", bridge(lateStandard).execute("PERFORMANCE_FAN\t1\t0"));
+        lateStandard.drain();
+        equal("5", lateStandard.values.get(OdinHardwareBridge.FAN));
+        equal("2", lateStandard.values.get(OdinHardwareBridge.PERFORMANCE));
+        equal("2", lateStandard.mode);
+        // An unrepresentable configured fan is rejected before any write.
+        ObserverStore invalid = new ObserverStore(0);
+        invalid.seed("0", "6");
+        equal("ERR\tBAD_REQUEST", bridge(invalid).execute("PERFORMANCE\t1"));
+        equal(0, invalid.writes);
+    }
+
+    private static String rotate(String performance) {
+        return String.valueOf((Integer.parseInt(performance) + 1) % 3);
+    }
+
+    /** Emulates Settings notify -> SystemUI performance observer -> asynchronous fan write. */
+    private static final class ObserverStore extends MemoryStore {
+        private final ArrayDeque<Object[]> firings = new ArrayDeque<>(); // {countdown, performance cause}
+        private final int delay;
+        ObserverStore(int delay) { this.delay = delay; }
+        void seed(String performance, String fan) {
+            mode = performance;
+            values.put(OdinHardwareBridge.PERFORMANCE, performance);
+            values.put(OdinHardwareBridge.FAN, fan);
+        }
+        void drain() { firings.clear(); }
+        @Override public void put(String name, String value) throws Exception {
+            String previous = values.get(name);
+            super.put(name, value);
+            // Same-value Settings puts do not notify the observer.
+            if (OdinHardwareBridge.PERFORMANCE.equals(name) && !Objects.equals(previous, value))
+                firings.add(new Object[] {delay, value});
+        }
+        @Override public String get(String name) {
+            if (OdinHardwareBridge.FAN.equals(name) && !firings.isEmpty()) {
+                for (Object[] firing : firings) {
+                    int countdown = (Integer) firing[0];
+                    if (countdown > 0) firing[0] = countdown - 1;
+                }
+                for (Iterator<Object[]> it = firings.iterator(); it.hasNext(); ) {
+                    Object[] firing = it.next();
+                    if ((Integer) firing[0] == 0) {
+                        it.remove();
+                        String performance = (String) firing[1];
+                        String current = values.get(OdinHardwareBridge.FAN);
+                        if ("0".equals(performance)) values.put(OdinHardwareBridge.FAN, "0");
+                        else if ("1".equals(performance)) { if (!"4".equals(current)) values.put(OdinHardwareBridge.FAN, "1"); }
+                        else if ("2".equals(performance)) { if ("0".equals(current) || "1".equals(current)) values.put(OdinHardwareBridge.FAN, "5"); }
+                        break;
+                    }
+                }
+            }
+            return super.get(name);
+        }
+        @Override public void settlePerformance(String expected) throws Exception {
+            // CommandStore-like bounded acknowledgement wait, shortened for the JVM test.
+            if (expected == null) return;
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(500);
+            while (System.nanoTime() < deadline) {
+                if (expected.equals(get(OdinHardwareBridge.FAN))) return;
+                Thread.sleep(10);
+            }
+            throw new IOException("observer acknowledgement not observed within the window");
+        }
+    }
+
+    private static void quietFanProtocol() {
+        // The dock's four-gear cycle writes the OEM QUIET preset (1). Its PWM signature
+        // is not guessed; transactions verify the configured mode, and the rollback test
+        // below restores it through the verified fan path.
+        MemoryStore store = new MemoryStore();
+        OdinHardwareBridge bridge = bridge(store);
+        for (String mode : Arrays.asList("1", "4", "1", "0", "1", "5", "1")) {
+            equal("OK\tfan_mode\t" + mode, bridge.execute("SET\tfan_mode\t" + mode));
+            equal("OK\tFAN\t" + mode, bridge.execute("FAN_GET"));
+        }
+        // The OEM observer pairs each performance mode with its own fan default. Combined
+        // transactions retain the requested fan through those rewrites.
+        MemoryStore coupled = new MemoryStore() {
+            @Override public void settlePerformance() {
+                // Emulate SystemUI: normal forces OFF, STANDARD forces QUIET unless SMART,
+                // HIGH forces MAX from OFF/QUIET.
+                if ("0".equals(mode)) values.put(OdinHardwareBridge.FAN, "0");
+                else if ("1".equals(mode) && !"4".equals(values.get(OdinHardwareBridge.FAN)))
+                    values.put(OdinHardwareBridge.FAN, "1");
+                else if ("2".equals(mode)) {
+                    String current = values.get(OdinHardwareBridge.FAN);
+                    if ("0".equals(current) || "1".equals(current)) values.put(OdinHardwareBridge.FAN, "5");
+                }
+            }
+        };
+        coupled.mode = "2";
+        coupled.values.put(OdinHardwareBridge.PERFORMANCE, "2");
+        coupled.values.put(OdinHardwareBridge.FAN, "5");
+        equal("OK\tPERFORMANCE_FAN\t0\t1", bridge(coupled).execute("PERFORMANCE_FAN\t0\t1"));
+        equal("0", coupled.mode);
+        equal("1", coupled.values.get(OdinHardwareBridge.FAN));
+        equal("OK\tPERFORMANCE_FAN\t1\t1", bridge(coupled).execute("PERFORMANCE_FAN\t1\t1"));
+        equal("1", coupled.values.get(OdinHardwareBridge.FAN));
+        // High performance used to reject QUIET because the observer rewrites it to MAX;
+        // the acknowledged transaction now restores the retained QUIET selection.
+        equal("OK\tPERFORMANCE_FAN\t2\t1", bridge(coupled).execute("PERFORMANCE_FAN\t2\t1"));
+        equal("2", coupled.mode);
+        equal("1", coupled.values.get(OdinHardwareBridge.FAN));
+        equal("OK\tPERFORMANCE_FAN\t1\t0", bridge(coupled).execute("PERFORMANCE_FAN\t1\t0"));
+        equal("0", coupled.values.get(OdinHardwareBridge.FAN));
+        // Values outside the OEM presets are still rejected before any write.
+        MemoryStore rejected = new MemoryStore();
+        equal("ERR\tBAD_REQUEST", bridge(rejected).execute("PERFORMANCE_FAN\t2\t6"));
+        equal(0, rejected.writes);
+    }
+
+    private static void quietRollbackRestoration() {
+        // A failed combined transaction must restore a previously configured QUIET fan
+        // through the verified fan path (awaitFan), never a bare Settings write.
+        List<String> awaited = new ArrayList<>();
+        MemoryStore store = new MemoryStore() {
+            @Override public void property(String value) throws Exception {
+                mode = value;
+                if ("1".equals(value)) throw new IOException("property failed after mirror write");
+            }
+            @Override public void awaitFan(String value) throws Exception {
+                awaited.add(value);
+                if (!Objects.equals(value, get(OdinHardwareBridge.FAN)) || !fanMatches(value))
+                    throw new IOException("fan readback mismatch");
+            }
+        };
+        store.values.put(OdinHardwareBridge.FAN, "1");
+        equal("ERR\tWRITE_REJECTED", bridge(store).execute("PERFORMANCE_FAN\t1\t4"));
+        equal("0", store.mode);
+        equal("0", store.values.get(OdinHardwareBridge.PERFORMANCE));
+        equal("1", store.values.get(OdinHardwareBridge.FAN));
+        equal(true, awaited.contains("1"));
     }
 
     private static void observerOverwriteAndFanRollback() {
@@ -274,8 +474,8 @@ public final class HardwareBridgeSelfTest {
         OdinHardwareBridge bridge = bridge(store);
         String[] invalid = {
             "SET\tperformance_mode\t1", "PERFORMANCE\t3", "PERFORMANCE\t-1",
-            "PERFORMANCE_FAN\t1\t0", "PERFORMANCE_FAN\t2\t0", "PERFORMANCE_FAN\t0\t6", "FAN_GET\tfan_mode",
-            "SET\tfan_mode\t6", "SET\tfan_mode\t1", "SET\tfan_mode\t5;id",
+            "PERFORMANCE_FAN\t3\t0", "PERFORMANCE_FAN\t0\t6", "FAN_GET\tfan_mode",
+            "SET\tfan_mode\t6", "SET\tfan_mode\t2", "SET\tfan_mode\t3", "SET\tfan_mode\t5;id",
             "SET\tairplane_mode_on\t1", "SET\t../token\t1", "SETPROP\tother\t1",
             "FORCE_STOP\tcom.example", "CMD\tid", "CHARGE\t2", "LIGHTS\t1,0",
             "SET\tjoystick_led_light_picker_color\tred,red", "SET\tfan_mode\t4\nPING",

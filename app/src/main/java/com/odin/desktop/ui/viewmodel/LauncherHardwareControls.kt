@@ -226,17 +226,16 @@ class LauncherHardwareControls(
         val current = _performanceMode.value
         val next = if (current in 0..2) (current + 1) % 3 else HardwareController.PERF_NORMAL
         _performanceMode.value = next
-        val currentFan = _fanMode.value
-        val fanTarget = if (currentFan == HardwareController.FAN_SPORT) HardwareController.FAN_SPORT
-            else if (next != HardwareController.PERF_NORMAL) HardwareController.FAN_SMART
-            else HardwareController.FAN_OFF
-        _fanMode.value = fanTarget
-        enqueueCoolingAction("performance") { HardwareController.setPerformanceAndFan(context, next, fanTarget) }
+        // Performance switching no longer selects a fan mode. The user's current manual
+        // fan choice is preserved: it is read under the hardware lock when this queued
+        // action executes, after any earlier fan action in the same queue has committed.
+        enqueueCoolingAction("performance") { HardwareController.setPerformanceMode(context, next) }
     }
 
     fun cycleFanMode() {
         val targetFan = when (_fanMode.value) {
-            HardwareController.FAN_OFF -> HardwareController.FAN_SMART
+            HardwareController.FAN_OFF -> HardwareController.FAN_QUIET
+            HardwareController.FAN_QUIET -> HardwareController.FAN_SMART
             HardwareController.FAN_SMART -> HardwareController.FAN_SPORT
             HardwareController.FAN_SPORT -> HardwareController.FAN_OFF
             else -> HardwareController.FAN_SMART

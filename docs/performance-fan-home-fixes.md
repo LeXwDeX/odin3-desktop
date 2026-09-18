@@ -1,5 +1,11 @@
 # 性能、风扇与 Home/返回键修复记录
 
+2026-09-18 更新：手动风扇循环扩展为四档 关闭→静音→智能→最高→关闭（`FanControlCoordinator` 接受原厂静音档 1，性能联动规则不变：性能档目标为智能、默认档为关闭，手动最高保持）。Y 键语义重定义为：仅在当前选中有效应用图标时生效——短按打开应用操作菜单，长按（≥300ms，含按键重复或松手判定）进入图标排序；长按松手绝不打开菜单；非 APPS 焦点、主页"+"磁贴、空分类与弹窗打开时不触发；排序中短按 Y 仍是保留的退出控制；X 键行为不变。回归见 `GamepadKeyHandlerYTest`、`tools/fan-policy/test.py` 与 `tools/cooling-ui-regression.py` 的四档固件。设备端 `fan_mode=1` 的实机验收待设备重连后补做。
+
+2026-09-18 协议补漏：0.1.18 设备日志显示手动静音档被共享事务引擎拒绝（`SET fan_mode 1` → `BAD_REQUEST` → “此硬件操作不在允许范围内”）：`HardwareOperations` 的 `allowed` 与 `PERFORMANCE_FAN` 校验仍只接受 0/4/5。现两处均接受静音 1；高性能 2 + 静音按既有“性能档+关闭”同类规则拒绝——SystemUI 高性能观察器会把静音异步改写为最大（见上方 FanTile 观察），允许该组合会在读回通过后留下静默错误状态。静音 PWM 特征不猜测：`CommandStore.fanMatches` 维持仅配置验证；失败回滚经 `applyFan`/`awaitFan` 显式验证恢复已配置的静音档。此前 `HardwareBridgeSelfTest` 把 `SET fan_mode 1` 固定为 BAD_REQUEST（测试缺口），现静音有正向真实协议覆盖（190 项 JVM 检查）；设备端 `fan_mode=1` 验收仍待重连后补做。
+
+2026-09-18 实机现状（本文最新状态，取代上两段的“性能联动规则不变”、“高性能+静音拒绝”等历史限制及各处“待设备重连后补做”表述）：本地签名 0.1.19 已在实机用 Dock 风扇键完成两次完整四档手动循环（关闭→静音→智能→最高→关闭，独立 settings/sysfs 读回，静音 1 为 state1/duty5000/period50000）；本地签名 0.1.20 在低负载下完成 12 组性能×风扇组合验收（静音/智能/最高/关闭各档下 0→1→2→0），每次 settings、`persist.vendor.debug.mode` 属性、`fan_mode` 与 PWM 均保持所选档（静音 state1/duty5000/period50000）。局限：部分主动档 RPM 读数为 0（含最终静音档），物理风扇持续转速与 RPM 遥测可靠性未验证，不声称全部物理转速、长负载或整夜场景验收；SMART 温度响应与 OEM 瞬态转速变化仍可能。原始记录见忽略目录 `.android-local/device-analysis/fan-y-20260918/verification-v0.1.19.txt` 与 `verification-v0.1.20.txt`。
+
 2026-09-07 更新：用户选择移除应用自动风扇策略、守护服务、设置入口和专用无障碍监控，保留手动控制。旧版自动调度与服务验收仅作历史记录；当前行为及升级检查见 [控制器调查与移除](fan-controller-ownership-investigation.md)。
 
 > 历史记录：0.1.2 已按用户要求完整移除 Shader；本文的滤镜功能、命令和验收结果仅适用于旧版。当前范围见 [移除说明](shader-removal.md)。风扇、桌面和方向验证仍保留。
@@ -166,3 +172,17 @@ Home/Back 各 20 次补验没有多余 stop/start。整机重启后系统以 HOM
 手动档位保持用户选择；自动策略通过 `ThermalGate` 使用单调时间，>60°C 连续 16 秒才进入散热，>=75°C 立即进入；温控触发后 <=55°C 连续 24 秒允许恢复安静。过长采样间隔、时钟倒退和传感器失败不会被累计成连续低温。分离供电通过 `EXTRA_PLUGGED` 判定，避免 `DISCHARGING` / `FULL` 状态导致无法恢复关闭。
 
 风扇服务仅在自动开启或仍需完成自动停转恢复时运行，手动模式结束服务。删除每分钟尝试强制重绑无障碍的行为和无用的安全设置权限；前台监控状态跨线程可见。温度读取集中到共享缓存：路径最多每 60 秒重新发现，同一秒的读取共用样本；UI 隐藏后取消采样。实际验证及后台运行提示的说明见 [优化验收](optimization-audit.md)。
+
+### 2026-09-18 性能切换保留所选风扇（取代联动限制）
+
+用户新要求：性能切换不再改选风扇档位，OFF/QUIET/SMART/MAX 的当前手动选择在任意性能切换后保持；SMART 随 OEM 温控曲线自然变化转速，不承诺转速瞬时不变。本节取代此前“性能联动风扇”（普通 OFF / 高性能 SMART、MAX 保留）与“高性能+OFF、高性能+QUIET 拒绝”的应用层限制；不影响 OEM 温控保护，也不引入 root、系统包修改、直接 PWM 写或后台风扇强制。
+
+实现（UI → 协调器 → 协议引擎三层同源修改）：
+
+- `LauncherHardwareControls.cyclePerformanceMode` 不再改写 `_fanMode`，仅入队 `HardwareController.setPerformanceMode`；保留的目标在硬件锁内执行时读取，风扇按键先入队则先提交并被随后的性能事务保留，风扇按键后入队则最后获胜。
+- `FanControlCoordinator.setPerformance` 单参版读取当前配置风扇，仅在 ∈{0,1,4,5} 时原样作为目标（否则在任何写入前抛出）；双参版删除“高性能需散热”拒绝，仅保留性能与风扇白名单校验。
+- `HardwareOperations`：`PERFORMANCE_FAN` 接受 [012]×[0145] 任意组合；普通 `PERFORMANCE` 保留现有风扇（现有值不在 OEM 预设内则在任何写入前返回 `BAD_REQUEST`）；`preparePerformanceObserver` 推广为确认矩阵——NORMAL+非 OFF 预选 4 等待 0；STANDARD 统一预选 5 等待 1（同时消除同值 SMART 重挂载被迟到观察者改写 1 的竞态）；HIGH 目标 0/1 或目标 4 且先前为 0/1 时预选 1 等待 5；HIGH+MAX 与 HIGH+SMART(先前 4/5) 观察者输出与最终档一致或恒不写，无需确认。每个预选值都不同于确认值，3 秒有界等待只有在观察者确实写入后才能通过；回滚路径对称使用同一矩阵。
+
+边界（技术不可能而非产品取舍）：切换期间的瞬态 PWM 变化不可避免——OEM 观察者自身的确定性写、防假确认预选、同值 SMART 重挂载 toggle 与 SMART 温控循环均会造成瞬时变化；本实现保证的是事务完成后的最终 `fan_mode`（0/4/5 连同 PWM）等于用户所选，失败时两项输入一并回滚并以 `READBACK_MISMATCH`/`ROLLBACK_INCOMPLETE` 显式报错。并发 SystemUI/第三方写入仍属既有竞态边界。STANDARD/HIGH 下的档位保留矩阵来自 2026-09-04 静态分析与 MAX 档实机矩阵，STANDARD/HIGH 保留尚未实机验证，由父会话安装后按低负载有界清单验收。
+
+本地验证：桥接 JVM 自测 507 项（12 组合接受含 `2\t1`/`1\t0`/`2\t0`、6 有向切换×4 档×3 种观察者延迟、同值纯风扇切换、超出确认窗口必须失败且回滚、非代表值写入前拒绝）；协调器自测 66 项；cooling-ui 15 项夹具（新增性能按键保留所选档夹具），三个负面对照（恢复旧联动、去掉读回保护、去掉灯光保护）均按预期失败。

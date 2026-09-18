@@ -252,7 +252,7 @@
     <string name="app_order_done">Done</string>
     <string name="app_actions">App options</string>
     <string name="app_order_hint">Tap an icon, then its destination · Hold and drag · A: pick/drop · B: back</string>
-    <string name="app_browse_hint">Hold an icon or press Y to reorder · START: sort</string>
+    <string name="app_browse_hint">Press Y for app actions · Hold Y to reorder · START: sort</string>
     <string name="app_sort_current">Sort: %1$s</string>
     <string name="app_sort_title">Icon display order</string>
     <string name="app_sort_manual">Manual</string>

@@ -78,11 +78,17 @@ production = "\n\n".join([*declarations, *(method(name) for name in METHODS)])
 print("Actual-source methods: " + ", ".join(METHODS), flush=True)
 print("Extracted source SHA256: " + hashlib.sha256(production.encode()).hexdigest(), flush=True)
 if args.legacy_policy_variant:
-    new_call = "HardwareController.setPerformanceAndFan(context, next, fanTarget)"
+    new_call = 'enqueueCoolingAction("performance") { HardwareController.setPerformanceMode(context, next) }'
     if production.count(new_call) != 1:
         raise SystemExit("Cannot reproduce legacy policy: expected exact production call is missing")
-    production = production.replace(new_call, "HardwareController.setPerformanceMode(context, next)")
-    print("NEGATIVE CONTROL: temporary source calls old setPerformanceMode without captured fanTarget", flush=True)
+    legacy_body = ('''val currentFan = _fanMode.value
+        val fanTarget = if (currentFan == HardwareController.FAN_SPORT) HardwareController.FAN_SPORT
+            else if (next != HardwareController.PERF_NORMAL) HardwareController.FAN_SMART
+            else HardwareController.FAN_OFF
+        _fanMode.value = fanTarget
+        enqueueCoolingAction("performance") { HardwareController.setPerformanceAndFan(context, next, fanTarget) }''')
+    production = production.replace(new_call, legacy_body)
+    print("NEGATIVE CONTROL: temporary source restores the old performance fan linkage", flush=True)
 if args.unguarded_readback_variant:
     guard = "if (!coolingIntentPending && revision == coolingIntentRevision.get())"
     if production.count(guard) != 1:
@@ -207,6 +213,7 @@ class Gate {
 object HardwareController {
     const val PERF_NORMAL = 0
     const val FAN_OFF = 0
+    const val FAN_QUIET = 1
     const val FAN_SMART = 4
     const val FAN_SPORT = 5
     const val ORIENTATION_LANDSCAPE = 0
@@ -243,9 +250,9 @@ object HardwareController {
         before("performance", mode.toString())
         performanceTargets += mode to null
         performance = mode
-        // Hardware fixture: preserve manual maximum, otherwise apply mode default.
-        // The user-triggered linkage is covered by FanControlCoordinator's own tests.
-        fan = if (fan == FAN_SPORT) FAN_SPORT else if (mode != 0) FAN_SMART else FAN_OFF
+        // Hardware fixture: performance switching preserves the currently selected fan;
+        // the observer-safe retention itself is covered by the bridge/coordinator tests.
+        fan = fan
     }
     fun setPerformanceAndFan(context: Any, mode: Int, fanTarget: Int) {
         before("performance", mode.toString())
@@ -301,16 +308,49 @@ fun main() = runBlocking {
         fixture { vm ->
             withContext(Dispatchers.Main) {
                 vm.cyclePerformanceMode()
-                expect(vm, Selection(1, 4), "Performance must display before hardware starts")
+                expect(vm, Selection(1, 0), "Performance must display before hardware starts")
                 check(HardwareController.calls.isEmpty())
                 vm.cycleFanMode()
-                expect(vm, Selection(1, 5), "Fan cycles from the visible smart choice")
+                expect(vm, Selection(1, 1), "Fan cycles from the preserved visible OFF choice")
                 check(vm.pendingKinds().size <= 2)
                 vm.awaitIdle()
-                expect(vm, Selection(1, 5), "Settled final selection")
+                expect(vm, Selection(1, 1), "Settled final selection")
                 check(HardwareController.state() == vm.selection())
             }
             println("PASS immediate performance/fan selection and final hardware intent")
+        }
+        fixture(performance = 0, fan = 1) { vm ->
+            withContext(Dispatchers.Main) {
+                vm.cyclePerformanceMode()
+                expect(vm, Selection(1, 1), "Performance press preserves the selected QUIET fan")
+                vm.cyclePerformanceMode()
+                expect(vm, Selection(2, 1), "Second performance press still preserves QUIET")
+                vm.awaitIdle()
+                expect(vm, Selection(2, 1), "Settled selection keeps QUIET at high performance")
+                check(HardwareController.state() == vm.selection())
+            }
+            println("PASS performance switching preserves the selected fan mode")
+        }
+        fixture(fan = 0) { vm ->
+            withContext(Dispatchers.Main) {
+                vm.cycleFanMode()
+                expect(vm, Selection(0, 1), "OFF cycles to QUIET")
+                vm.awaitIdle()
+                vm.cycleFanMode()
+                expect(vm, Selection(0, 4), "QUIET cycles to SMART")
+                vm.awaitIdle()
+                vm.cycleFanMode()
+                expect(vm, Selection(0, 5), "SMART cycles to MAX")
+                vm.awaitIdle()
+                vm.cycleFanMode()
+                expect(vm, Selection(0, 0), "MAX cycles back to OFF")
+                vm.awaitIdle()
+                check(HardwareController.calls == listOf("fan:1", "fan:4", "fan:5", "fan:0")) {
+                    "Four-step cycle must commit every manual step, got ${HardwareController.calls}"
+                }
+                check(HardwareController.state() == vm.selection())
+            }
+            println("PASS manual fan walks OFF->QUIET->SMART->MAX->OFF and commits each step")
         }
         fixture(fan = 5) { vm ->
             withContext(Dispatchers.Main) {
@@ -327,18 +367,20 @@ fun main() = runBlocking {
             }
             println("PASS 1,000 rapid cycles use current display and collapse to one pending write")
         }
-        fixture(fan = 5) { vm ->
+        fixture(fan = 0) { vm ->
             withContext(Dispatchers.Main) {
-                vm.cycleFanMode() // visible MAX -> OFF, not yet written
-                vm.cyclePerformanceMode() // captures SMART from the visible OFF
-                vm.cycleFanMode() // newer manual MAX supersedes the pending OFF
-                expect(vm, Selection(1, 5), "New manual MAX after captured SMART")
+                vm.cycleFanMode() // visible OFF -> QUIET, not yet written
+                vm.cyclePerformanceMode() // preserves the visible QUIET selection
+                vm.cycleFanMode() // newer manual SMART supersedes the pending QUIET
+                expect(vm, Selection(1, 4), "New manual SMART after preserved QUIET")
                 vm.awaitIdle()
-                expect(vm, Selection(1, 5), "Last manual MAX wins")
+                expect(vm, Selection(1, 4), "Last manual SMART wins")
                 check(HardwareController.state() == vm.selection())
-                check(HardwareController.performanceTargets == listOf(1 to 4))
+                check(HardwareController.performanceTargets == listOf(1 to null)) {
+                    "Performance press must not capture a fan target, got ${HardwareController.performanceTargets}"
+                }
             }
-            println("PASS fan/performance coalescing retains the captured SMART target")
+            println("PASS fan/performance coalescing keeps performance free of a captured fan target")
         }
         fixture { vm ->
             val oldPerformance = HardwareController.blockNext("performance")
@@ -348,17 +390,17 @@ fun main() = runBlocking {
             try {
                 withContext(Dispatchers.Main) {
                     vm.cycleFanMode()
-                            expect(vm, Selection(1, 5), "New choices while old performance blocks")
+                            expect(vm, Selection(1, 1), "New choices while old performance blocks")
                 }
                 oldPerformance.release()
                 newFan.awaitEntered()
                 withContext(Dispatchers.Main) {
-                    expect(vm, Selection(1, 5), "Old performance completion must not overwrite new fan")
+                    expect(vm, Selection(1, 1), "Old performance completion must not overwrite new fan")
                 }
                 newFan.release()
                 withContext(Dispatchers.Main) {
                     vm.awaitIdle()
-                    expect(vm, Selection(1, 5), "Last interleaved intent wins")
+                    expect(vm, Selection(1, 1), "Last interleaved intent wins")
                     check(HardwareController.state() == vm.selection())
                 }
             } finally { oldPerformance.release(); newFan.release() }
@@ -372,13 +414,13 @@ fun main() = runBlocking {
             try {
                 withContext(Dispatchers.Main) {
                     vm.cyclePerformanceMode()
-                    expect(vm, Selection(1, 4), "Selection during stale observer read")
+                    expect(vm, Selection(1, 0), "Selection during stale observer read")
                 }
                 staleRead.release()
                 newWrite.awaitEntered()
                 observer.join()
                 withContext(Dispatchers.Main) {
-                    expect(vm, Selection(1, 4), "Stale readback must not overwrite new revision")
+                    expect(vm, Selection(1, 0), "Stale readback must not overwrite new revision")
                 }
                 newWrite.release()
                 withContext(Dispatchers.Main) {
@@ -404,8 +446,8 @@ fun main() = runBlocking {
             withContext(Dispatchers.Main) {
                 vm.cyclePerformanceMode(); vm.cycleFanMode()
                 vm.awaitIdle()
-                expect(vm, Selection(0, 5), "Later manual fan survives earlier failed performance")
-                check(HardwareController.calls == listOf("performance:1", "fan:5"))
+                expect(vm, Selection(0, 1), "Later manual fan survives earlier failed performance")
+                check(HardwareController.calls == listOf("performance:1", "fan:1"))
                 check(android.widget.Toast.shown == 1)
             }
             println("PASS one failed queued command does not discard a later command")

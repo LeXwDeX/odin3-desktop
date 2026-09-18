@@ -70,6 +70,7 @@ object Build { object VERSION { const val SDK_INT = 35 }; object VERSION_CODES {
 ''',
     "keys": '''package android.view
 class KeyEvent(val action: Int, val keyCode: Int, val repeatCount: Int = 0, val eventTime: Long = 1L) {
+    val isCanceled: Boolean = false
     companion object { const val ACTION_DOWN = 0; const val ACTION_UP = 1;
 ''' + "\n".join(f"const val {key} = {index + 3}" for index, key in enumerate(keys)) + '''
     }

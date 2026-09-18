@@ -983,6 +983,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     // Manual edits work on the complete category, including icons beyond the home limit.
     fun enterReorderMode() {
         if (_focusZone.value != FocusZone.APPS || _isSortMenuOpen.value || _currentTabApps.value.isEmpty()) return
+        if (_isReorderingApps.value) return
+        if (!_isAllAppsOpen.value && _currentTabApps.value.size > HOME_APP_LIMIT &&
+            _selectedAppIndex.value >= HOME_APP_LIMIT) return
         val tab = activeAppTab() ?: return
         _isReorderingApps.value = true
         _pickedAppIndex.value = null
@@ -1099,6 +1102,17 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         _isAppActionDialogOpen.value = false
         _appActionInTabPicker.value = false
         _focusZone.value = FocusZone.APPS
+    }
+
+    /** Y 键专用入口：仅在当前选中有效应用图标时生效（主页“+”磁贴与其他焦点区域不触发）。 */
+    fun openAppActionDialogFromY() {
+        if (_focusZone.value != FocusZone.APPS || _isReorderingApps.value ||
+            _isConfigOpen.value || _isAppBatchManageDialogOpen.value ||
+            _isAppActionDialogOpen.value || _isSortMenuOpen.value) return
+        if (!_isAllAppsOpen.value && _currentTabApps.value.size > HOME_APP_LIMIT &&
+            _selectedAppIndex.value >= HOME_APP_LIMIT) return
+        if (_currentTabApps.value.getOrNull(_selectedAppIndex.value) == null) return
+        openAppActionDialog()
     }
 
     fun setAppActionFocusIndex(index: Int) {

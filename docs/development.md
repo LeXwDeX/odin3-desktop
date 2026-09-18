@@ -64,7 +64,7 @@ python3 -m unittest discover -s tools/tooling-tests -v
 
 ## 原厂硬件接口调试
 
-当前应用内硬件控制不需要运行 `tools/hardware-bridge/manage.py start`。旧桥仅作开发诊断；共享事务和 OEM 协议的 142 项 JVM 检查仍由 `tools/hardware-bridge/build.py` 执行。
+当前应用内硬件控制不需要运行 `tools/hardware-bridge/manage.py start`。旧桥仅作开发诊断；共享事务和 OEM 协议的 190 项 JVM 检查仍由 `tools/hardware-bridge/build.py` 执行。
 
 Debug APK 提供只读探针，在真实应用 UID / SELinux 域中检查服务、性能、风扇与权限，不读取桥接令牌；Release APK 不包含该 instrumentation。
 

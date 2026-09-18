@@ -130,7 +130,8 @@ object HardwareController {
     @Synchronized
     fun cycleFanMode(context: Context): Int {
         val next = when (getFanMode(context)) {
-            FAN_OFF -> FAN_SMART
+            FAN_OFF -> FAN_QUIET
+            FAN_QUIET -> FAN_SMART
             FAN_SMART -> FAN_SPORT
             else -> FAN_OFF
         }
