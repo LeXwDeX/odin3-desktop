@@ -14,6 +14,7 @@ data class OdinPalette(
     val selection: Color = SelectionBackground,
     val track: Color = UsageTrack,
     val storageFree: Color = StorageFree,
+    val storageWarning: Color = YellowStorageWarning,
     val accent: Color = CyanAccent,
     val accentGlow: Color = CyanAccentGlow,
     val text: Color = TextWhite,

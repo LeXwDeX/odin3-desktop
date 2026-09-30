@@ -47,6 +47,8 @@ import com.odin.desktop.dashboard.MemoryUsage
 import com.odin.desktop.dashboard.ProcessorUsage
 import com.odin.desktop.dashboard.StorageUsage
 import com.odin.desktop.dashboard.WifiUsage
+import com.odin.desktop.dashboard.StorageCapacityLevel
+import com.odin.desktop.dashboard.storageCapacityLevel
 import com.odin.desktop.ui.components.base.*
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import com.odin.desktop.ui.theme.OdinDesktopTheme
@@ -133,15 +135,17 @@ private fun CardTitle(title: String, trailing: String = "") {
 
 /** Storage and RAM share the same reading order, baseline and capacity labels. */
 @Composable
-private fun CapacityHeading(title: String, used: Long?, total: Long?) {
+private fun CapacityHeading(title: String, bytes: Long?, total: Long?,
+    label: String = LocalContext.current.getString(R.string.text_used_2),
+    valueColor: Color = LocalOdinPalette.current.text) {
     val palette = LocalOdinPalette.current
     val strings = LocalContext.current
     CardTitle(title, strings.getString(R.string.text_total_value, formatBytes(total)))
     Row(Modifier.fillMaxWidth().padding(top = OdinSpacing.xs),
         horizontalArrangement = Arrangement.spacedBy(OdinSpacing.xs)) {
-        Text(formatBytes(used), color = palette.text, style = OdinTypography.metric,
+        Text(formatBytes(bytes), color = valueColor, style = OdinTypography.metric,
             modifier = Modifier.alignByBaseline(), maxLines = 1)
-        Text(strings.getString(R.string.text_used_2), color = palette.textDim,
+        Text(label, color = palette.textDim,
             style = OdinTypography.caption, modifier = Modifier.alignByBaseline())
     }
     Spacer(Modifier.height(OdinSpacing.sm))
@@ -173,21 +177,24 @@ private fun StorageCards(internal: StorageUsage, external: List<ExternalStorageU
 @Composable
 private fun StorageCard(usage: StorageUsage, modifier: Modifier, compact: Boolean = false) {
     val palette = LocalOdinPalette.current
-    val categoryColors = listOf(palette.special, palette.accent, palette.warning, palette.storageFree)
     val strings = LocalContext.current
     val total = usage.totalBytes?.takeIf { it > 0 }
     val free = usage.freeBytes?.takeIf { it >= 0 }
     val used = if (total != null && free != null) (total - free).coerceIn(0, total) else null
+    val freeColor = storageFreeColor(free, total)
+    val categoryColors = listOf(palette.special, palette.accent, palette.warning, freeColor)
     val categories = listOf(usage.systemBytes, usage.appsBytes, usage.otherBytes, usage.freeBytes)
     val complete = total != null && categories.all { it != null && it >= 0 }
     DashboardCard(modifier) {
-        CapacityHeading(strings.getString(R.string.text_internal_storage), used, total)
+        CapacityHeading(strings.getString(R.string.text_internal_storage), free, total,
+            strings.getString(R.string.text_free),
+            if (storageCapacityLevel(free, total) == StorageCapacityLevel.NORMAL) palette.text else freeColor)
         if (complete) {
             SegmentedBar(categories.map { it!!.toFloat() / total!!.toFloat() }, categoryColors)
         } else {
             // Only total/free are known yet: show aggregate use, never invent category proportions.
             UsageBar(if (used != null && total != null) used.toFloat() / total else null,
-                palette.accent, remainingColor = palette.storageFree)
+                palette.accent, remainingColor = freeColor)
         }
         val categoryNames = listOf(strings.getString(R.string.text_system_2), strings.getString(R.string.text_apps), strings.getString(R.string.text_other), strings.getString(R.string.text_free))
         if (compact) {
@@ -240,13 +247,16 @@ private fun ExternalStorageCard(usage: ExternalStorageUsage, modifier: Modifier)
     val total = usage.totalBytes?.takeIf { it > 0 }
     val free = usage.freeBytes?.takeIf { it >= 0 }
     val used = if (total != null && free != null) (total - free).coerceIn(0, total) else null
+    val freeColor = storageFreeColor(free, total)
     DashboardCard(modifier) {
-        CapacityHeading(usage.label.ifBlank { strings.getString(R.string.text_external_storage) }, used, total)
+        CapacityHeading(usage.label.ifBlank { strings.getString(R.string.text_external_storage) }, free, total,
+            strings.getString(R.string.text_free),
+            if (storageCapacityLevel(free, total) == StorageCapacityLevel.NORMAL) palette.text else freeColor)
         UsageBar(if (used != null && total != null) used.toFloat() / total else null,
-            palette.accent, remainingColor = palette.storageFree)
+            palette.accent, remainingColor = freeColor)
         Column(Modifier.padding(top = OdinSpacing.sm), verticalArrangement = Arrangement.spacedBy(OdinSpacing.xs)) {
             listOf(strings.getString(R.string.text_used_2) to used, strings.getString(R.string.text_free) to free).forEachIndexed { index, (title, bytes) ->
-                val color = if (index == 0) palette.accent else palette.storageFree
+                val color = if (index == 0) palette.accent else freeColor
                 Row(Modifier.fillMaxWidth()) {
                     Text(title, color = color, style = OdinTypography.caption, modifier = Modifier.weight(1f))
                     Text(formatBytes(bytes), color = color, style = OdinTypography.caption, maxLines = 1)
@@ -255,6 +265,16 @@ private fun ExternalStorageCard(usage: ExternalStorageUsage, modifier: Modifier)
         }
         MetricNote(if (usage.readOnly) strings.getString(R.string.text_read_only) else usage.note
             ?: if (total == null || free == null) strings.getString(R.string.text_capacity_unavailable) else null)
+    }
+}
+
+@Composable
+private fun storageFreeColor(free: Long?, total: Long?): Color {
+    val palette = LocalOdinPalette.current
+    return when (storageCapacityLevel(free, total)) {
+        StorageCapacityLevel.NORMAL -> palette.storageFree
+        StorageCapacityLevel.LOW -> palette.storageWarning
+        StorageCapacityLevel.CRITICAL -> palette.danger
     }
 }
 
