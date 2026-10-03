@@ -240,4 +240,12 @@ Debug 实机 en / ja / zh-Hans × 1.0 / 1.3 六组布局验证通过；文字起
 
 旧版 12 秒性能段的五段记录均为零帧，期间系统处于 Dozing 或通知面板窗口取得焦点，不能用于证明背景动画暂停。有效的旧版唤醒窗口样本为 12.235 秒、212 帧、0 个 janky frame；p50/p90/p95/p99 均为 5 ms。测段前后为 Awake，MainActivity 确实持有窗口焦点。该数据仅是 v0.1.22 的短时 HWUI 窗口样本，不能分离背景 Canvas 开销，也不能证明省电、续航或最低功耗。
 
-用户现场查看后认为 v0.1.22 的背景视觉不合格。未采集截图。中央曲线、缓入缓出和聚焦柔边正在修正；这些旧版数据不构成新版验收。新版需待 v0.1.23 正式版安装后重新检查视觉与交互，并另行报告长时间耗电结果。
+用户现场查看后认为 v0.1.22 的背景视觉不合格。未采集截图。其后的 v0.1.23 Debug 预览仍未通过层次检查；这些旧版数据不构成新版验收。背景计划按 PS4 丝带参考重新设计，待 v0.1.24 正式版安装后再检查视觉与交互，并另行报告长时间耗电结果。
+
+## v0.1.23 发布失败与 Debug 预览
+
+2026-10-03，v0.1.23 标签已推送，但[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37109257428)通过，[Release 工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37109258621)在 `LauncherOrderingTest.expandedCategorySavesItsOwnOrderAndMembership` 失败：焦点期望值为 10，实际值为 0。签名和正式发布步骤没有执行，因此没有 v0.1.23 正式 APK。已推送的标签保留原样，不移动。失败报告与原始日志保存在 `.android-local/ci-failure-v0123/` 和 `.android-local/ui-console-v0123-release-failed.log`。
+
+设备上临时安装的是同签名、保留数据的 Debug 预览 `0.1.23 / 1024`，不代表正式版交付。用户现场仍认为界面层次不合格；没有采集截图。后续背景会按 PS4 丝带参考重新设计，计划在 v0.1.24 中交付，正式版实机验收尚未完成。
+
+旧版 Debug 预览的有效 Awake 窗口样本包括：active 12.096 秒、217 帧、1 个 janky frame，p50/p90/p95/p99 为 5/5/5/9 ms；resumed 12.109 秒、208 帧、0 个 janky frame，分位数为 5/5/5/6 ms。animator-off 段只有 8 帧，设置弹窗段只有 9 帧，均是短暂过渡样本；background settings 段记录为 0 帧。这些小样本不用于比较 jank 百分比，不足以证明背景独立开销、最低 CPU、最低功耗或续航改善。分段数据位于 `.android-local/device-analysis/console-v0123-wifi/`。

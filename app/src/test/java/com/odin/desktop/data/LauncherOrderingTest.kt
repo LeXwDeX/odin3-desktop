@@ -13,7 +13,9 @@ import com.odin.desktop.data.entity.TabKind
 import com.odin.desktop.data.model.AppSortMode
 import com.odin.desktop.ui.viewmodel.LauncherViewModel
 import com.odin.desktop.ui.navigation.FocusZone
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -23,6 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowLooper
 
 @RunWith(RobolectricTestRunner::class)
@@ -155,6 +158,7 @@ class LauncherOrderingTest {
         assertEquals(FocusZone.APPS, vm.focusZone.value)
     }
 
+    @LooperMode(LooperMode.Mode.PAUSED)
     @Test fun expandedCategorySavesItsOwnOrderAndMembership() {
         val original = vm.currentTabApps.value
         vm.openAllApps()
@@ -178,15 +182,27 @@ class LauncherOrderingTest {
         vm.openBatchManageDialog()
         assertTrue(vm.isAppBatchManageDialogOpen.value)
         val outsideApp = vm.allInstalledApps.value.first { it.packageName !in original.map { app -> app.packageName } }
-        vm.toggleAppInCurrentTab(outsideApp)
-        await { outsideApp.packageName in vm.currentTabAppPackages.value }
-        assertTrue(runBlocking { app.database.appMappingDao().getAppsForTab(allId) }.isEmpty())
-        assertEquals(31, vm.allInstalledApps.value.size)
+        val addJob = requireNotNull(vm.toggleAppInCurrentTab(outsideApp))
+        // Room has committed the add, while the paused Main looper still holds its focus update.
+        runBlocking {
+            withTimeout(5_000L) {
+                app.database.appMappingDao().getAppsForTabFlow(categoryId)
+                    .first { mappings -> mappings.any { it.packageName == outsideApp.packageName } }
+            }
+        }
+        assertFalse(addJob.isCompleted)
         vm.onBack()
         assertTrue(vm.isAllAppsOpen.value)
         vm.onBack()
-        await { vm.currentTabApps.value.size == 25 }
+        await {
+            addJob.isCompleted && outsideApp.packageName in vm.currentTabAppPackages.value &&
+                vm.currentTabApps.value.size == 25
+        }
+        assertFalse(addJob.isCancelled)
+        assertFalse(vm.isAllAppsOpen.value)
         assertEquals(10, vm.selectedAppIndex.value)
+        assertTrue(runBlocking { app.database.appMappingDao().getAppsForTab(allId) }.isEmpty())
+        assertEquals(31, vm.allInstalledApps.value.size)
         assertTrue(outsideApp.packageName in vm.currentTabAppPackages.value)
         assertFalse(original.first().packageName in vm.currentTabAppPackages.value)
     }

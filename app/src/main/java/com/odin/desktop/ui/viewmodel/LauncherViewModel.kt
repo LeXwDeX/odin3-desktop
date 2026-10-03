@@ -1194,15 +1194,19 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun toggleAppInCurrentTab(app: InstalledApp) {
-        val currentTab = activeAppTab() ?: return
-        viewModelScope.launch(Dispatchers.IO) {
+    /** The returned job lets callers wait for the membership write and its optional focus update. */
+    fun toggleAppInCurrentTab(app: InstalledApp): Job? {
+        val currentTab = activeAppTab() ?: return null
+        return viewModelScope.launch(Dispatchers.IO) {
             if (_currentTabAppPackages.value.contains(app.packageName)) {
                 appRepository.removeAppFromTab(currentTab.id, app.packageName)
             } else {
                 appRepository.addAppToTab(currentTab.id, app.packageName)
                 withContext(Dispatchers.Main) {
-                    _selectedAppIndex.value = 0
+                    // An add may finish after Back closed the dialog or the category grid.
+                    if (_isAppBatchManageDialogOpen.value && activeAppTab()?.id == currentTab.id) {
+                        _selectedAppIndex.value = 0
+                    }
                 }
             }
         }
