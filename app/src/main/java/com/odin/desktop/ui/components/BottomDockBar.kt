@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -123,25 +122,23 @@ fun BottomDockBar(
             textWidth + with(density) { (insets + OdinSizes.icon + OdinSpacing.sm * 2).toPx() } <=
                 with(density) { columnWidth.toPx() }
         }
-        CompositionLocalProvider(LocalOdinControlAppearance provides OdinControlAppearance.DOCK) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)) {
-                dockItems.forEachIndexed { index, item ->
-                    val focused = index == selectedDockIndex && focusZone == FocusZone.DOCK
-                    OdinControl(text = titles[index],
-                        onClick = { onItemClick(index) }, focused = focused,
-                        badge = compactValues[index], badgeRole = when (item.stateColor) {
-                            palette.active -> BadgeRole.ACTIVE
-                            palette.warning -> BadgeRole.WARNING
-                            palette.danger -> BadgeRole.DANGER
-                            palette.textDim -> BadgeRole.NEUTRAL
-                            else -> BadgeRole.INFO
-                        },
-                        icon = if (showIcons) {
-                            { OdinSymbolIcon(icons[index], tint = if (focused) palette.text else palette.textDim) }
-                        } else null,
-                        accessibilityLabel = item.title + ": " + item.value,
-                        modifier = Modifier.weight(1f).fillMaxHeight(), maxLines = 1)
-                }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)) {
+            dockItems.forEachIndexed { index, item ->
+                val focused = index == selectedDockIndex && focusZone == FocusZone.DOCK
+                OdinControl(text = titles[index],
+                    onClick = { onItemClick(index) }, focused = focused,
+                    badge = compactValues[index], badgeRole = when (item.stateColor) {
+                        palette.active -> BadgeRole.ACTIVE
+                        palette.warning -> BadgeRole.WARNING
+                        palette.danger -> BadgeRole.DANGER
+                        palette.textDim -> BadgeRole.NEUTRAL
+                        else -> BadgeRole.INFO
+                    },
+                    icon = if (showIcons) {
+                        { OdinSymbolIcon(icons[index], tint = if (focused) palette.text else palette.textDim) }
+                    } else null,
+                    accessibilityLabel = item.title + ": " + item.value,
+                    modifier = Modifier.weight(1f).fillMaxHeight(), maxLines = 1)
             }
         }
     }

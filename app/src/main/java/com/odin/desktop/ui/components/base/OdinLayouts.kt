@@ -1,14 +1,11 @@
 package com.odin.desktop.ui.components.base
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
 import com.odin.desktop.ui.theme.*
 
 @Composable
@@ -24,15 +21,24 @@ enum class SurfaceRole { PANEL, CARD, DENSE, NAVIGATION, MODAL }
 fun OdinSurface(modifier: Modifier = Modifier, role: SurfaceRole = SurfaceRole.CARD,
     focused: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     val palette = LocalOdinPalette.current
-    val shape = RoundedCornerShape(if (role == SurfaceRole.MODAL) OdinCorners.dialog else OdinCorners.card)
+    val radius = if (role == SurfaceRole.MODAL) OdinCorners.dialog else OdinCorners.card
+    val shape = RoundedCornerShape(radius)
     val inset = when (role) {
         SurfaceRole.PANEL, SurfaceRole.MODAL -> OdinSpacing.panel
         SurfaceRole.CARD -> OdinSpacing.card
         SurfaceRole.DENSE -> OdinSpacing.denseCard
         SurfaceRole.NAVIGATION -> OdinSpacing.sm
     }
-    Column(modifier.clip(shape).background(if (focused) palette.selection else palette.surface)
-        .border(if (focused) 2.dp else 1.dp,
-            if (focused) palette.focus else palette.border.copy(alpha = 0.28f), shape)
+    val glassRole = when (role) {
+        SurfaceRole.PANEL -> GlassRole.PANEL
+        SurfaceRole.CARD -> GlassRole.CARD
+        SurfaceRole.DENSE -> GlassRole.DENSE
+        SurfaceRole.NAVIGATION -> GlassRole.NAVIGATION
+        SurfaceRole.MODAL -> GlassRole.MODAL
+    }
+    Column(modifier.clip(shape)
+        .odinGlassSurface(palette, glassRole, radius, emphasized = focused)
+        .odinFocusHalo(focused = focused, selected = false, enabled = true,
+            radius = radius, focusColor = palette.focus, selectionColor = palette.focus)
         .padding(inset), content = content)
 }

@@ -44,7 +44,10 @@ fun OdinNavigationTab(
         modifier.widthIn(max = 150.dp).width(IntrinsicSize.Max)
             .heightIn(min = OdinSizes.scaledControlHeight())
             .clip(shape)
-            .background(if (focused) palette.selection.copy(alpha = 0.7f) else androidx.compose.ui.graphics.Color.Transparent)
+            .then(if (focused) Modifier.odinGlassSurface(
+                palette = palette, role = GlassRole.CONTROL,
+                radius = OdinCorners.control, emphasized = true
+            ) else Modifier)
             .odinFocusHalo(
                 focused = focused, selected = false, enabled = true,
                 radius = OdinCorners.control, focusColor = palette.focus,

@@ -1,6 +1,5 @@
 package com.odin.desktop.ui.components.base
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,13 +37,15 @@ fun OdinImageTile(
     val shape = RoundedCornerShape(OdinCorners.card)
     Box(modifier.size(size.slot.dp).graphicsLayer { alpha = if (hidden) 0f else 1f }, contentAlignment = Alignment.Center) {
         Box(Modifier.then(transform).size(size.canvas.dp).clip(shape)
-            .background(if (focused || selected) palette.selection else palette.card)
+            .odinGlassSurface(
+                palette = palette, role = GlassRole.ICON,
+                radius = OdinCorners.card, emphasized = focused || selected
+            )
             // A dragged tile cannot be clicked, but its picked outline remains visible.
             .odinFocusHalo(
                 focused = focused, selected = selected, enabled = true,
                 radius = OdinCorners.card, focusColor = palette.focus,
-                selectionColor = palette.accent,
-                idleColor = palette.border.copy(alpha = 0.28f)
+                selectionColor = palette.focus
             )
             .clickable(enabled = interactive, onClick = onClick)
             .semantics {

@@ -64,7 +64,7 @@ fun ConsoleModalDialog(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(palette.background.copy(alpha = 0.88f))
+                .background(palette.background.copy(alpha = OdinGlassScrimOpacity))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,

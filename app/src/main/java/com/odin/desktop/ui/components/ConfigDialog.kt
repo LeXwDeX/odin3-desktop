@@ -30,6 +30,7 @@ import com.odin.desktop.R
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.locale.AppLanguage
 import com.odin.desktop.ui.components.base.OdinControl
+import com.odin.desktop.ui.components.base.OdinGlassScrimOpacity
 import com.odin.desktop.ui.components.base.OdinSurface
 import com.odin.desktop.ui.components.base.SurfaceRole
 import com.odin.desktop.ui.theme.LocalOdinPalette
@@ -86,7 +87,7 @@ fun ConfigDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(palette.background)
+            .background(palette.background.copy(alpha = OdinGlassScrimOpacity))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
