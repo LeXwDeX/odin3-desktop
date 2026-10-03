@@ -260,12 +260,36 @@ Debug 实机 en / ja / zh-Hans × 1.0 / 1.3 六组布局验证通过；文字起
 
 用户认为 v0.1.24 的曲线挤在中央、运动不同步，缓动感不足，要求重新设计。视觉尚未验收通过，计划后续 v0.1.25。v0.1.24 Debug 预览 active 窗口样本为 12.240 秒、216 帧、1 个 janky frame，p50/p90/p95/p99 为 5/5/5/9 ms；这是短时 Debug 窗口数据，不代表正式 APK 的背景耗时、CPU 下限、功耗或续航。
 
-## v0.1.25 候选
+## v0.1.25 正式发布与安装
 
-v0.1.25 正式版尚未发布。已将本地同签名 Debug 预览 `0.1.25 / 1026` 保留数据安装到 Odin3。预览 APK SHA-256 为 `8f069a23b4faf5c74aeb5e102e3786e418b52c4bc4fc480b4415d0d3a57ca373`，签名证书与 v0.1.24 正式版相同。安装前后独立读回确认首次安装时间、UID、数据目录 inode `258045`、HOME、禁用包列表、字体倍率 1.0、简体中文、动画倍率 1.0、省电模式关闭及充电状态 `1,0` 均一致。此前设备上的正式 v0.1.24 APK 已拉取备份至 `.android-local/device-analysis/console-v0125-wifi/previous-preview.apk`；其证书和 SHA-256 与原正式 APK 一致。用户对预览视觉的反馈已询问，当前待回复。
+2026-10-03，[v0.1.25](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.25) 正式发布。标签和精确 head `aacf20ab9d225637c9eb24854859680787d950cc` 的[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37111540426)与[Release 工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37111541760)均成功。Astra 对该提交终审通过。
 
-当前候选背景使用两条缓存 Path、深蓝至靛色的淡纵向渐变和静态径向柔光。主面中央上下边界间隙约为 0.17H；内部渐变表现面光影，没有第三条折面或描线。Path 与 Brush 在 `drawWithCache` 中按尺寸和调色板创建，绘制帧不重置或重建路径。
+正式 APK 为 `com.odin.desktop / 0.1.25 / 1026`，minSdk 29、targetSdk 35、不可调试，正式清单不含 Debug 组件板。SHA-256 `4aaa884098718ff63df03c2d5655c909711ed445b15727330c414165d70db241` 与 checksum 附件、GitHub asset digest 和设备实际 APK 一致。签名证书为 `55365fd0f34296a9a23cf798b40a412bd7df300d3e3b72a3b1eecd7e0c972163`，与旧正式版相同。
 
-两条 Path 使用同一变换和正弦相位：周期 24 秒，最高更新频率 20 Hz；`s = sin(2πphase)`，平移为 `x = 0.024W·s`、`y = 0.045H·s`，缩放为 `scaleX = 1 + 0.009s`、`scaleY = 1 + 0.008s`。转向点速度为零、加速度非零。既有暂停条件仍包括界面动态效果请求、Activity resumed、窗口有焦点、绘制 View 已附着、省电模式关闭及系统动画倍率大于 0；弹窗和图标操作继续由调用方关闭运动。设计参考及实现边界见[界面架构](console-ui.md)。
+已将正式 APK 保留数据安装到 AYN Odin3 / Android 15（固件 `Odin3_V1.0.0.187_20260616_193307_user`）。安装前后独立读回确认首次安装时间、UID、数据目录 inode `258045`、HOME、禁用包列表、简体中文、字体倍率 1.0、动画倍率 1.0、省电模式关闭及充电状态 `1,0` 均一致。未逐行读取私有数据库，不声明数据库内容或哈希完全一致。旧正式 v0.1.24 APK 与 v0.1.25 Debug APK 分别备份在 `.android-local/device-analysis/console-v0125-wifi/previous-preview.apk` 和 `previous-release.apk`。
 
-候选 Debug/Release 构建通过，84 项单元测试通过，Lint 为 0 错误、39 条既有警告；8 项共享检查均通过。最终构建日志在 `.android-local/ui-console-v0125-final-build.log`。这些结果和 Debug 预览安装记录不代表 v0.1.25 正式版已发布或用户视觉已验收。用户视觉反馈仍待回复；正式发布后补记提交哈希、CI、APK 与最终设备证据。
+正式 APK 在物理 Odin3 上以英语界面、1920 × 1080、字体倍率 1.0 拍摄了 Home、Dashboard、Library、Stick lights 和 Orientation 五张原生截图。Library 共列出 27 个可启动应用，首屏显示 18 个。图像未做像素编辑；用户保存的组名和第三方应用名称保留原文。原始文件名、尺寸和 SHA-256 记录在 `.android-local/device-analysis/console-v0125-wifi/readme-screenshots-verification.json`，原始 PNG 暂存于忽略目录 `.android-local/device-analysis/console-v0125-wifi/readme-draft-originals/`。这些照片没有作为最终截图随发布提交；README 英文截图更新暂缓，待 v0.1.26 完整应用截图拍摄并核验后再更新。
+
+Library 和设置页的 Back 操作已在设备上检查；退出 Library 后回到来源分类的 `[+]` 入口。用户对 v0.1.25 背景的正式视觉反馈尚未收到，因此不记录视觉验收通过。英语截图完成后，设备界面语言已恢复简体中文，字体倍率为 1.0。
+
+最终 Debug/Release 构建通过，84 项单元测试通过，Lint 为 0 错误、39 条既有警告；8 项共享检查均通过。最终构建日志位于 `.android-local/ui-console-v0125-final-build.log`。一个有效的 Debug HWUI 窗口样本为 12.317 秒、216 帧、1 个 janky frame，p50/p90/p95 为 5 ms、p99 为 10 ms。先前在 Dozing / NotificationShade 状态采集的片段已作废，不纳入结果。该 Debug 短样本不能代表正式 APK 的背景耗时、CPU、功耗或续航；正式 APK 性能记录待补。
+
+背景设计与暂停边界见[界面架构](console-ui.md)。发布 APK、安装状态和设备验收事实不构成用户对视觉的通过确认。
+
+## v0.1.26 正式发布与安装
+
+2026-10-03，[v0.1.26](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.26) 正式发布。标签提交和精确 head `440bbcbf3d295644be61bcf2044d60afc49e95aa` 的[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37113488313)与[Release 工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37113503412)均成功；Astra 对该提交终审通过。
+
+正式 APK 为 `com.odin.desktop / 0.1.26 / 1027`，minSdk 29、targetSdk 35、不可调试，正式清单不含 Debug 组件。SHA-256 `02f19b1efbb03dee6992acc61160258ee076d435ea21b28402d425a4578b9d61`，与 GitHub 正式 APK、checksum 附件、asset digest 和设备安装文件一致。签名证书为 `55365fd0f34296a9a23cf798b40a412bd7df300d3e3b72a3b1eecd7e0c972163`，与之前版本相同。发布和 APK 核验记录位于 `.android-local/releases/v0.1.26/verification.json` 和 `workflows.json`。
+
+正式 APK 已保留数据安装到 AYN Odin3 / Android 15（固件 `Odin3_V1.0.0.187_20260616_193307_user`）。独立读回确认新旧状态一致：UID `10119`、首次安装时间 `2026-09-03`、数据目录 inode `258045`、HOME `com.odin.desktop`、禁用包列表、语言 zh-Hans、字体倍率 1.0、系统动画倍率 1.0、省电状态 `low_power=0`、充电状态 `1,0`。正式安装后实际包版本、调试标志和 APK 哈希均已核对。没有逐行读取私有数据库，不声明数据库所有记录或哈希完全一致。旧正式 v0.1.25 APK 和 v0.1.26 Debug 预览分别备份在 `.android-local/device-analysis/console-v0126-wifi/previous-preview.apk` 和 `previous-release.apk`；安装核验位于 `.android-local/device-analysis/console-v0126-wifi/release-verification.json` 和 `release-installed-state.json`。
+
+统一材质用于图片槽、`OdinSurface` 各用途、控件和输入框、徽标、聚焦导航与模态遮罩。各角色共用缓存的半透明渐变、高光和细边公式，只按密度与光效调整；不是真实 backdrop blur，不截取帧，不为每个瓷砖添加 `RenderEffect`，也不新增逐帧计时器。徽标底色与语义色按 18% 混合，文字保留语义色；Dock 控件共用 `CONTROL` 角色，没有独立外观 CompositionLocal/provider。高密度面板使用更深表面以保持可读性；现有字号、间距、圆角、危险语义和禁用状态规则保持统一。设计细节见[设计系统第 12 节](design-system.md#12-控制台深色界面与共享玻璃材质2026-10)。
+
+本地 Debug/Release 构建、84 项单元测试、Lint 和 8 项共享检查通过；测试无失败、错误或跳过，Lint 为 0 错误、39 条既有警告，警告 ID 与此前保留项一致。硬件桥自检为 507 项。en/ja/zh-Hans × 1.0/1.3 六组 UI Kit 原生测量通过：控件高度 101/110 px，tag 高度 64/72 px；同行边缘和读数基线对齐，禁用控件点击次数为 0。日志位于 `.android-local/ui-console-v0126-build.log`、`.android-local/ui-console-v0126-checks.log`；组件测量与截图位于 `.android-local/device-analysis/console-v0126-wifi/ui-kit/`。这些检查不替代完整应用的视觉验收。
+
+正式版一次有效的 Awake 窗口 HWUI 样本为 12.067 秒、208 帧、0 个 janky frame 和 0 个 legacy janky frame；p50/p90/p95/p99 均为 5 ms。测段前后 MainActivity 持有焦点，设备为 Awake、系统动画倍率 1.0、省电模式关闭，helper PID 列表为空。该数据是整窗 HWUI 采样，不能分离玻璃材质开销，也不能证明 CPU 下限、功耗或长时续航。
+
+正式版英文截图和返回路径已完成设备验收。五张 1920 × 1080、字体倍率 1.0 的原生照片直接来自 v0.1.26 正式 APK，逐张查看后未做像素编辑，复制前后 SHA-256 一致；文件为 `home-en.png`、`library-en.png`、`dashboard-en.png`、`lights-en.png` 和 `orientation-en.png`，位于 `docs/screenshots/v0.1.26/`。核验记录为 `.android-local/device-analysis/console-v0126-wifi/readme-screenshots-verification.json`。逐张检查未发现系统栏重叠。Library 显示 All apps · 27 apps，首屏 18 个；按 Back 后回到 All apps 主页条带，仍显示 27 apps、`[+]` 和 View group，且 `[+]` 保持选择状态。Settings → Orientation 按 Back 后回到同一 All apps 主页。没有点击 LED 色块或硬件控制。
+
+完成验收后，设备恢复 zh-Hans 和字体倍率 1.0。正式 APK 仍为不可调试的 1027；设备实际 APK SHA-256 与发布附件一致。恢复后的 MainActivity 持有焦点，设备为 Awake，helper PID 为空；`final-restored-device.json` 与 `baseline-release-install.json` 的已保留字段完全一致。正式版安装状态记录已更新为已验证。用户对新材质的整体视觉反馈尚未收到；尚未测量长时功耗和续航。

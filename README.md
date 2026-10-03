@@ -8,9 +8,9 @@ A controller-friendly Android launcher for the **AYN Odin 3**, with a soft dark 
 
 [Download the APK](https://github.com/LeXwDeX/odin3-desktop/releases/latest) · [Report a bug or request a feature](https://github.com/LeXwDeX/odin3-desktop/issues)
 
-![Historical full-screen app library in English on an Odin 3](docs/screenshots/library-en.png)
+![Odin Desktop home screen in English](docs/screenshots/v0.1.26/home-en.png)
 
-This v0.1.10 screenshot is historical. It does not show the current interface.
+These five screenshots come from the v0.1.26 release APK on an Odin 3 at 1920 × 1080 and font scale 1.0. They are unedited copies of the original captures. Saved group names and third-party app names remain in their original language.
 
 ## Getting started
 
@@ -26,11 +26,15 @@ The app targets the AYN Odin 3. Hardware integration has been verified on Androi
 
 Each group's home row shows up to **10 apps**. When the group contains more than 10, the next tile is **[+]**. Open it to see **every app in that group**, including the first 10. The page title shows the group's name and app count. Opening [+] in the **All apps** group shows every installed, launchable app.
 
-The library fills the screen: no tab bar and no hardware dock. Navigate with the D-pad or stick, scroll by touch, and press **B** to return to the original group and its [+] tile. On the Odin 3 at its default display and font settings, the grid shows three rows of six icons. The column count adapts to the available width.
+The library fills the screen: no tab bar and no hardware dock. Navigate with the D-pad or stick, scroll by touch, and press **B** to return to the original group and its `[+]` tile. On the Odin 3 at its default display and font settings, the grid shows three rows of six icons. The column count adapts to the available width.
+
+![Full-screen app library in English](docs/screenshots/v0.1.26/library-en.png)
+
+The captured device has 27 launchable apps, with 18 visible on the first screen. In these checks, the Back action returned from the full-screen library to the **All apps** home row with `[+]` selected. Back from Settings → Orientation returned to that same home row.
 
 Android status and navigation bars stay hidden while using the launcher, including after unlocking or returning from another app. Swipe from a screen edge to reveal them temporarily.
 
-The current interface uses a deep blue-black palette, shared focus outlines, and original vector symbols. State colors distinguish control states, and storage bars share their colors with the corresponding labels. Internal storage and SD cards use the same gray for free space. The decorative vector background pauses when the launcher is inactive, a modal or reorder mode is open, or Android reports a power-saving or reduced-motion condition. See the [console UI architecture](docs/console-ui.md) for its lifecycle and validation limits.
+The v0.1.26 release uses a deep blue-black palette, shared focus outlines, and original vector symbols. State colors distinguish control states, and storage bars share their colors with the corresponding labels. Internal storage and SD cards use the same gray for free space. Its background uses a subtle blue-to-indigo gradient and two broad surfaces with synchronized 24-second motion. The shared glass material uses cached translucent gradients, highlights, and soft edges. It does not blur the background. Surfaces vary in density while preserving semantic badge colors and existing focus, danger, and disabled states. The background pauses when the launcher is inactive, a modal or reorder mode is open, or Android reports power saving or reduced motion. See the [console UI architecture](docs/console-ui.md) and [design system](docs/design-system.md) for details.
 
 App names can be shortened in the grid; the selected app's name also appears above it. Installed apps supply their own icons and names. No games, ROMs, or emulators are bundled.
 
@@ -67,6 +71,8 @@ The firmware's USB charging fan option is separate. On the verified firmware, it
 
 The Dashboard shows internal-storage categories, mounted external-storage capacity, CPU and GPU temperature, memory usage, and Wi-Fi throughput. It also provides shortcuts to Files, Android settings, and Odin settings.
 
+![Dashboard in English](docs/screenshots/v0.1.26/dashboard-en.png)
+
 Entering the Dashboard starts a sample immediately. Each sampler then refreshes at **6-second intervals three times**, followed by **30-second intervals**. Leaving the Dashboard or hiding the launcher stops collection; returning starts the initial cadence again. Slow queries complete before another sample is requested, so work does not accumulate. The smaller battery and fan display in the home-screen header has its own refresh schedule.
 
 Statistics that cannot be read are marked unavailable. Usage access is needed for some storage and memory details. The launcher avoids presenting incomplete app-memory totals as complete measurements.
@@ -79,21 +85,19 @@ Free space uses the same gray in both internal and external storage bars. When n
 
 Choose from six color presets with touch or the controller. The focused preset is applied with **A**.
 
-![English stick-light settings on an Odin 3](docs/screenshots/lights-en.png)
+![English stick-light settings](docs/screenshots/v0.1.26/lights-en.png)
 
 ### Orientation
 
 **Landscape grip** keeps landscape apps in the normal handheld orientation while allowing apps that explicitly request portrait. **Sensor landscape** releases that preference and follows the app's orientation request and the device sensors. Settings are applied through the firmware and read back; no persistent rotation service is needed.
 
-![English orientation settings on an Odin 3](docs/screenshots/orientation-en.png)
+![English orientation settings](docs/screenshots/v0.1.26/orientation-en.png)
 
 ### Default home and background behavior
 
 Android remains responsible for choosing the default home app. If you select another launcher, Odin Desktop does not try to bring itself to the foreground at boot.
 
 Hardware buttons do not require a persistent foreground service. The optional AFK black-screen overlay runs only when explicitly enabled. Double-tap to exit it, or press Power to put the device to sleep; sleeping ends the overlay, notification, and wake lock. Waking the device does not automatically restart AFK mode.
-
-The settings screenshots above are captured from the English interface of v0.1.10 on a physical Odin 3. They are historical references and do not show the current interface.
 
 ## Controller guide
 
@@ -120,7 +124,7 @@ Use **JDK 17**, **Android SDK 35**, and the Gradle Wrapper. The project includes
 git clone https://github.com/LeXwDeX/odin3-desktop.git
 cd odin3-desktop
 python3 tools/setup-android.py
-tools/android ./gradlew -PreleaseVersion=0.1.13 :app:assembleDebug
+tools/android ./gradlew -PreleaseVersion=0.1.26 :app:assembleDebug
 ```
 
 For other environments, configure `JAVA_HOME` and `ANDROID_HOME`, then run the Gradle Wrapper directly. A locally generated debug key may differ from the release key; keep the original signing key when you need an in-place update.
