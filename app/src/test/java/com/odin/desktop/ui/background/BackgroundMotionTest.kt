@@ -63,6 +63,7 @@ class BackgroundMotionTest {
         val centerTravel = easedWave(step) - easedWave(0f)
         val turnTravel = easedWave(.25f) - easedWave(.25f - step)
         assertTrue("The ribbon must visibly ease into the turn", turnTravel < centerTravel * .02f)
+        assertTrue("The ribbon should keep moving before its turn", easedWave(.20f) < .96f)
         val travelBeforeLoop = easedWave(1f) - easedWave(1f - step)
         assertEquals("The loop must not change speed abruptly", travelBeforeLoop, centerTravel, .0001f)
     }

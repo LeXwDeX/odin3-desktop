@@ -249,3 +249,23 @@ Debug 实机 en / ja / zh-Hans × 1.0 / 1.3 六组布局验证通过；文字起
 设备上临时安装的是同签名、保留数据的 Debug 预览 `0.1.23 / 1024`，不代表正式版交付。用户现场仍认为界面层次不合格；没有采集截图。后续背景会按 PS4 丝带参考重新设计，计划在 v0.1.24 中交付，正式版实机验收尚未完成。
 
 旧版 Debug 预览的有效 Awake 窗口样本包括：active 12.096 秒、217 帧、1 个 janky frame，p50/p90/p95/p99 为 5/5/5/9 ms；resumed 12.109 秒、208 帧、0 个 janky frame，分位数为 5/5/5/6 ms。animator-off 段只有 8 帧，设置弹窗段只有 9 帧，均是短暂过渡样本；background settings 段记录为 0 帧。这些小样本不用于比较 jank 百分比，不足以证明背景独立开销、最低 CPU、最低功耗或续航改善。分段数据位于 `.android-local/device-analysis/console-v0123-wifi/`。
+
+## v0.1.24 正式发布与安装
+
+2026-10-03，[v0.1.24](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.24) 正式发布。标签提交 `cc6cf2706c410364ca287dc1cb2e92870d47dc55` 的[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37110268620)与[Release 工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37110270162)均通过，headSha 与标签一致。Astra 终审通过。
+
+正式 APK `com.odin.desktop / 0.1.24 / 1025`，minSdk 29、targetSdk 35、不可调试。SHA-256 `02dcdb27202cc1c80056f0b5c27f4586f0695849bd76c7da523965f0937ce4e1` 与校验附件、GitHub 资产摘要和设备安装文件一致。签名证书与既有版本一致：`55365fd0f34296a9a23cf798b40a412bd7df300d3e3b72a3b1eecd7e0c972163`。
+
+已将正式 APK 保留数据覆盖安装到 AYN Odin3（`a782c9a1` / Android 15）。安装前后首次安装时间、UID、数据目录 inode `258045`、HOME、禁用包列表、简体中文、字体倍率 1.0、动画倍率 1.0、省电模式关闭及 5V 3A 充电状态一致。没有逐行读取私有数据库，不声称数据库记录完全一致。Dashboard 布局已读取；未采集截图，未完成正式版设置页与长期功耗验收。正式 APK、旧版与比对证据在 `.android-local/releases/v0.1.24/` 和 `.android-local/device-analysis/console-v0124-wifi/`。
+
+用户认为 v0.1.24 的曲线挤在中央、运动不同步，缓动感不足，要求重新设计。视觉尚未验收通过，计划后续 v0.1.25。v0.1.24 Debug 预览 active 窗口样本为 12.240 秒、216 帧、1 个 janky frame，p50/p90/p95/p99 为 5/5/5/9 ms；这是短时 Debug 窗口数据，不代表正式 APK 的背景耗时、CPU 下限、功耗或续航。
+
+## v0.1.25 候选
+
+v0.1.25 正式版尚未发布。已将本地同签名 Debug 预览 `0.1.25 / 1026` 保留数据安装到 Odin3。预览 APK SHA-256 为 `8f069a23b4faf5c74aeb5e102e3786e418b52c4bc4fc480b4415d0d3a57ca373`，签名证书与 v0.1.24 正式版相同。安装前后独立读回确认首次安装时间、UID、数据目录 inode `258045`、HOME、禁用包列表、字体倍率 1.0、简体中文、动画倍率 1.0、省电模式关闭及充电状态 `1,0` 均一致。此前设备上的正式 v0.1.24 APK 已拉取备份至 `.android-local/device-analysis/console-v0125-wifi/previous-preview.apk`；其证书和 SHA-256 与原正式 APK 一致。用户对预览视觉的反馈已询问，当前待回复。
+
+当前候选背景使用两条缓存 Path、深蓝至靛色的淡纵向渐变和静态径向柔光。主面中央上下边界间隙约为 0.17H；内部渐变表现面光影，没有第三条折面或描线。Path 与 Brush 在 `drawWithCache` 中按尺寸和调色板创建，绘制帧不重置或重建路径。
+
+两条 Path 使用同一变换和正弦相位：周期 24 秒，最高更新频率 20 Hz；`s = sin(2πphase)`，平移为 `x = 0.024W·s`、`y = 0.045H·s`，缩放为 `scaleX = 1 + 0.009s`、`scaleY = 1 + 0.008s`。转向点速度为零、加速度非零。既有暂停条件仍包括界面动态效果请求、Activity resumed、窗口有焦点、绘制 View 已附着、省电模式关闭及系统动画倍率大于 0；弹窗和图标操作继续由调用方关闭运动。设计参考及实现边界见[界面架构](console-ui.md)。
+
+候选 Debug/Release 构建通过，84 项单元测试通过，Lint 为 0 错误、39 条既有警告；8 项共享检查均通过。最终构建日志在 `.android-local/ui-console-v0125-final-build.log`。这些结果和 Debug 预览安装记录不代表 v0.1.25 正式版已发布或用户视觉已验收。用户视觉反馈仍待回复；正式发布后补记提交哈希、CI、APK 与最终设备证据。

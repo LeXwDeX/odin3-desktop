@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import kotlinx.coroutines.delay
@@ -32,7 +34,7 @@ fun ConsoleBackground(modifier: Modifier = Modifier, motionEnabled: Boolean = tr
     LaunchedEffect(allowed) {
         if (!allowed) return@LaunchedEffect
         try {
-            // Twenty updates per second suffice for this 24-second eased motion.
+            // Twenty updates per second suffice for this 24-second motion.
             withFrameNanos { clock.advance(it) }
             while (coroutineContext.isActive) {
                 delay(50L)
@@ -76,15 +78,9 @@ fun ConsoleBackground(modifier: Modifier = Modifier, motionEnabled: Boolean = tr
                 startY = height * .28f,
                 endY = height * .76f
             )
-            val foldedFaceBrush = Brush.verticalGradient(
-                colors = listOf(Color(0x003E7AC2), Color(0x3D65A5E7), Color.Transparent),
-                startY = height * .33f,
-                endY = height * .61f
-            )
-            // Reuse the paths while their control points slowly change at each draw.
-            val companion = Path()
-            val ribbon = Path()
-            val foldedFace = Path()
+            // Geometry and shaders are rebuilt only if the viewport or palette changes.
+            val companion = buildCompanion(width, height)
+            val ribbon = buildRibbon(width, height)
 
             onDrawBehind {
                 drawRect(background)
@@ -92,70 +88,38 @@ fun ConsoleBackground(modifier: Modifier = Modifier, motionEnabled: Boolean = tr
                 if (width <= 0f || height <= 0f) return@onDrawBehind
 
                 // Snapshot state is read only here. This invalidates the draw node, not the UI tree.
-                val sway = easedWave(phase.floatValue)
-                val fold = easedWave(phase.floatValue + .04f)
-                buildCompanion(companion, width, height, sway)
-                buildRibbon(ribbon, foldedFace, width, height, sway, fold)
+                val motion = easedWave(phase.floatValue)
                 clipRect {
-                    drawPath(companion, companionBrush)
-                    drawPath(ribbon, ribbonBrush)
-                    drawPath(foldedFace, foldedFaceBrush)
+                    translate(left = width * .024f * motion, top = height * .045f * motion) {
+                        scale(scaleX = 1f + .009f * motion, scaleY = 1f + .008f * motion) {
+                            drawPath(companion, companionBrush)
+                            drawPath(ribbon, ribbonBrush)
+                        }
+                    }
                 }
             }
         }
     )
 }
 
-/** A faint continuation behind the main fold, sharing its motion. */
-private fun buildCompanion(path: Path, w: Float, h: Float, sway: Float) {
-    path.reset()
-    path.moveTo(-.14f * w, (.30f + .012f * sway) * h)
-    path.cubicTo(.17f * w, (.36f + .018f * sway) * h, .47f * w, (.43f - .012f * sway) * h,
-        1.14f * w, (.29f - .015f * sway) * h)
-    path.lineTo(1.14f * w, (.39f - .010f * sway) * h)
-    path.cubicTo(.56f * w, (.57f - .012f * sway) * h, .16f * w, (.46f + .014f * sway) * h,
-        -.14f * w, (.41f + .012f * sway) * h)
-    path.close()
+/** The rear sheet is subdued and partly overlaps the main sheet. */
+private fun buildCompanion(w: Float, h: Float): Path = Path().apply {
+    moveTo(-.18f * w, .43f * h)
+    cubicTo(.12f * w, .35f * h, .31f * w, .49f * h, .52f * w, .44f * h)
+    cubicTo(.73f * w, .39f * h, .90f * w, .22f * h, 1.18f * w, .23f * h)
+    lineTo(1.18f * w, .36f * h)
+    cubicTo(.89f * w, .48f * h, .71f * w, .50f * h, .52f * w, .54f * h)
+    cubicTo(.33f * w, .58f * h, .12f * w, .50f * h, -.18f * w, .55f * h)
+    close()
 }
 
-/** A single broad sheet pinches at the middle and opens into a second face. */
-private fun buildRibbon(body: Path, face: Path, w: Float, h: Float, sway: Float, fold: Float) {
-    val waistX = (.49f + .018f * sway) * w
-    val waistTop = (.485f + .023f * sway) * h
-    val waistBottom = (.53f + .012f * sway + .012f * fold) * h
-    val leftTop = (.38f + .014f * sway) * h
-    val rightTop = (.40f - .017f * sway) * h
-
-    body.reset()
-    traceRibbonTop(body, w, h, waistX, waistTop, leftTop, rightTop, sway, fold)
-    body.lineTo(1.14f * w, (.67f - .010f * sway + .015f * fold) * h)
-    body.cubicTo(.88f * w, (.75f - .019f * sway) * h,
-        .69f * w, (.57f + .019f * fold) * h, waistX, waistBottom)
-    body.cubicTo(.33f * w, (.56f + .014f * fold) * h,
-        .13f * w, (.69f + .016f * sway) * h,
-        -.14f * w, (.64f + .012f * sway) * h)
-    body.close()
-
-    face.reset()
-    traceRibbonTop(face, w, h, waistX, waistTop, leftTop, rightTop, sway, fold)
-    face.lineTo(1.14f * w, (.55f - .012f * sway) * h)
-    face.cubicTo(.85f * w, (.57f - .011f * sway) * h,
-        .66f * w, (.525f + .015f * fold) * h,
-        waistX, (waistTop + waistBottom) * .5f)
-    face.cubicTo(.32f * w, (.535f + .012f * fold) * h,
-        .13f * w, (.48f + .014f * sway) * h,
-        -.14f * w, (.49f + .012f * sway) * h)
-    face.close()
-}
-
-private fun traceRibbonTop(
-    path: Path, w: Float, h: Float, waistX: Float, waistTop: Float,
-    leftTop: Float, rightTop: Float, sway: Float, fold: Float
-) {
-    path.moveTo(-.14f * w, leftTop)
-    path.cubicTo(.15f * w, (.31f + .021f * sway) * h,
-        .35f * w, (.50f + .012f * fold) * h, waistX, waistTop)
-    path.cubicTo(.68f * w, (.46f - .014f * fold) * h,
-        .85f * w, (.31f - .022f * sway) * h,
-        1.14f * w, rightTop)
+/** One wide asymmetric S-shaped sheet with an open center and a broader right face. */
+private fun buildRibbon(w: Float, h: Float): Path = Path().apply {
+    moveTo(-.18f * w, .52f * h)
+    cubicTo(.14f * w, .49f * h, .28f * w, .62f * h, .55f * w, .51f * h)
+    cubicTo(.82f * w, .40f * h, .88f * w, .27f * h, 1.18f * w, .36f * h)
+    lineTo(1.18f * w, .70f * h)
+    cubicTo(.86f * w, .75f * h, .75f * w, .63f * h, .55f * w, .68f * h)
+    cubicTo(.35f * w, .73f * h, .13f * w, .71f * h, -.18f * w, .74f * h)
+    close()
 }
