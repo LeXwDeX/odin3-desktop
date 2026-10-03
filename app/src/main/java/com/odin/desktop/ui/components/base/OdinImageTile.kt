@@ -39,8 +39,9 @@ fun OdinImageTile(
     Box(modifier.size(size.slot.dp).graphicsLayer { alpha = if (hidden) 0f else 1f }, contentAlignment = Alignment.Center) {
         Box(Modifier.then(transform).size(size.canvas.dp).clip(shape)
             .background(if (focused || selected) palette.selection else palette.card)
+            // A dragged tile cannot be clicked, but its picked outline remains visible.
             .odinFocusHalo(
-                focused = focused, selected = selected, enabled = interactive,
+                focused = focused, selected = selected, enabled = true,
                 radius = OdinCorners.card, focusColor = palette.focus,
                 selectionColor = palette.accent,
                 idleColor = palette.border.copy(alpha = 0.28f)
