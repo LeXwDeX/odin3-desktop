@@ -15,13 +15,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.coroutines.coroutineContext
-import kotlin.math.sin
 
 /** Low-cost, decorative console backdrop. The parent controls screen and modal visibility. */
 @Composable
@@ -34,7 +34,7 @@ fun ConsoleBackground(modifier: Modifier = Modifier, motionEnabled: Boolean = tr
     LaunchedEffect(allowed) {
         if (!allowed) return@LaunchedEffect
         try {
-            // Twenty updates per second suffice for this 48-second, small-displacement motion.
+            // Twenty updates per second suffice for this 24-second eased motion.
             withFrameNanos { clock.advance(it) }
             while (coroutineContext.isActive) {
                 delay(50L)
@@ -51,19 +51,24 @@ fun ConsoleBackground(modifier: Modifier = Modifier, motionEnabled: Boolean = tr
             val height = size.height
             val base = lerp(palette.background, Color(0xFF030A19), 0.78f)
             val depthBrush = Brush.verticalGradient(
-                colors = listOf(Color.Transparent, Color(0x39091D3B)),
-                startY = height * 0.24f,
-                endY = height
+                colors = listOf(Color.Transparent, Color(0x35091D3B)),
+                startY = height * .15f,
+                endY = height * .85f
             )
-            val far = ribbon(size, .66f, .58f, .72f, .77f, .90f, .83f, .92f, 1.02f)
-            val middle = ribbon(size, .82f, .72f, .68f, .79f, 1.01f, .93f, .89f, 1.04f)
-            val near = ribbon(size, .96f, .85f, .78f, .87f, 1.12f, 1.02f, .97f, 1.12f)
-            val glint = ribbon(size, .91f, .88f, .77f, .83f, .935f, .90f, .80f, .86f)
+            // Crests cross the middle of the viewport; the geometry stays cached.
+            val far = ribbon(size, .34f, .30f, .42f, .42f, .53f, .48f, .60f, .59f)
+            val middle = ribbon(size, .48f, .41f, .44f, .51f, .66f, .58f, .61f, .68f)
+            val near = ribbon(size, .62f, .55f, .52f, .60f, .77f, .71f, .69f, .78f)
+            val glint = ribbon(size, .50f, .43f, .45f, .51f, .54f, .47f, .49f, .55f)
             val gradientHeight = height.coerceAtLeast(1f)
-            val farBrush = ribbonBrush(gradientHeight, Color(0x00265AA0), Color(0x52265AA0), Color(0x09142C59))
+            val farBrush = ribbonBrush(gradientHeight, Color(0x00265AA0), Color(0x46265AA0), Color(0x09142C59))
             val middleBrush = ribbonBrush(gradientHeight, Color(0x002767BE), Color(0x70407DD0), Color(0x14113265))
-            val nearBrush = ribbonBrush(gradientHeight, Color(0x003C76C0), Color(0x665187DB), Color(0x1A112D61))
-            val glintBrush = ribbonBrush(gradientHeight, Color(0x002A6DCE), Color(0x483C91EC), Color(0x001547A0))
+            val nearBrush = ribbonBrush(gradientHeight, Color(0x003C76C0), Color(0x5C5187DB), Color(0x10112D61))
+            val glintBrush = Brush.verticalGradient(
+                colors = listOf(Color(0x002A6DCE), Color(0x684B9DF2), Color(0x001547A0)),
+                startY = gradientHeight * .41f,
+                endY = gradientHeight * .59f
+            )
             val hairline = Stroke(width = (width * .0010f).coerceIn(1f, 2.4f))
 
             onDrawBehind {
@@ -72,34 +77,46 @@ fun ConsoleBackground(modifier: Modifier = Modifier, motionEnabled: Boolean = tr
                 if (width <= 0f || height <= 0f) return@onDrawBehind
 
                 // Snapshot state is read only here. This invalidates the draw node, not the UI tree.
-                val cycle = phase.floatValue * (2f * Math.PI.toFloat())
+                val cycle = phase.floatValue
+                val farMotion = easedWave(cycle + .10f)
+                val middleMotion = easedWave(cycle)
+                val nearMotion = easedWave(cycle + .36f)
+                val glintMotion = easedWave(cycle + .19f)
                 clipRect {
                     translate(
-                        left = width * .014f * sin(cycle),
-                        top = height * .006f * sin(cycle + .7f)
+                        left = width * .012f * farMotion,
+                        top = height * .030f * farMotion
                     ) {
-                        drawPath(far.fill, farBrush)
-                        drawPath(far.crest, Color(0x194478BD), style = hairline)
+                        scale(scaleX = 1f + .008f * farMotion, scaleY = 1f + .030f * farMotion) {
+                            drawPath(far.fill, farBrush)
+                            drawPath(far.crest, Color(0x284478BD), style = hairline)
+                        }
                     }
                     translate(
-                        left = width * .018f * sin(cycle + 1.9f),
-                        top = height * .007f * sin(cycle + 2.4f)
+                        left = width * .020f * middleMotion,
+                        top = height * .040f * middleMotion
                     ) {
-                        drawPath(middle.fill, middleBrush)
-                        drawPath(middle.crest, Color(0x386BA7E5), style = hairline)
+                        scale(scaleX = 1f + .010f * middleMotion, scaleY = 1f + .045f * middleMotion) {
+                            drawPath(middle.fill, middleBrush)
+                            drawPath(middle.crest, Color(0x526BA7E5), style = hairline)
+                        }
                     }
                     translate(
-                        left = width * .011f * sin(cycle + 3.5f),
-                        top = height * .008f * sin(cycle + 1.5f)
+                        left = width * .014f * nearMotion,
+                        top = height * .035f * nearMotion
                     ) {
-                        drawPath(near.fill, nearBrush)
+                        scale(scaleX = 1f + .008f * nearMotion, scaleY = 1f + .036f * nearMotion) {
+                            drawPath(near.fill, nearBrush)
+                        }
                     }
                     translate(
-                        left = width * .013f * sin(cycle + 4.7f),
-                        top = height * .005f * sin(cycle + 3.3f)
+                        left = width * .018f * glintMotion,
+                        top = height * .045f * glintMotion
                     ) {
-                        drawPath(glint.fill, glintBrush)
-                        drawPath(glint.crest, Color(0x455CA9EE), style = hairline)
+                        scale(scaleX = 1f + .008f * glintMotion, scaleY = 1f + .035f * glintMotion) {
+                            drawPath(glint.fill, glintBrush)
+                            drawPath(glint.crest, Color(0x685CA9EE), style = hairline)
+                        }
                     }
                 }
             }
@@ -135,6 +152,6 @@ private fun ribbon(
 private fun ribbonBrush(height: Float, top: Color, middle: Color, bottom: Color): Brush =
     Brush.verticalGradient(
         colors = listOf(top, middle, bottom),
-        startY = height * .57f,
-        endY = height * 1.10f
+        startY = height * .28f,
+        endY = height * .77f
     )

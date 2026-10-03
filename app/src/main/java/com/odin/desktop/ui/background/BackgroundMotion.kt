@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import kotlin.math.floor
 
 /** The caller supplies its own modal or screen visibility gate through motionEnabled. */
 internal data class BackgroundMotionConditions(
@@ -38,7 +39,7 @@ internal data class BackgroundMotionConditions(
 }
 
 /** Keeps the current pose when paused; elapsed time outside active frames never advances it. */
-internal class BackgroundMotionClock(private val periodNanos: Long = 48_000_000_000L) {
+internal class BackgroundMotionClock(private val periodNanos: Long = 24_000_000_000L) {
     init { require(periodNanos > 0L) }
 
     var phase: Float = 0f
@@ -61,6 +62,16 @@ internal class BackgroundMotionClock(private val periodNanos: Long = 48_000_000_
     fun pause() {
         previousFrameNanos = null
     }
+}
+
+/** Smooth, seamless ping-pong motion: center at 0/0.5, resting at +/-1 on quarter turns. */
+internal fun easedWave(phase: Float): Float {
+    val wrapped = phase - floor(phase)
+    val position = (wrapped + .25f) % 1f
+    val rise = if (position <= .5f) position * 2f else (1f - position) * 2f
+    // Smootherstep has zero slope and acceleration at each turn.
+    val eased = rise * rise * rise * (rise * (rise * 6f - 15f) + 10f)
+    return eased * 2f - 1f
 }
 
 /** Observes platform changes; the renderer reads animation state only during draw. */

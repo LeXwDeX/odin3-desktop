@@ -1,7 +1,6 @@
 package com.odin.desktop.ui.components.base
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,8 +45,11 @@ fun OdinNavigationTab(
             .heightIn(min = OdinSizes.scaledControlHeight())
             .clip(shape)
             .background(if (focused) palette.selection.copy(alpha = 0.7f) else androidx.compose.ui.graphics.Color.Transparent)
-            .border(if (focused) 2.dp else 1.dp,
-                if (focused) palette.focus else androidx.compose.ui.graphics.Color.Transparent, shape)
+            .odinFocusHalo(
+                focused = focused, selected = false, enabled = true,
+                radius = OdinCorners.control, focusColor = palette.focus,
+                selectionColor = palette.accent
+            )
             .clickable(role = Role.Tab, onClick = onClick)
             .semantics { this.selected = selected },
         contentAlignment = Alignment.Center

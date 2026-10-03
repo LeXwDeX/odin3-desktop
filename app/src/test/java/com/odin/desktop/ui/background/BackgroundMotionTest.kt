@@ -46,4 +46,31 @@ class BackgroundMotionTest {
         // An out-of-order callback cannot make the ribbon run backwards.
         assertEquals(.10f, clock.advance(300L), .0001f)
     }
+
+    @Test
+    fun easedWaveStartsCenteredAndLoopsWithoutAPositionJump() {
+        assertEquals(0f, easedWave(0f), .00001f)
+        assertEquals(1f, easedWave(.25f), .00001f)
+        assertEquals(0f, easedWave(.5f), .00001f)
+        assertEquals(-1f, easedWave(.75f), .00001f)
+        assertEquals(easedWave(0f), easedWave(1f), .00001f)
+        assertEquals(easedWave(.75f), easedWave(-.25f), .00001f)
+    }
+
+    @Test
+    fun easedWaveSlowsToRestAtTurnsAndKeepsSpeedAcrossLoopBoundary() {
+        val step = .005f
+        val centerTravel = easedWave(step) - easedWave(0f)
+        val turnTravel = easedWave(.25f) - easedWave(.25f - step)
+        assertTrue("The ribbon must visibly ease into the turn", turnTravel < centerTravel * .02f)
+        val travelBeforeLoop = easedWave(1f) - easedWave(1f - step)
+        assertEquals("The loop must not change speed abruptly", travelBeforeLoop, centerTravel, .0001f)
+    }
+
+    @Test
+    fun defaultCycleTakesTwentyFourSeconds() {
+        val clock = BackgroundMotionClock()
+        clock.advance(1_000_000_000L)
+        assertEquals(.25f, clock.advance(7_000_000_000L), .00001f)
+    }
 }
