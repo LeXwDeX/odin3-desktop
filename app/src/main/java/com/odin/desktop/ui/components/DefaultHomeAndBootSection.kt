@@ -15,12 +15,12 @@ internal fun DefaultHomeAndBootSection(isDefaultHome: Boolean, inSubMenu: Boolea
     val palette = LocalOdinPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(OdinSpacing.lg)) {
         SettingsSectionHeader(strings.getString(R.string.text_default_home_and_startup),
-            strings.getString(R.string.text_use_odin_desktop_as_the_system_home))
+            description = strings.getString(R.string.text_use_odin_desktop_as_the_system_home))
         OdinSurface(Modifier.fillMaxWidth()) {
             Text(strings.getString(R.string.text_default_home_screen), style = OdinTypography.body, color = palette.text)
             Spacer(Modifier.height(OdinSpacing.sm))
             OdinBadge(strings.getString(if (isDefaultHome) R.string.text_set_as_default else R.string.text_not_the_default),
-                if (isDefaultHome) BadgeRole.ACTIVE else BadgeRole.WARNING)
+                role = if (isDefaultHome) BadgeRole.ACTIVE else BadgeRole.WARNING)
             Spacer(Modifier.height(OdinSpacing.sm))
             Text(strings.getString(if (isDefaultHome) R.string.text_the_home_button_opens_odin_desktop else R.string.text_press_a_or_tap_to_choose_odin),
                 style = OdinTypography.caption, color = palette.textDim)

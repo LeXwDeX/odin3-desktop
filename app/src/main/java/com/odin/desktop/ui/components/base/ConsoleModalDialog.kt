@@ -98,8 +98,8 @@ fun ConsoleModalDialog(
                                 Text(title, modifier = Modifier.weight(1f), maxLines = 2,
                                     overflow = TextOverflow.Ellipsis, color = palette.text, style = OdinTypography.h2)
                             }
-                            if (badgeText != null) OdinBadge(badgeText, BadgeRole.INFO,
-                                Modifier.align(Alignment.CenterVertically))
+                            if (badgeText != null) OdinBadge(badgeText,
+                                modifier = Modifier.align(Alignment.CenterVertically), role = BadgeRole.INFO)
                         }
 
                         // 头部快捷 B 键返回提示
@@ -148,16 +148,16 @@ fun ConsoleModalDialog(
 @Composable
 fun ConsoleDialogItem(
     title: String,
+    isFocused: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     subtitle: String? = null,
     icon: @Composable (() -> Unit)? = null,
-    isFocused: Boolean,
     isSelected: Boolean = false,
     trailingText: String? = null,
     isDanger: Boolean = false,
     enabled: Boolean = true,
-    radio: Boolean = false,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    radio: Boolean = false
 ) {
     OdinControl(
         text = title, subtitle = subtitle, icon = icon,

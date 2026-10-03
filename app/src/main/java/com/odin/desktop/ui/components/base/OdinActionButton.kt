@@ -13,7 +13,8 @@ fun OdinActionButton(
     dangerous: Boolean = false,
     accessibilityLabel: String? = null,
     iconOnly: Boolean = false,
-    emoji: String? = null
+    emoji: String? = null,
+    icon: (@Composable () -> Unit)? = null
 ) = OdinControl(text = text, onClick = onClick, modifier = modifier, enabled = enabled,
     focused = focused, dangerous = dangerous, accessibilityLabel = accessibilityLabel, iconOnly = iconOnly,
-    icon = emoji?.let { { OdinEmojiIcon(it) } })
+    icon = icon ?: emoji?.let { { OdinEmojiIcon(it) } })

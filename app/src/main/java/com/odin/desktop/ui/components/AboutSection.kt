@@ -21,7 +21,7 @@ internal fun AboutSection() {
     val strings = LocalContext.current
     Column(Modifier.verticalScroll(rememberScrollState())) {
         SettingsSectionHeader(strings.getString(R.string.text_odin_3_handheld_launcher),
-            "Odin Desktop ${com.odin.desktop.BuildConfig.VERSION_NAME}")
+            description = "Odin Desktop ${com.odin.desktop.BuildConfig.VERSION_NAME}")
         Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
         Text(

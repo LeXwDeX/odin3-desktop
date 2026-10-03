@@ -71,11 +71,13 @@ fun TopTabBar(
             horizontalArrangement = Arrangement.spacedBy(OdinSpacing.xs)
         ) {
             item(key = "dashboard") {
-                HomeTab(strings.getString(com.odin.desktop.R.string.page_dashboard), isDashboardSelected && !isConfigFocused, focusZone, onDashboardSelected)
+                HomeTab(strings.getString(com.odin.desktop.R.string.page_dashboard), isDashboardSelected,
+                    isDashboardSelected && !isConfigFocused && focusZone == FocusZone.TABS, onDashboardSelected)
             }
             itemsIndexed(tabs, key = { _, tab -> tab.id }) { index, tab ->
-                HomeTab(tab.displayName(strings), !isDashboardSelected && selectedTabIndex == index && !isConfigFocused,
-                    focusZone) { onTabSelected(index) }
+                val selected = !isDashboardSelected && selectedTabIndex == index
+                HomeTab(tab.displayName(strings), selected,
+                    selected && !isConfigFocused && focusZone == FocusZone.TABS) { onTabSelected(index) }
             }
         }
         Spacer(Modifier.width(OdinSpacing.md))
@@ -85,16 +87,19 @@ fun TopTabBar(
 
         // 右侧固定 [CONFIG] 设置按钮
         val isConfigSelected = isConfigFocused && focusZone == FocusZone.TABS
-        OdinControl(strings.getString(R.string.page_config), onClick = onConfigClick,
-            focused = isConfigSelected, modifier = Modifier.widthIn(max = 132.dp).width(IntrinsicSize.Max), maxLines = 1,
-            icon = { OdinEmojiIcon("⚙️") })
+        OdinNavigationTab(strings.getString(R.string.page_config), selected = false,
+            focused = isConfigSelected, onClick = onConfigClick,
+            modifier = Modifier.widthIn(max = 132.dp), icon = {
+                OdinSymbolIcon(OdinSymbol.SETTINGS,
+                    tint = if (isConfigSelected) com.odin.desktop.ui.theme.LocalOdinPalette.current.text
+                        else com.odin.desktop.ui.theme.LocalOdinPalette.current.textDim)
+            })
     }
 }
 
 @Composable
-private fun HomeTab(label: String, selected: Boolean, focusZone: FocusZone, onClick: () -> Unit) {
-    OdinControl(label, onClick, selected = selected, focused = selected && focusZone == FocusZone.TABS,
-        modifier = Modifier.widthIn(max = 150.dp).width(IntrinsicSize.Max), maxLines = 1)
+private fun HomeTab(label: String, selected: Boolean, focused: Boolean, onClick: () -> Unit) {
+    OdinNavigationTab(label, selected = selected, focused = focused, onClick = onClick)
 }
 
 @Composable

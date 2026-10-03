@@ -2,19 +2,20 @@ package com.odin.desktop.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val DarkBackground = Color(0xFF0B0E10)
-val DarkSurface = Color(0xFF151A1E)
-val CardBackground = Color(0xFF1B2227)
-val CardBorder = Color(0xFF293238)
-val SelectionBackground = Color(0xFF1B3034)
-val UsageTrack = Color(0xFF252F35)
-val StorageFree = Color(0xFF8E99A4)
+val DarkBackground = Color(0xFF080D18)
+val DarkSurface = Color(0xFF101827)
+val CardBackground = Color(0xFF172134)
+val CardBorder = Color(0xFF35445B)
+val SelectionBackground = Color(0xFF203854)
+val UsageTrack = Color(0xFF28374B)
+val StorageFree = Color(0xFF91A0B4)
 
-val CyanAccent = Color(0xFF65B6BF)
-val CyanAccentGlow = Color(0x3365B6BF)
-val TextWhite = Color(0xFFD4DADD)
-val TextDim = Color(0xFF939DA5)
-val TextDarkDim = Color(0xFF697780)
+val CyanAccent = Color(0xFFB4D0F3)
+val CyanAccentGlow = Color(0x33B4D0F3)
+val FocusRing = Color(0xFFE1EDFF)
+val TextWhite = Color(0xFFF1F5FB)
+val TextDim = Color(0xFFACB9CC)
+val TextDarkDim = Color(0xFF78879D)
 
 val GreenActive = Color(0xFF7CB99A)
 val YellowStorageWarning = Color(0xFFE2C65B)

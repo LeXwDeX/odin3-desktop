@@ -2,7 +2,6 @@ package com.odin.desktop.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -28,13 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -67,13 +60,15 @@ fun DashboardContent(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalOdinPalette.current
-    BoxWithConstraints(modifier.fillMaxSize().background(palette.background)) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
         val wide = maxWidth >= 620.dp
         val scrollState = rememberScrollState()
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = OdinSpacing.page, vertical = OdinSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)
         ) {
+            OdinStableTextLine(LocalContext.current.getString(R.string.page_dashboard),
+                color = palette.text, style = OdinTypography.h1)
             if (wide) {
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
                     StorageCards(state.storage, state.externalStorage, Modifier.weight(1.35f).fillMaxHeight())
@@ -120,7 +115,11 @@ private fun DashboardActionControl(action: DashboardAction, focused: Boolean, on
         if (focused) { withFrameNanos { }; requester.bringIntoView() }
     }
     OdinControl(actionLabel(action), onClick, modifier.bringIntoViewRequester(requester), focused = focused,
-        icon = { ActionIcon(action, Modifier.size(OdinSizes.icon)) })
+        icon = { OdinSymbolIcon(when (action) {
+            DashboardAction.FILES -> OdinSymbol.FILE
+            DashboardAction.SYSTEM_SETTINGS -> OdinSymbol.SETTINGS
+            DashboardAction.ODIN_SETTINGS -> OdinSymbol.ODIN_SETTINGS
+        }) })
 }
 
 @Composable
@@ -379,41 +378,6 @@ private fun actionLabel(action: DashboardAction): String {
 }
 }
 
-
-@Composable
-private fun ActionIcon(action: DashboardAction, modifier: Modifier) {
-    val palette = LocalOdinPalette.current
-    Canvas(modifier) {
-        val stroke = 1.5.dp.toPx()
-        val w = size.width
-        val h = size.height
-        fun line(x1: Float, y1: Float, x2: Float, y2: Float) =
-            drawLine(palette.accent, Offset(x1 * w, y1 * h), Offset(x2 * w, y2 * h), stroke, StrokeCap.Round)
-        when (action) {
-            DashboardAction.FILES -> {
-                val folder = Path().apply {
-                    moveTo(w * .1f, h * .22f); lineTo(w * .43f, h * .22f)
-                    lineTo(w * .55f, h * .36f); lineTo(w * .9f, h * .36f)
-                    lineTo(w * .9f, h * .82f); lineTo(w * .1f, h * .82f); close()
-                }
-                drawPath(folder, palette.accent, style = Stroke(stroke))
-            }
-            DashboardAction.SYSTEM_SETTINGS -> {
-                listOf(.23f, .5f, .77f).forEachIndexed { index, y ->
-                    line(.1f, y, .9f, y)
-                    drawCircle(palette.surface, stroke * 1.9f, Offset(w * (if (index == 1) .66f else .34f), h * y))
-                    drawCircle(palette.accent, stroke * 1.5f, Offset(w * (if (index == 1) .66f else .34f), h * y), style = Stroke(stroke))
-                }
-            }
-            DashboardAction.ODIN_SETTINGS -> {
-                listOf(.12f, .58f).forEach { x -> listOf(.12f, .58f).forEach { y ->
-                    drawRoundRect(palette.accent, Offset(w * x, h * y), Size(w * .3f, h * .3f),
-                        CornerRadius(stroke), style = Stroke(stroke))
-                } }
-            }
-        }
-    }
-}
 
 @Preview(name = "Dashboard · Internal storage", widthDp = 833, heightDp = 350)
 @Composable

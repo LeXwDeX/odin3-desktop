@@ -16,9 +16,9 @@ import com.odin.desktop.ui.theme.OdinTypography
 @Composable
 internal fun SettingsSectionHeader(
     title: String,
+    modifier: Modifier = Modifier,
     description: String? = null,
-    descriptionColor: Color = LocalOdinPalette.current.textDim,
-    modifier: Modifier = Modifier
+    descriptionColor: Color = LocalOdinPalette.current.textDim
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(OdinSpacing.xs)) {
         Text(title, style = OdinTypography.h2, color = LocalOdinPalette.current.text,

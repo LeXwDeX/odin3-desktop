@@ -5,22 +5,18 @@
     <string name="tile_afk_inactive" formatted="false">"Inactive"</string>
     <string name="afk_overlay_unlock_hint" formatted="false">"Double-tap to exit"</string>
     <string name="afk_notification_title" formatted="false">"OLED idle protection is active"</string>
-    <string name="afk_notification_text" formatted="false">"Black overlay enabled. Tap to restore the picture."</string>
+    <string name="afk_notification_text" formatted="false">"Tap Exit idle screen to restore the picture."</string>
+    <string name="afk_notification_exit" formatted="false">"Exit idle screen"</string>
     <string name="tab_games" formatted="false">"Games &amp; emulators"</string>
     <string name="tab_system" formatted="false">"System apps"</string>
     <string name="tab_all_apps" formatted="false">"All apps"</string>
     <string name="text_idle_screen_protection" formatted="false">"Idle screen protection"</string>
     <string name="text_foreground_notification_for_oled_idle_protection" formatted="false">"Foreground notification for OLED idle protection"</string>
-    <string name="text_hardware_control_is_not_connected_reconnect_the" formatted="false">"Hardware control is not connected. Reconnect the control service through ADB."</string>
-    <string name="text_the_hardware_service_could_not_be_authenticated" formatted="false">"The hardware service could not be authenticated. Reconnect through ADB."</string>
-    <string name="text_the_hardware_response_could_not_be_verified" formatted="false">"The hardware response could not be verified. Refresh the status and try again."</string>
     <string name="text_the_operation_was_incomplete_and_some_settings" formatted="false">"The operation was incomplete and some settings could not be restored. Check the device settings."</string>
     <string name="text_the_system_did_not_keep_the_selected" formatted="false">"The system did not keep the selected settings. Restoration was attempted."</string>
     <string name="text_hardware_status_is_temporarily_unavailable_refresh_it" formatted="false">"Hardware status is temporarily unavailable. Refresh it shortly."</string>
     <string name="text_this_hardware_operation_is_not_allowed" formatted="false">"This hardware operation is not allowed."</string>
-    <string name="text_hardware_authentication_failed_reconnect_through_adb" formatted="false">"Hardware authentication failed. Reconnect through ADB."</string>
     <string name="text_the_system_rejected_the_operation_restoration_was" formatted="false">"The system rejected the operation. Restoration was attempted."</string>
-    <string name="text_the_hardware_service_is_offline_or_timed" formatted="false">"The hardware service is offline or timed out. Reconnect through ADB and refresh the status."</string>
     <string name="text_reading_non_system_app_pss" formatted="false">"Reading non-system app PSS"</string>
     <string name="text_external_storage" formatted="false">"External storage"</string>
     <string name="text_this_android_version_does_not_provide_a" formatted="false">"This Android version does not provide a volume path; capacity is unavailable"</string>
@@ -82,7 +78,6 @@
     <string name="text_airplane_mode_could_not_be_changed_refresh" formatted="false">"Airplane mode could not be changed. Refresh the status."</string>
     <string name="text_airplane_mode_readback_differs" formatted="false">"Airplane mode readback differs."</string>
     <string name="text_off" formatted="false">"Off"</string>
-    <string name="text_level" formatted="false">"Level"</string>
     <string name="text_all_apps" formatted="false">"All apps"</string>
     <string name="text_cannot_launch_value">"Cannot launch %1$s"</string>
     <string name="text_you_can_create_up_to_10_tabs" formatted="false">"You can create up to 10 tabs"</string>
@@ -90,8 +85,6 @@
     <string name="text_set_value_as_the_home_tab">"Set “%1$s” as the home tab"</string>
     <string name="text_target_category" formatted="false">"Target category"</string>
     <string name="text_added_value_to_the_start_of_value">"Added “%1$s” to the start of “%2$s”"</string>
-    <string name="text_sorting_icons_a_to_pick_up_or" formatted="false">"Sorting icons: A to pick up or place, B to finish"</string>
-    <string name="text_icon_order_saved" formatted="false">"Icon order saved"</string>
     <string name="text_all_apps_contains_every_installed_app_icons" formatted="false">"All apps contains every installed app; icons cannot be removed here"</string>
     <string name="text_removed_icon_from_value">"Removed icon from “%1$s”"</string>
     <string name="text_no_other_custom_categories_are_available" formatted="false">"No other custom categories are available"</string>
@@ -152,16 +145,8 @@
     <string name="text_press_a_or_tap_to_choose_odin" formatted="false">"Press A or tap to choose Odin Desktop as your default home in system settings."</string>
     <string name="text_manage_home_settings_a" formatted="false">"Manage home settings (A)"</string>
     <string name="text_set_as_default_a" formatted="false">"Set as default (A)"</string>
-    <string name="text_start_odin_desktop_at_boot" formatted="false">"Start Odin Desktop at boot"</string>
-    <string name="text_on_enabled" formatted="false">"ON Enabled"</string>
-    <string name="text_off_disabled" formatted="false">"OFF Disabled"</string>
-    <string name="text_start_the_desktop_only_when_opened_by" formatted="false">"Start the desktop only when opened by you or the system."</string>
-    <string name="text_disable_startup_a" formatted="false">"Disable startup (A)"</string>
-    <string name="text_enable_startup_a" formatted="false">"Enable startup (A)"</string>
     <string name="text_internal_storage" formatted="false">"Internal storage"</string>
     <string name="text_total_value">"Total %1$s"</string>
-    <string name="text_measuring" formatted="false">"Measuring"</string>
-    <string name="text_used" formatted="false">" used"</string>
     <string name="text_system_2" formatted="false">"System"</string>
     <string name="text_apps" formatted="false">"Apps"</string>
     <string name="text_other" formatted="false">"Other"</string>
@@ -170,7 +155,6 @@
     <string name="text_reading_storage_categories" formatted="false">"Reading storage categories…"</string>
     <string name="text_categories_unavailable_bar_shows_total_usage" formatted="false">"Categories unavailable · Bar shows total usage"</string>
     <string name="text_read_only" formatted="false">"Read-only"</string>
-    <string name="text_total" formatted="false">" total"</string>
     <string name="text_used_2" formatted="false">"Used"</string>
     <string name="text_capacity_unavailable" formatted="false">"Capacity unavailable"</string>
     <string name="text_memory" formatted="false">"Memory"</string>
@@ -185,8 +169,6 @@
     <string name="text_files" formatted="false">"Files"</string>
     <string name="text_system_settings" formatted="false">"System settings"</string>
     <string name="text_odin_settings" formatted="false">"Odin settings"</string>
-    <string name="text_dashboard_internal_storage" formatted="false">"Dashboard · Internal storage"</string>
-    <string name="text_dashboard_internal_and_external_storage" formatted="false">"Dashboard · Internal and external storage"</string>
     <string name="text_sd_card" formatted="false">"SD card"</string>
     <string name="text_example_wi_fi" formatted="false">"Example Wi-Fi"</string>
     <string name="text_screen_orientation" formatted="false">"Screen orientation:"</string>
@@ -214,9 +196,6 @@
     <string name="text_white" formatted="false">"White"</string>
     <string name="text_dark_gray" formatted="false">"Dark gray"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"Choose a stick LED color (A to apply):"</string>
-    <string name="text_no_apps_press_x_to_manage_this" formatted="false">"No apps. Press X to manage this category."</string>
-    <string name="text_picked_up_left_right_to_move_a" formatted="false">"Picked up: Left/Right to move • A to place"</string>
-    <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"Sorting: A to pick up • Left/Right to select • B to finish"</string>
     <string name="text_odin_3_handheld_launcher" formatted="false">"Odin 3 handheld launcher"</string>
     <string name="text_a_desktop_and_system_controls_for_ayn" formatted="false">"A desktop and system controls for AYN Odin 3.\n"</string>
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• OLED black background and burn-in protection\n"</string>
@@ -243,17 +222,22 @@
     <string name="header_unread">Not read</string>
     <string name="header_full">Fully charged</string>
     <string name="header_fan">Fan %1$s RPM</string>
-    <string name="afk_countdown_hint">"Entering idle screen in %1$d seconds\nDouble-tap to cancel or exit"</string>
+    <plurals name="afk_countdown_hint">
+        <item quantity="one">Entering idle screen in %1$d second\nDouble-tap to cancel or exit</item>
+        <item quantity="other">Entering idle screen in %1$d seconds\nDouble-tap to cancel or exit</item>
+    </plurals>
 
     <!-- Icon order and application library -->
     <string name="app_library">View group</string>
-    <string name="app_library_count">%1$s · %2$d apps</string>
+    <plurals name="app_library_count">
+        <item quantity="one">%1$s · %2$d app</item>
+        <item quantity="other">%1$s · %2$d apps</item>
+    </plurals>
     <string name="app_library_close">Back</string>
     <string name="app_order_done">Done</string>
     <string name="app_actions">App options</string>
     <string name="app_order_hint">Tap an icon, then its destination · Hold and drag · A: pick/drop · B: back</string>
     <string name="app_browse_hint">Press Y for app actions · Hold Y to reorder · START: sort</string>
-    <string name="app_sort_current">Sort: %1$s</string>
     <string name="app_sort_title">Icon display order</string>
     <string name="app_sort_manual">Manual</string>
     <string name="app_sort_installed">Recently installed</string>
@@ -263,8 +247,6 @@
     <string name="app_usage_unavailable">Usage history is unavailable on this device.</string>
     <string name="app_sort_detail">Saved per category. System usage records cover up to the past year; apps without a record appear last, sorted by name.</string>
     <string name="app_order_save_failed">Could not save icon order. Please try again.</string>
-    <string name="app_sort_usage_missing">Last used: no access</string>
-
     <!-- Compact controls; full labels remain available to accessibility. -->
     <string name="dock_performance_title">PERF</string>
     <string name="dock_fan_title">FAN</string>

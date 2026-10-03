@@ -33,7 +33,7 @@ class UiKitPreviewActivity : ComponentActivity() {
         bounds.put("font_scale", resources.configuration.fontScale)
         filesDir.resolve("ui-kit-bounds.json").writeText(bounds.toString(2))
     }
-    private fun measured(name: String) = Modifier.onGloballyPositioned {
+    private fun Modifier.measured(name: String) = onGloballyPositioned {
         val rect = it.boundsInWindow()
         val measurement = JSONObject().put("x", rect.left).put("y", rect.top)
             .put("width", rect.width).put("height", rect.height)
@@ -58,37 +58,37 @@ class UiKitPreviewActivity : ComponentActivity() {
                         Text("UI Kit · shared components", style = OdinTypography.h1, color = palette.text)
                         OdinEqualHeightRow {
                             OdinTextField(value, { value = it }, getString(R.string.text_new_tab_name),
-                                Modifier.weight(1f).fillMaxHeight().then(measured("input")))
+                                Modifier.weight(1f).fillMaxHeight().measured("input"))
                             OdinActionButton(getString(R.string.text_add), {}, Modifier.width(OdinSizes.fieldActionWidth)
-                                .fillMaxHeight().then(measured("input_action")))
+                                .fillMaxHeight().measured("input_action"))
                         }
                         OdinEqualHeightRow {
-                            OdinControl("English", {}, Modifier.weight(1f).fillMaxHeight().then(measured("choice")),
+                            OdinControl("English", {}, Modifier.weight(1f).fillMaxHeight().measured("choice"),
                                 selected = true, badge = getString(R.string.text_active))
-                            OdinActionButton(getString(R.string.text_set_as_home), {}, Modifier.weight(1f).fillMaxHeight().then(measured("action")))
-                            OdinActionButton(getString(R.string.text_delete), { disabledClicks++; record() }, Modifier.weight(1f).fillMaxHeight().then(measured("disabled")),
+                            OdinActionButton(getString(R.string.text_set_as_home), {}, Modifier.weight(1f).fillMaxHeight().measured("action"))
+                            OdinActionButton(getString(R.string.text_delete), { disabledClicks++; record() }, Modifier.weight(1f).fillMaxHeight().measured("disabled"),
                                 enabled = false, dangerous = true)
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(OdinSpacing.sm)) {
-                            OdinBadge(getString(R.string.text_set_as_default), BadgeRole.ACTIVE, measured("default_tag"))
-                            OdinBadge(getString(R.string.text_home_tab), BadgeRole.ACTIVE, measured("home_tag"))
-                            OdinBadge(getString(R.string.text_game_category), BadgeRole.INFO, measured("category_tag"))
-                            OdinBadge("B", BadgeRole.NEUTRAL, measured("key_hint"))
+                            OdinBadge(getString(R.string.text_set_as_default), modifier = Modifier.measured("default_tag"), role = BadgeRole.ACTIVE)
+                            OdinBadge(getString(R.string.text_home_tab), modifier = Modifier.measured("home_tag"), role = BadgeRole.ACTIVE)
+                            OdinBadge(getString(R.string.text_game_category), modifier = Modifier.measured("category_tag"), role = BadgeRole.INFO)
+                            OdinBadge("B", modifier = Modifier.measured("key_hint"), role = BadgeRole.NEUTRAL)
                         }
                         OdinEqualHeightRow {
                             OdinControl(getString(R.string.text_fixed_landscape_default_grip), {},
-                                Modifier.weight(1f).fillMaxHeight().then(measured("long_option")), focused = true)
+                                Modifier.weight(1f).fillMaxHeight().measured("long_option"), focused = true)
                             OdinControl(getString(R.string.text_move_to_another_tab), {},
-                                Modifier.weight(1f).fillMaxHeight().then(measured("two_line")),
+                                Modifier.weight(1f).fillMaxHeight().measured("two_line"),
                                 subtitle = getString(R.string.text_assign_this_icon_to_another_category_tab))
                         }
                         Row(horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
                             OdinStatusReadout(getString(R.string.header_battery, "100"), getString(R.string.header_full),
-                                Modifier.alignBy(FirstBaseline).then(measured("battery_readout")))
+                                Modifier.alignBy(FirstBaseline).measured("battery_readout"))
                             OdinStatusReadout(getString(R.string.header_fan, "9999"), "PWM 100%",
-                                Modifier.alignBy(FirstBaseline).then(measured("fan_readout")))
+                                Modifier.alignBy(FirstBaseline).measured("fan_readout"))
                             OdinStatusReadout("12:34", getString(R.string.header_time),
-                                Modifier.alignBy(FirstBaseline).then(measured("time_readout")))
+                                Modifier.alignBy(FirstBaseline).measured("time_readout"))
                         }
                     }
                 }

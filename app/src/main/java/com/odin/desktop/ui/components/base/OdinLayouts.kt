@@ -32,6 +32,7 @@ fun OdinSurface(modifier: Modifier = Modifier, role: SurfaceRole = SurfaceRole.C
         SurfaceRole.NAVIGATION -> OdinSpacing.sm
     }
     Column(modifier.clip(shape).background(if (focused) palette.selection else palette.surface)
-        .border(if (focused) 2.dp else 1.dp, if (focused) palette.accent else palette.border, shape)
+        .border(if (focused) 2.dp else 1.dp,
+            if (focused) palette.focus else palette.border.copy(alpha = 0.28f), shape)
         .padding(inset), content = content)
 }

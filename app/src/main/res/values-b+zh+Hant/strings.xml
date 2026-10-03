@@ -5,22 +5,18 @@
     <string name="tile_afk_inactive" formatted="false">"未开启"</string>
     <string name="afk_overlay_unlock_hint" formatted="false">"双击屏幕退出"</string>
     <string name="afk_notification_title" formatted="false">"OLED 防烧屏挂机运行中"</string>
-    <string name="afk_notification_text" formatted="false">"纯黑遮罩已开启，点击恢复画面"</string>
+    <string name="afk_notification_text" formatted="false">"點按「退出掛機」恢復畫面"</string>
+    <string name="afk_notification_exit" formatted="false">"退出掛機"</string>
     <string name="tab_games" formatted="false">"游戏与模拟器"</string>
     <string name="tab_system" formatted="false">"系统应用"</string>
     <string name="tab_all_apps" formatted="false">"全部应用"</string>
     <string name="text_idle_screen_protection" formatted="false">"息屏挂机保护"</string>
     <string name="text_foreground_notification_for_oled_idle_protection" formatted="false">"息屏挂机防烧屏前台通知"</string>
-    <string name="text_hardware_control_is_not_connected_reconnect_the" formatted="false">"硬件控制尚未连接，请通过 ADB 重新连接控制服务。"</string>
-    <string name="text_the_hardware_service_could_not_be_authenticated" formatted="false">"硬件控制服务身份验证失败，请通过 ADB 重新连接。"</string>
-    <string name="text_the_hardware_response_could_not_be_verified" formatted="false">"硬件控制返回了无法验证的响应，请刷新状态后重试。"</string>
     <string name="text_the_operation_was_incomplete_and_some_settings" formatted="false">"操作未全部完成，部分旧状态未能恢复，请检查设备设置。"</string>
     <string name="text_the_system_did_not_keep_the_selected" formatted="false">"系统未保持所选设置，已尝试恢复原状态。"</string>
     <string name="text_hardware_status_is_temporarily_unavailable_refresh_it" formatted="false">"硬件状态暂时无法确认，请稍后刷新。"</string>
     <string name="text_this_hardware_operation_is_not_allowed" formatted="false">"此硬件操作不在允许范围内。"</string>
-    <string name="text_hardware_authentication_failed_reconnect_through_adb" formatted="false">"硬件控制认证失败，请通过 ADB 重新连接。"</string>
     <string name="text_the_system_rejected_the_operation_restoration_was" formatted="false">"系统拒绝了硬件操作，已尝试恢复原状态。"</string>
-    <string name="text_the_hardware_service_is_offline_or_timed" formatted="false">"硬件控制服务未连接或响应超时，请通过 ADB 重新连接并刷新状态。"</string>
     <string name="text_reading_non_system_app_pss" formatted="false">"正在读取非系统应用 PSS"</string>
     <string name="text_external_storage" formatted="false">"外部存储"</string>
     <string name="text_this_android_version_does_not_provide_a" formatted="false">"当前 Android 版本未提供卷路径，容量不可读取"</string>
@@ -82,7 +78,6 @@
     <string name="text_airplane_mode_could_not_be_changed_refresh" formatted="false">"飞行模式切换失败，请刷新状态。"</string>
     <string name="text_airplane_mode_readback_differs" formatted="false">"飞行模式读回不一致。"</string>
     <string name="text_off" formatted="false">"关闭"</string>
-    <string name="text_level" formatted="false">"档"</string>
     <string name="text_all_apps" formatted="false">"全部应用"</string>
     <string name="text_cannot_launch_value">"无法启动 %1$s"</string>
     <string name="text_you_can_create_up_to_10_tabs" formatted="false">"最多支持创建 10 个 Tab"</string>
@@ -90,8 +85,6 @@
     <string name="text_set_value_as_the_home_tab">"已将「%1$s」设为默认首页"</string>
     <string name="text_target_category" formatted="false">"目标分类"</string>
     <string name="text_added_value_to_the_start_of_value">"已将「%1$s」添加到「%2$s」最左侧"</string>
-    <string name="text_sorting_icons_a_to_pick_up_or" formatted="false">"已进入图标排序模式 (A键抓起/移动，B键退出)"</string>
-    <string name="text_icon_order_saved" formatted="false">"已保存图标排序"</string>
     <string name="text_all_apps_contains_every_installed_app_icons" formatted="false">"【全部应用】为系统全集分类，无法直接移除图标"</string>
     <string name="text_removed_icon_from_value">"已从「%1$s」移除图标"</string>
     <string name="text_no_other_custom_categories_are_available" formatted="false">"暂无其他可移动的自定义分类"</string>
@@ -123,7 +116,7 @@
     <string name="text_airplane_mode" formatted="false">"✈️ 飞行模式"</string>
     <string name="text_tab_groups_and_order_value_10">"Tab 分组管理与排序 (%1$d/10)："</string>
     <string name="text_up_down_tab_left_right_action_a" formatted="false">"【上下键选Tab • 左右光标选中按钮 • A键确认】"</string>
-    <string name="text_new_tab_name" formatted="false">"输入新 Tab 名称..."</string>
+    <string name="text_new_tab_name" formatted="false">"输入新 Tab 名称…"</string>
     <string name="text_add" formatted="false">"添加"</string>
     <string name="text_home_tab" formatted="false">"✓ 默认首页"</string>
     <string name="text_game_category" formatted="false">"游戏分类"</string>
@@ -152,16 +145,8 @@
     <string name="text_press_a_or_tap_to_choose_odin" formatted="false">"尚未设为系统默认桌面。点击或按 A 键调起系统授权弹窗，一键接管主屏幕角色。"</string>
     <string name="text_manage_home_settings_a" formatted="false">"管理桌面设置 (A)"</string>
     <string name="text_set_as_default_a" formatted="false">"立即设为默认 (A)"</string>
-    <string name="text_start_odin_desktop_at_boot" formatted="false">"开机自启 Odin 桌面"</string>
-    <string name="text_on_enabled" formatted="false">"ON 已开启"</string>
-    <string name="text_off_disabled" formatted="false">"OFF 已关闭"</string>
-    <string name="text_start_the_desktop_only_when_opened_by" formatted="false">"开机时不主动拉起桌面界面，仅在被系统或用户显式调用时启动。"</string>
-    <string name="text_disable_startup_a" formatted="false">"关闭自启 (A)"</string>
-    <string name="text_enable_startup_a" formatted="false">"开启自启 (A)"</string>
     <string name="text_internal_storage" formatted="false">"内部存储"</string>
     <string name="text_total_value">"共 %1$s"</string>
-    <string name="text_measuring" formatted="false">"统计中"</string>
-    <string name="text_used" formatted="false">" 已用"</string>
     <string name="text_system_2" formatted="false">"系统"</string>
     <string name="text_apps" formatted="false">"应用"</string>
     <string name="text_other" formatted="false">"其他"</string>
@@ -170,7 +155,6 @@
     <string name="text_reading_storage_categories" formatted="false">"正在读取存储分类…"</string>
     <string name="text_categories_unavailable_bar_shows_total_usage" formatted="false">"分类数据暂不可读取 · 条形显示总用量"</string>
     <string name="text_read_only" formatted="false">"只读"</string>
-    <string name="text_total" formatted="false">" 总量"</string>
     <string name="text_used_2" formatted="false">"已用"</string>
     <string name="text_capacity_unavailable" formatted="false">"容量暂不可读取"</string>
     <string name="text_memory" formatted="false">"运行内存"</string>
@@ -185,8 +169,6 @@
     <string name="text_files" formatted="false">"文件管理"</string>
     <string name="text_system_settings" formatted="false">"系统设置"</string>
     <string name="text_odin_settings" formatted="false">"Odin 设置"</string>
-    <string name="text_dashboard_internal_storage" formatted="false">"Dashboard · 仅内置存储"</string>
-    <string name="text_dashboard_internal_and_external_storage" formatted="false">"Dashboard · 内置和外部存储"</string>
     <string name="text_sd_card" formatted="false">"SD 卡"</string>
     <string name="text_example_wi_fi" formatted="false">"示例 Wi-Fi"</string>
     <string name="text_screen_orientation" formatted="false">"设置掌机屏幕握持旋转策略："</string>
@@ -201,7 +183,7 @@
     <string name="text_b_or_tap_the_background_to_return" formatted="false">"【B 键 / 点击空白返回桌面】"</string>
     <string name="text_manage_category_apps" formatted="false">"增删分类应用"</string>
     <string name="text_up_down_select_app_a_add_remove" formatted="false">"【上下键选应用 • A 键勾选/移除 • B 键完成】"</string>
-    <string name="text_filter_by_app_or_package_name_down" formatted="false">"输入应用名或包名即时过滤 (手柄下键可切回列表)..."</string>
+    <string name="text_filter_by_app_or_package_name_down" formatted="false">"输入应用名或包名即时过滤 (手柄下键可切回列表)…"</string>
     <string name="text_matching_apps_value">"匹配应用 (%1$d 项)："</string>
     <string name="text_this_category_contains_value_apps">"当前分类已包含 %1$d 个应用"</string>
     <string name="text_no_matching_apps" formatted="false">"未匹配到符合条件的应用"</string>
@@ -214,9 +196,6 @@
     <string name="text_white" formatted="false">"冰川白"</string>
     <string name="text_dark_gray" formatted="false">"暗夜灰"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"选择摇杆 LED 灯光色彩预设（A键即时确认）："</string>
-    <string name="text_no_apps_press_x_to_manage_this" formatted="false">"暂无应用，按 X 键可管理或添加应用至此分类"</string>
-    <string name="text_picked_up_left_right_to_move_a" formatted="false">"【已抓起】按方向键左右移动位置 • 按 A 键放下"</string>
-    <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"【排序模式】按 A 键抓起图标 • 方向键左右选应用 • 按 B 键完成退出"</string>
     <string name="text_odin_3_handheld_launcher" formatted="false">"Odin 3 专属掌机启动台"</string>
     <string name="text_a_desktop_and_system_controls_for_ayn" formatted="false">"专为 AYN Odin 3 打造的极简高效掌机专属桌面与系统增强系统。\n"</string>
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• 纯黑 OLED 省电与防烧屏优化\n"</string>
@@ -240,17 +219,20 @@
     <string name="header_unread">未读取</string>
     <string name="header_full">已充满</string>
     <string name="header_fan">风扇 %1$s RPM</string>
-    <string name="afk_countdown_hint">"%1$d 秒后进入息屏挂机\n双击屏幕可取消或退出"</string>
+    <plurals name="afk_countdown_hint">
+        <item quantity="other">%1$d 秒后进入息屏挂机\n双击屏幕可取消或退出</item>
+    </plurals>
 
     <!-- Icon order and application library -->
     <string name="app_library">展开分类</string>
-    <string name="app_library_count">%1$s · %2$d 个应用</string>
+    <plurals name="app_library_count">
+        <item quantity="other">%1$s · %2$d 个应用</item>
+    </plurals>
     <string name="app_library_close">返回</string>
     <string name="app_order_done">完成排序</string>
     <string name="app_actions">应用管理</string>
     <string name="app_order_hint">点选图标，再点目标位置 · 长按拖拽 · A 拿起/放下 · B 返回</string>
     <string name="app_browse_hint">按 Y 打开应用操作 · 长按 Y 调整顺序 · START 展示排序</string>
-    <string name="app_sort_current">排序：%1$s</string>
     <string name="app_sort_title">图标展示排序</string>
     <string name="app_sort_manual">手动排序</string>
     <string name="app_sort_installed">安装时间（最近优先）</string>
@@ -260,8 +242,6 @@
     <string name="app_usage_unavailable">当前设备无法提供应用使用记录。</string>
     <string name="app_sort_detail">排序方式按分类保存。最近运行读取系统保留的近一年记录；没有记录的应用排在末尾，按名称排列。</string>
     <string name="app_order_save_failed">图标顺序保存失败，请重试。</string>
-    <string name="app_sort_usage_missing">最后运行：未取得记录</string>
-
     <!-- Compact controls; full labels remain available to accessibility. -->
     <string name="dock_performance_title">性能</string>
     <string name="dock_fan_title">风扇</string>

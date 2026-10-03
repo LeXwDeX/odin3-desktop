@@ -161,8 +161,9 @@ fun AppIconCollection(
                     userScrollEnabled = drag.app == null, modifier = Modifier.fillMaxSize()) {
                     gridItemsIndexed(visibleApps, key = { _, app -> app.packageName }) { index, app ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            AppCard(app, hasFocus && selectedIndex == index, isReordering, pickedIndex == index,
-                                index, { onClick(app, index) },
+                            AppCard(app = app, isFocused = hasFocus && selectedIndex == index,
+                                onClick = { onClick(app, index) }, isReordering = isReordering,
+                                isPicked = pickedIndex == index, cardIndex = index,
                                 modifier = Modifier, compact = true, hidden = drag.app?.packageName == app.packageName,
                                 onLongClick = { onPick(app.packageName) })
                             OdinStableTextLine(app.label, color = palette.text, style = OdinTypography.body,
@@ -175,8 +176,10 @@ fun AppIconCollection(
                     horizontalArrangement = Arrangement.spacedBy(OdinSpacing.lg), verticalAlignment = Alignment.CenterVertically,
                     userScrollEnabled = drag.app == null, modifier = Modifier.fillMaxSize()) {
                     itemsIndexed(visibleApps, key = { _, app -> app.packageName }) { index, app ->
-                        AppCard(app, hasFocus && selectedIndex == index, isReordering, pickedIndex == index,
-                            index, { onClick(app, index) }, hidden = drag.app?.packageName == app.packageName,
+                        AppCard(app = app, isFocused = hasFocus && selectedIndex == index,
+                            onClick = { onClick(app, index) }, isReordering = isReordering,
+                            isPicked = pickedIndex == index, cardIndex = index,
+                            hidden = drag.app?.packageName == app.packageName,
                             onLongClick = { onPick(app.packageName) })
                     }
                     if (hasMore) item(key = "all-apps-entry") {
@@ -194,7 +197,8 @@ fun AppIconCollection(
                 }
             }
             drag.app?.let { app ->
-                AppCard(app, true, isPicked = true, onClick = {}, interactive = false, compact = isGrid,
+                AppCard(app = app, isFocused = true, onClick = {}, isPicked = true,
+                    interactive = false, compact = isGrid,
                     modifier = Modifier.offset { IntOffset((drag.position.x - iconSize / 2).roundToInt(),
                         (drag.position.y - iconSize / 2).roundToInt()) })
             }

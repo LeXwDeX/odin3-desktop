@@ -17,6 +17,7 @@ data class OdinPalette(
     val storageWarning: Color = YellowStorageWarning,
     val accent: Color = CyanAccent,
     val accentGlow: Color = CyanAccentGlow,
+    val focus: Color = FocusRing,
     val text: Color = TextWhite,
     val textDim: Color = TextDim,
     val textMuted: Color = TextDarkDim,

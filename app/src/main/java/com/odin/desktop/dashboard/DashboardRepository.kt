@@ -458,8 +458,9 @@ private suspend fun boundedDump(context: Context, vararg arguments: String): Str
     }
 }
 
-private fun cleanSsid(value: String?): String? = value?.removeSurrounding("\"")
-    ?.takeUnless { it.isBlank() || it == WifiManager.UNKNOWN_SSID || it == "0x" }
+internal fun cleanSsid(value: String?): String? = value?.removeSurrounding("\"")
+    // WifiInfo used this sentinel before WifiManager.UNKNOWN_SSID was added in API 30.
+    ?.takeUnless { it.isBlank() || it == "<unknown ssid>" || it == "0x" }
 
 private fun notes(vararg parts: String?): String? = parts.filterNotNull().takeIf { it.isNotEmpty() }?.joinToString("；")
 

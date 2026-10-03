@@ -21,7 +21,7 @@ enum class BadgeRole { ACTIVE, INFO, WARNING, NEUTRAL, DANGER }
 
 /** One visual family for state and category labels; role selects meaning, not geometry. */
 @Composable
-fun OdinBadge(text: String, role: BadgeRole = BadgeRole.INFO, modifier: Modifier = Modifier) {
+fun OdinBadge(text: String, modifier: Modifier = Modifier, role: BadgeRole = BadgeRole.INFO) {
     val palette = LocalOdinPalette.current
     val color = when (role) {
         BadgeRole.ACTIVE -> palette.active

@@ -15,23 +15,57 @@ CACHE = Path(os.environ.get("GRADLE_USER_HOME", Path.home() / ".gradle")) / "cac
 
 
 def resources(directory):
-    return {item.attrib["name"]: (item.text or "").strip('"')
-            for item in ET.parse(ROOT / f"app/src/main/res/{directory}/strings.xml").getroot()}
+    return {item.attrib["name"]: (item.text or "").strip().strip('"').strip()
+            for item in ET.parse(ROOT / f"app/src/main/res/{directory}/strings.xml").getroot().findall("string")}
+
+
+def plural_resources(directory):
+    return {
+        plural.attrib["name"]: {
+            item.attrib["quantity"]: (item.text or "").strip()
+            for item in plural.findall("item")
+        }
+        for plural in ET.parse(ROOT / f"app/src/main/res/{directory}/strings.xml").getroot().findall("plurals")
+    }
 
 
 en = resources("values")
+en_plurals = plural_resources("values")
+assert set(en_plurals["afk_countdown_hint"]) == {"one", "other"}
+assert set(en_plurals["app_library_count"]) == {"one", "other"}
+for key, quantities in en_plurals.items():
+    assert all(quantities.values()), (key, "empty English plural form")
+    expected_arguments = sorted(re.findall(r"%\d+\$[sdf]", quantities["other"]))
+    for quantity, text in quantities.items():
+        assert sorted(re.findall(r"%\d+\$[sdf]", text)) == expected_arguments, (key, quantity)
 nontranslatable = {item.attrib["name"] for item in ET.parse(ROOT / "app/src/main/res/values/strings.xml").getroot()
                   if item.get("translatable") == "false"}
 for directory in ("values-b+zh+Hans", "values-b+zh+Hant", "values-ja"):
     translated = resources(directory)
+    translated_plurals = plural_resources(directory)
     assert en.keys() - nontranslatable == translated.keys(), f"Translation keys differ: {directory}"
+    assert en_plurals.keys() == translated_plurals.keys(), f"Plural resource keys differ: {directory}"
+    if directory.startswith("values-b+") or directory == "values-ja":
+        assert all(set(forms) == {"other"} for forms in translated_plurals.values()), \
+            f"Expected locale-specific other forms only: {directory}"
     for key, text in translated.items():
         assert sorted(re.findall(r"%\d+\$[sdf]", en[key])) == sorted(re.findall(r"%\d+\$[sdf]", text)), (directory, key)
         assert en[key] and text, f"Empty translation: {directory}/{key}"
+    for key, quantities in translated_plurals.items():
+        assert quantities and all(quantities.values()), (directory, key, "empty plural form")
+        assert "other" in quantities, (directory, key, "missing required other form")
+        for quantity, text in quantities.items():
+            source = en_plurals[key].get(quantity, en_plurals[key]["other"])
+            assert sorted(re.findall(r"%\d+\$[sdf]", source)) == sorted(re.findall(r"%\d+\$[sdf]", text)), \
+                (directory, key, quantity)
 for key in en.keys() - nontranslatable:
     assert not re.search(r"[\u4e00-\u9fff]", en[key]), f"Chinese leaked into English fallback: {key}"
-assert resources("values-b+zh+Hans") == resources("values-b+zh+Hant"), "Chinese script fallbacks differ"
-print(f"PASS: {len(en) - len(nontranslatable)} English, Chinese and Japanese keys; matching format arguments")
+assert resources("values-b+zh+Hans").keys() == resources("values-b+zh+Hant").keys(), \
+    "Chinese script resource keys differ"
+assert {key: set(forms) for key, forms in plural_resources("values-b+zh+Hans").items()} == \
+    {key: set(forms) for key, forms in plural_resources("values-b+zh+Hant").items()}, \
+    "Chinese script plural quantities differ"
+print(f"PASS: {len(en) - len(nontranslatable)} strings and {len(en_plurals)} plural resources; matching localized formats")
 
 # The v3 schema is an independent historical contract. Populate default and user-created
 # tabs, explicit sorting and shader JSON, then run the actual production 3 -> 4 -> 5 SQL.

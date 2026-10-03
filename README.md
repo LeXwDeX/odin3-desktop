@@ -8,7 +8,9 @@ A controller-friendly Android launcher for the **AYN Odin 3**, with a soft dark 
 
 [Download the APK](https://github.com/LeXwDeX/odin3-desktop/releases/latest) · [Report a bug or request a feature](https://github.com/LeXwDeX/odin3-desktop/issues)
 
-![Full-screen app library in English on an Odin 3](docs/screenshots/library-en.png)
+![Historical full-screen app library in English on an Odin 3](docs/screenshots/library-en.png)
+
+This v0.1.10 screenshot is historical. It does not show the current interface.
 
 ## Getting started
 
@@ -28,7 +30,7 @@ The library fills the screen: no tab bar and no hardware dock. Navigate with the
 
 Android status and navigation bars stay hidden while using the launcher, including after unlocking or returning from another app. Swipe from a screen edge to reveal them temporarily.
 
-The interface uses a soft dark palette with clear information colors: cyan marks focus, green/orange/red distinguish control states, and storage bars share their colors with the corresponding labels. Internal storage and SD cards use the same gray for free space.
+The current interface uses a deep blue-black palette, shared focus outlines, and original vector symbols. State colors distinguish control states, and storage bars share their colors with the corresponding labels. Internal storage and SD cards use the same gray for free space. The decorative vector background pauses when the launcher is inactive, a modal or reorder mode is open, or Android reports a power-saving or reduced-motion condition. See the [console UI architecture](docs/console-ui.md) for its lifecycle and validation limits.
 
 App names can be shortened in the grid; the selected app's name also appears above it. Installed apps supply their own icons and names. No games, ROMs, or emulators are bundled.
 
@@ -57,7 +59,7 @@ The home screen provides five controls: performance, fan, stick lights, charging
 
 The fan can also report `Q` for Quiet or `SYS` for another firmware mode. An unavailable reading uses `—`. Dock titles use `PERF`, `FAN`, `LED`, `PWR`, and `AIR` in English; state labels remain separate from the function name.
 
-**Smart fan mode belongs to the firmware.** Odin Desktop has no automatic fan policy or fan watchdog. It does not change fan modes in response to charging, sleep, temperature, or the foreground game. A user-initiated performance change retains the existing cooling coordination: Maximum fan stays selected; other modes use Off with Normal performance and Smart with higher performance levels.
+**Smart fan mode belongs to the firmware.** Odin Desktop has no automatic fan policy or fan watchdog. It does not change fan modes in response to charging, sleep, temperature, or the foreground game. Changing the performance mode preserves the currently selected fan mode.
 
 The firmware's USB charging fan option is separate. On the verified firmware, it is under **Odin settings → USB settings**. Its charging behavior can override an earlier manual fan selection. Installing or updating this launcher does not change that option or disable firmware thermal protection.
 
@@ -91,7 +93,7 @@ Android remains responsible for choosing the default home app. If you select ano
 
 Hardware buttons do not require a persistent foreground service. The optional AFK black-screen overlay runs only when explicitly enabled. Double-tap to exit it, or press Power to put the device to sleep; sleeping ends the overlay, notification, and wake lock. Waking the device does not automatically restart AFK mode.
 
-The screenshots above are captured from the English interface of v0.1.10 on a physical Odin 3.
+The settings screenshots above are captured from the English interface of v0.1.10 on a physical Odin 3. They are historical references and do not show the current interface.
 
 ## Controller guide
 
@@ -103,8 +105,8 @@ The screenshots above are captured from the English interface of v0.1.10 on a ph
 | B | Go back; close the library and restore its source position |
 | X in an app group | Open the app membership manager |
 | X on the charging control | Toggle charging bypass |
-| Y | Enter or finish manual icon reordering |
-| Hold Y / App options | Open actions for the selected app |
+| Short press Y on an app | Open actions for the selected app |
+| Hold Y for at least 300 ms | Enter manual icon reordering; a short press exits reorder mode |
 | START / Sort | Open the sort menu |
 | Home | Return to the launcher selected by Android |
 
@@ -133,7 +135,9 @@ tools/android python3 tools/home-back-regression.py
 
 The app uses Kotlin, Jetpack Compose, Room, and coroutines. GitHub Actions builds and checks changes; version tags produce signed release APKs with SHA-256 checksum files.
 
-Further developer notes are currently in Chinese: [development and device validation](docs/development.md), [releases and signing](docs/releases.md), [app ordering](docs/icon-ordering.md), [localization](docs/languages.md), and [hardware integration](docs/hardware-standalone-investigation.md).
+Further developer notes are currently in Chinese: [development and device validation](docs/development.md), [releases and signing](docs/releases.md), [app ordering](docs/icon-ordering.md), [localization](docs/languages.md), [hardware integration](docs/hardware-standalone-investigation.md), and [console UI architecture](docs/console-ui.md).
+
+The [Lint review](docs/lint-review.md) records the warning fixes, retained compatibility requirements, and recommended dependency migrations.
 
 ## Feedback and licensing
 

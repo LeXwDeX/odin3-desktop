@@ -1,7 +1,6 @@
 package com.odin.desktop.ui.components.base
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,7 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
@@ -40,7 +44,28 @@ fun OdinImageTile(
     Box(modifier.size(size.slot.dp).graphicsLayer { alpha = if (hidden) 0f else 1f }, contentAlignment = Alignment.Center) {
         Box(Modifier.then(transform).size(size.canvas.dp).clip(shape)
             .background(if (focused || selected) palette.selection else palette.card)
-            .border(if (focused) 2.dp else 1.dp, if (focused || selected) palette.accent else palette.border, shape)
+            .drawWithContent {
+                drawContent()
+                val stroke = if (focused) 2.dp.toPx() else 1.dp.toPx()
+                val inset = stroke / 2f
+                drawRoundRect(
+                    color = if (focused) palette.focus else if (selected) palette.accent else palette.border.copy(alpha = 0.28f),
+                    topLeft = Offset(inset, inset),
+                    size = Size(this.size.width - stroke, this.size.height - stroke),
+                    cornerRadius = CornerRadius(OdinCorners.card.toPx()),
+                    style = Stroke(stroke)
+                )
+                if (focused) {
+                    val innerInset = 4.dp.toPx()
+                    drawRoundRect(
+                        color = palette.accent.copy(alpha = 0.6f),
+                        topLeft = Offset(innerInset, innerInset),
+                        size = Size(this.size.width - 2 * innerInset, this.size.height - 2 * innerInset),
+                        cornerRadius = CornerRadius((OdinCorners.card - 4.dp).toPx()),
+                        style = Stroke(1.dp.toPx())
+                    )
+                }
+            }
             .clickable(enabled = interactive, onClick = onClick)
             .semantics {
                 contentDescription = label

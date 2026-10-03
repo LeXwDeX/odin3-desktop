@@ -31,7 +31,7 @@ internal fun TabEditSection(
     var newTabName by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(OdinSpacing.lg)) {
         SettingsSectionHeader(strings.getString(R.string.text_tab_groups_and_order_value_10, tabs.size),
-            strings.getString(R.string.text_up_down_tab_left_right_action_a), descriptionColor = palette.textDim)
+            description = strings.getString(R.string.text_up_down_tab_left_right_action_a), descriptionColor = palette.textDim)
         OdinEqualHeightRow {
             OdinTextField(newTabName, { newTabName = it }, strings.getString(R.string.text_new_tab_name),
                 modifier = Modifier.weight(1f).fillMaxHeight(), enabled = tabs.size < 10)
@@ -60,8 +60,8 @@ internal fun TabEditSection(
                         Text(tab.displayName(strings), style = OdinTypography.body, color = palette.text,
                             maxLines = 2, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f).align(Alignment.CenterVertically))
-                        if (tab.isDefault) OdinBadge(strings.getString(R.string.text_home_tab), BadgeRole.ACTIVE)
-                        if (tab.isGameTab) OdinBadge(strings.getString(R.string.text_game_category), BadgeRole.INFO)
+                        if (tab.isDefault) OdinBadge(strings.getString(R.string.text_home_tab), role = BadgeRole.ACTIVE)
+                        if (tab.isGameTab) OdinBadge(strings.getString(R.string.text_game_category), role = BadgeRole.INFO)
                     }
                     Spacer(Modifier.height(OdinSpacing.sm))
                     OdinEqualHeightRow {

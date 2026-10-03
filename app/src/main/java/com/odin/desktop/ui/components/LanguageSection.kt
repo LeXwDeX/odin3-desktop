@@ -37,7 +37,8 @@ internal fun LanguageSection(
         verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)
     ) {
         SettingsSectionHeader(stringResource(R.string.language_title),
-            stringResource(R.string.language_description), modifier = Modifier.padding(bottom = OdinSpacing.xs))
+            modifier = Modifier.padding(bottom = OdinSpacing.xs),
+            description = stringResource(R.string.language_description))
         AppLanguage.entries.forEachIndexed { index, language ->
             val focused = inSubMenu && subFocusIndex == index
             val selected = currentLanguage == language

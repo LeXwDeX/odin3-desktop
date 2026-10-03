@@ -1,6 +1,7 @@
 package com.odin.desktop.service.afk
 
 import android.app.Application
+import android.app.NotificationManager
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -8,6 +9,8 @@ import android.os.Looper
 import android.os.PowerManager
 import android.view.MotionEvent
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityManager
 import android.widget.FrameLayout
 import android.widget.TextView
 import org.junit.After
@@ -74,16 +77,69 @@ class AfkOverlayServiceTest {
         val root = field("overlayView") as FrameLayout
         val wakeLock = field("wakeLock") as PowerManager.WakeLock
         advance(1000)
-        repeat(2) {
-            val event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP, 1f, 1f, 0)
-            root.dispatchTouchEvent(event)
-            event.recycle()
-            advance(100)
-        }
+        val firstTap = MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP, 1f, 1f, 0)
+        root.dispatchTouchEvent(firstTap)
+        firstTap.recycle()
+        assertTrue("One touch must not expose the game", AfkOverlayService.isAfkRunning)
+        assertTrue(wakeLock.isHeld)
+        advance(100)
+        val secondTap = MotionEvent.obtain(0, 0, MotionEvent.ACTION_UP, 1f, 1f, 0)
+        root.dispatchTouchEvent(secondTap)
+        secondTap.recycle()
         advance(7000)
         assertNull(field("overlayView"))
         assertFalse(AfkOverlayService.isAfkRunning)
         assertFalse(wakeLock.isHeld)
+    }
+
+    @Test fun accessibilityClickExitsWithoutChangingTouchDoubleTapRule() {
+        start()
+        val root = field("overlayView") as FrameLayout
+        val wakeLock = field("wakeLock") as PowerManager.WakeLock
+        assertTrue(root.isClickable)
+        assertFalse(root.contentDescription.isNullOrBlank())
+        shadowOf(service.getSystemService(AccessibilityManager::class.java)).setEnabled(true)
+        // Robolectric's WindowManager gives this overlay an inert ViewRootImpl parent,
+        // but no AttachInfo. It cannot export a node action list in this unit test.
+        // Exercise the real View accessibility action entry point below; device
+        // validation must inspect the node exported by the attached overlay.
+        if (root.isAttachedToWindow) {
+            assertTrue(root.createAccessibilityNodeInfo().actionList.any {
+                it.id == AccessibilityNodeInfo.ACTION_CLICK
+            })
+        }
+        assertTrue(root.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null))
+        assertNull(field("overlayView"))
+        assertFalse(wakeLock.isHeld)
+        assertFalse(AfkOverlayService.isAfkRunning)
+    }
+
+    @Test fun notificationExitActionStopsServiceWithoutLaunchingActivity() {
+        start()
+        val wakeLock = field("wakeLock") as PowerManager.WakeLock
+        val notifications = service.getSystemService(NotificationManager::class.java)
+        val notification = shadowOf(notifications).getNotification(2001)
+        assertNotNull(notification)
+        assertNull("Notification body has no service click target", notification.contentIntent)
+        assertEquals(1, notification.actions.size)
+        assertEquals(service.getString(com.odin.desktop.R.string.afk_notification_exit), notification.actions.single().title.toString())
+        val exit = notification.actions.single().actionIntent
+        assertTrue(exit.isService)
+        assertFalse(exit.isActivity)
+
+        exit.send()
+        val applicationShadow = shadowOf(service.application)
+        val delivered = applicationShadow.nextStartedService
+        assertEquals(AfkOverlayService.ACTION_STOP_AFK, delivered.action)
+        assertEquals(AfkOverlayService::class.java.name, delivered.component?.className)
+        assertNull(applicationShadow.nextStartedActivity)
+
+        // Robolectric records the PendingIntent delivery; dispatch it to the running service.
+        service.onStartCommand(delivered, 0, 2)
+        assertNull(field("overlayView"))
+        assertFalse(wakeLock.isHeld)
+        assertFalse(AfkOverlayService.isAfkRunning)
+        assertTrue(shadowOf(service).isStoppedBySelf)
     }
 
     @Test fun destructionCancelsPendingCountdownAndReleasesWakeLock() {
@@ -109,15 +165,13 @@ class AfkOverlayServiceTest {
         val wakeLock = field("wakeLock") as PowerManager.WakeLock
         assertTrue(AfkOverlayService.isAfkRunning)
         val power = service.getSystemService(PowerManager::class.java)
-        shadowOf(power).setIsInteractive(false)
-        service.sendBroadcast(Intent(Intent.ACTION_SCREEN_OFF))
+        shadowOf(power).turnScreenOn(false)
         advance(0)
         assertFalse("System sleep must end AFK", AfkOverlayService.isAfkRunning)
         assertNull(field("overlayView"))
         assertFalse(wakeLock.isHeld)
         assertTrue(shadowOf(service).isStoppedBySelf)
-        shadowOf(power).setIsInteractive(true)
-        service.sendBroadcast(Intent(Intent.ACTION_SCREEN_ON))
+        shadowOf(power).turnScreenOn(true)
         advance(35_000)
         assertNull("Waking must not restore the mask", field("overlayView"))
         assertFalse(AfkOverlayService.isAfkRunning)
@@ -125,7 +179,7 @@ class AfkOverlayServiceTest {
     }
 
     @Test fun startDeliveredAfterSleepDoesNotCreateMaskOrWakeLock() {
-        shadowOf(service.getSystemService(PowerManager::class.java)).setIsInteractive(false)
+        shadowOf(service.getSystemService(PowerManager::class.java)).turnScreenOn(false)
         start()
         advance(7000)
         assertFalse(AfkOverlayService.isAfkRunning)

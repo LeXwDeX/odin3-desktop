@@ -26,7 +26,7 @@ internal fun OrientationSection(
     val strings = LocalContext.current
     Column {
         SettingsSectionHeader(strings.getString(R.string.text_screen_orientation),
-            strings.getString(R.string.text_the_usb_port_is_on_the_bottom))
+            description = strings.getString(R.string.text_the_usb_port_is_on_the_bottom))
         Spacer(modifier = Modifier.height(OdinSpacing.lg))
 
         val options = listOf(

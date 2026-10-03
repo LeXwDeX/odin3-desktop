@@ -24,7 +24,7 @@ object OdinTypography {
         platformStyle = PlatformTextStyle(includeFontPadding = false)
     )
 
-    val h1 = text(22, 28, FontWeight.Bold)
+    val h1 = text(26, 34, FontWeight.SemiBold)
     val h2 = text(16, 24, FontWeight.SemiBold)
     val body = text(14, 20, FontWeight.Medium)
     val caption = text(12, 16)
@@ -61,9 +61,9 @@ object OdinSpacing {
 
 object OdinCorners {
     val badge = 4.dp
-    val control = 8.dp
-    val card = 12.dp
-    val dialog = 16.dp
+    val control = 6.dp
+    val card = 10.dp
+    val dialog = 12.dp
 }
 
 /** Reserved chrome and its rendered surface share the same dimensions. */

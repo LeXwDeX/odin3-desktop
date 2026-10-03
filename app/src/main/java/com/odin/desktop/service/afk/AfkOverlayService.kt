@@ -62,7 +62,8 @@ class AfkOverlayService : Service() {
             val root = overlayView ?: return
             val remaining = countdownEndsAt - SystemClock.uptimeMillis()
             if (remaining > 0L) {
-                statusTextView?.text = getString(R.string.afk_countdown_hint, (remaining + 999L) / 1000L)
+                val seconds = ((remaining + 999L) / 1000L).toInt()
+                statusTextView?.text = resources.getQuantityString(R.plurals.afk_countdown_hint, seconds, seconds)
                 handler.postDelayed(this, minOf(1000L, remaining))
                 return
             }
@@ -156,12 +157,7 @@ class AfkOverlayService : Service() {
         val layoutParams = WindowManager.LayoutParams().apply {
             width = WindowManager.LayoutParams.MATCH_PARENT
             height = WindowManager.LayoutParams.MATCH_PARENT
-            type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            } else {
-                @Suppress("DEPRECATION")
-                WindowManager.LayoutParams.TYPE_SYSTEM_ALERT
-            }
+            type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             // Keep the display awake under a black mask without taking keyboard/gamepad focus.
             flags = WindowManager.LayoutParams.FLAG_FULLSCREEN or
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -175,17 +171,7 @@ class AfkOverlayService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) setFitInsetsTypes(0)
         }
 
-        val root = object : FrameLayout(this) {
-            override fun onAttachedToWindow() {
-                super.onAttachedToWindow()
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    windowInsetsController?.apply {
-                        systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                        hide(WindowInsets.Type.systemBars())
-                    }
-                }
-            }
-        }.apply {
+        val root = AfkMaskView(this, ::stopAfk).apply {
             setBackgroundColor(Color.TRANSPARENT)
             @Suppress("DEPRECATION")
             systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
@@ -211,11 +197,14 @@ class AfkOverlayService : Service() {
         root.addView(textView, textParams)
 
         // Consume touch input on the mask; a double tap returns to the underlying game.
-        root.setOnTouchListener { _, event ->
+        // Accessibility activation uses the click action directly; touch still needs two taps.
+        root.contentDescription = getString(R.string.afk_overlay_unlock_hint)
+        root.isClickable = true
+        root.setOnTouchListener { view, event ->
             if (event.actionMasked == MotionEvent.ACTION_UP) {
                 val now = SystemClock.uptimeMillis()
                 if (lastClickTime != 0L && now - lastClickTime < 500) {
-                    stopAfk()
+                    view.performClick()
                     return@setOnTouchListener true
                 }
                 lastClickTime = now
@@ -308,7 +297,7 @@ class AfkOverlayService : Service() {
             .setSmallIcon(R.drawable.ic_tile_afk)
             .setContentTitle(getString(R.string.afk_notification_title))
             .setContentText(getString(R.string.afk_notification_text))
-            .setContentIntent(pendingStop)
+            .addAction(R.drawable.ic_tile_afk, getString(R.string.afk_notification_exit), pendingStop)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -325,6 +314,25 @@ class AfkOverlayService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /** Owns the mask's click semantics and system-bar coverage; the service owns cleanup. */
+    private class AfkMaskView(context: Context, private val onExit: () -> Unit) : FrameLayout(context) {
+        override fun performClick(): Boolean {
+            super.performClick()
+            onExit()
+            return true
+        }
+
+        override fun onAttachedToWindow() {
+            super.onAttachedToWindow()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                windowInsetsController?.apply {
+                    systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    hide(WindowInsets.Type.systemBars())
+                }
+            }
+        }
+    }
 
     companion object {
         const val ACTION_STOP_AFK = "com.odin.desktop.action.STOP_AFK"

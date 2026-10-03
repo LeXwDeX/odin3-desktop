@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
-import android.os.Build
 import android.provider.Settings
 import com.odin.desktop.hardware.HardwareControlClient
 import com.odin.desktop.hardware.HardwareControlException
@@ -280,11 +279,9 @@ object HardwareController {
 
     // --- 系统默认桌面设置（旧版自启偏好不再读取） ---
     fun isDefaultHome(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val roleManager = context.getSystemService(RoleManager::class.java)
-            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                return roleManager.isRoleHeld(RoleManager.ROLE_HOME)
-            }
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+            return roleManager.isRoleHeld(RoleManager.ROLE_HOME)
         }
         val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
         val resolveInfo = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
@@ -292,16 +289,14 @@ object HardwareController {
     }
 
     fun requestDefaultHomeRole(context: Context, launchRoleRequest: (Intent) -> Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val roleManager = context.getSystemService(RoleManager::class.java)
-            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                if (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
-                    // RequestRoleActivity obtains the caller from the result contract.
-                    // A plain startActivity leaves callingPackage null and closes the dialog.
-                    launchRoleRequest(intent)
-                    return
-                }
+        val roleManager = context.getSystemService(RoleManager::class.java)
+        if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+            if (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME)
+                // RequestRoleActivity obtains the caller from the result contract.
+                // A plain startActivity leaves callingPackage null and closes the dialog.
+                launchRoleRequest(intent)
+                return
             }
         }
         try {

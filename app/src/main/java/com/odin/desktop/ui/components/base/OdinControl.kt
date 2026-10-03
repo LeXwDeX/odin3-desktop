@@ -68,7 +68,8 @@ fun OdinControl(
                             color = if (enabled) palette.textDim else palette.textMuted)
                     }
                 }
-                if (badge != null) OdinBadge(badge, if (enabled) badgeRole else BadgeRole.NEUTRAL, Modifier.align(Alignment.CenterVertically))
+                if (badge != null) OdinBadge(badge, modifier = Modifier.align(Alignment.CenterVertically),
+                    role = if (enabled) badgeRole else BadgeRole.NEUTRAL)
             }
         }
     }

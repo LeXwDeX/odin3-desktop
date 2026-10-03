@@ -6,22 +6,18 @@
     <string name="tile_afk_inactive" formatted="false">"停止中"</string>
     <string name="afk_overlay_unlock_hint" formatted="false">"ダブルタップで終了"</string>
     <string name="afk_notification_title" formatted="false">"OLED画面保護が動作中です"</string>
-    <string name="afk_notification_text" formatted="false">"黒いオーバーレイを表示しています。タップすると画面が戻ります。"</string>
+    <string name="afk_notification_text" formatted="false">"「待機を終了」で画面が戻ります。"</string>
+    <string name="afk_notification_exit" formatted="false">"待機を終了"</string>
     <string name="tab_games" formatted="false">"ゲーム・エミュレーター"</string>
     <string name="tab_system" formatted="false">"システムアプリ"</string>
     <string name="tab_all_apps" formatted="false">"すべてのアプリ"</string>
     <string name="text_idle_screen_protection" formatted="false">"画面保護"</string>
     <string name="text_foreground_notification_for_oled_idle_protection" formatted="false">"OLED画面保護の常駐通知"</string>
-    <string name="text_hardware_control_is_not_connected_reconnect_the" formatted="false">"ハードウェア制御が接続されていません。ADB経由で制御サービスに再接続してください。"</string>
-    <string name="text_the_hardware_service_could_not_be_authenticated" formatted="false">"ハードウェアサービスを認証できませんでした。ADB経由で再接続してください。"</string>
-    <string name="text_the_hardware_response_could_not_be_verified" formatted="false">"ハードウェアの応答を検証できませんでした。状態を更新して再試行してください。"</string>
     <string name="text_the_operation_was_incomplete_and_some_settings" formatted="false">"操作が完了せず、一部の設定を復元できませんでした。端末の設定を確認してください。"</string>
     <string name="text_the_system_did_not_keep_the_selected" formatted="false">"システムが選択した設定を保持しませんでした。復元を試みました。"</string>
     <string name="text_hardware_status_is_temporarily_unavailable_refresh_it" formatted="false">"ハードウェアの状態を一時的に取得できません。しばらくしてから更新してください。"</string>
     <string name="text_this_hardware_operation_is_not_allowed" formatted="false">"このハードウェア操作は許可されていません。"</string>
-    <string name="text_hardware_authentication_failed_reconnect_through_adb" formatted="false">"ハードウェアの認証に失敗しました。ADB経由で再接続してください。"</string>
     <string name="text_the_system_rejected_the_operation_restoration_was" formatted="false">"システムが操作を拒否しました。復元を試みました。"</string>
-    <string name="text_the_hardware_service_is_offline_or_timed" formatted="false">"ハードウェアサービスがオフラインか、応答がタイムアウトしました。ADB経由で再接続し、状態を更新してください。"</string>
     <string name="text_reading_non_system_app_pss" formatted="false">"システム以外のアプリのPSSを取得中"</string>
     <string name="text_external_storage" formatted="false">"外部ストレージ"</string>
     <string name="text_this_android_version_does_not_provide_a" formatted="false">"このAndroidバージョンではボリュームのパスを取得できないため、容量を表示できません"</string>
@@ -83,7 +79,6 @@
     <string name="text_airplane_mode_could_not_be_changed_refresh" formatted="false">"機内モードを変更できませんでした。状態を更新してください。"</string>
     <string name="text_airplane_mode_readback_differs" formatted="false">"機内モードの読取値が一致しません。"</string>
     <string name="text_off" formatted="false">"オフ"</string>
-    <string name="text_level" formatted="false">"レベル"</string>
     <string name="text_all_apps" formatted="false">"すべてのアプリ"</string>
     <string name="text_cannot_launch_value">"%1$sを起動できません"</string>
     <string name="text_you_can_create_up_to_10_tabs" formatted="false">"タブは10個まで作成できます"</string>
@@ -91,8 +86,6 @@
     <string name="text_set_value_as_the_home_tab">"「%1$s」をホームタブに設定しました"</string>
     <string name="text_target_category" formatted="false">"移動先のカテゴリ"</string>
     <string name="text_added_value_to_the_start_of_value">"「%1$s」を「%2$s」の先頭に追加しました"</string>
-    <string name="text_sorting_icons_a_to_pick_up_or" formatted="false">"アイコン並べ替え：Aで選択・配置、Bで終了"</string>
-    <string name="text_icon_order_saved" formatted="false">"アイコンの順序を保存しました"</string>
     <string name="text_all_apps_contains_every_installed_app_icons" formatted="false">"すべてのアプリにはインストール済みの全アプリが表示されます。ここからアイコンを削除することはできません"</string>
     <string name="text_removed_icon_from_value">"「%1$s」からアイコンを削除しました"</string>
     <string name="text_no_other_custom_categories_are_available" formatted="false">"移動先となる他のカスタムカテゴリがありません"</string>
@@ -153,16 +146,8 @@
     <string name="text_press_a_or_tap_to_choose_odin" formatted="false">"Aを押すかタップすると、システム設定でOdin Desktopをデフォルトのホームに選択できます。"</string>
     <string name="text_manage_home_settings_a" formatted="false">"ホーム設定を開く（A）"</string>
     <string name="text_set_as_default_a" formatted="false">"デフォルトに設定（A）"</string>
-    <string name="text_start_odin_desktop_at_boot" formatted="false">"端末起動時にOdin Desktopを起動"</string>
-    <string name="text_on_enabled" formatted="false">"ON 有効"</string>
-    <string name="text_off_disabled" formatted="false">"OFF 無効"</string>
-    <string name="text_start_the_desktop_only_when_opened_by" formatted="false">"ユーザーまたはシステムが開いたときだけデスクトップを起動します。"</string>
-    <string name="text_disable_startup_a" formatted="false">"自動起動を無効にする（A）"</string>
-    <string name="text_enable_startup_a" formatted="false">"自動起動を有効にする（A）"</string>
     <string name="text_internal_storage" formatted="false">"内部ストレージ"</string>
     <string name="text_total_value">"合計 %1$s"</string>
-    <string name="text_measuring" formatted="false">"測定中"</string>
-    <string name="text_used" formatted="false">" 使用中"</string>
     <string name="text_system_2" formatted="false">"システム"</string>
     <string name="text_apps" formatted="false">"アプリ"</string>
     <string name="text_other" formatted="false">"その他"</string>
@@ -171,7 +156,6 @@
     <string name="text_reading_storage_categories" formatted="false">"ストレージの分類を読み込み中…"</string>
     <string name="text_categories_unavailable_bar_shows_total_usage" formatted="false">"分類を取得できません・バーは合計使用量を表示"</string>
     <string name="text_read_only" formatted="false">"読み取り専用"</string>
-    <string name="text_total" formatted="false">" 合計"</string>
     <string name="text_used_2" formatted="false">"使用済み"</string>
     <string name="text_capacity_unavailable" formatted="false">"容量を取得できません"</string>
     <string name="text_memory" formatted="false">"メモリ"</string>
@@ -186,8 +170,6 @@
     <string name="text_files" formatted="false">"ファイル"</string>
     <string name="text_system_settings" formatted="false">"システム設定"</string>
     <string name="text_odin_settings" formatted="false">"Odin設定"</string>
-    <string name="text_dashboard_internal_storage" formatted="false">"ダッシュボード・内部ストレージ"</string>
-    <string name="text_dashboard_internal_and_external_storage" formatted="false">"ダッシュボード・内部／外部ストレージ"</string>
     <string name="text_sd_card" formatted="false">"SDカード"</string>
     <string name="text_example_wi_fi" formatted="false">"サンプルWi-Fi"</string>
     <string name="text_screen_orientation" formatted="false">"画面の向き："</string>
@@ -215,9 +197,6 @@
     <string name="text_white" formatted="false">"白"</string>
     <string name="text_dark_gray" formatted="false">"ダークグレー"</string>
     <string name="text_choose_a_stick_led_color_a_to" formatted="false">"スティックLEDの色を選択（Aで適用）："</string>
-    <string name="text_no_apps_press_x_to_manage_this" formatted="false">"アプリがありません。Xでこのカテゴリを管理できます。"</string>
-    <string name="text_picked_up_left_right_to_move_a" formatted="false">"選択中：左右で移動・Aで配置"</string>
-    <string name="text_sorting_a_to_pick_up_left_right" formatted="false">"並べ替え：Aで選択・左右で移動・Bで終了"</string>
     <string name="text_odin_3_handheld_launcher" formatted="false">"Odin 3 携帯ゲーム機用ランチャー"</string>
     <string name="text_a_desktop_and_system_controls_for_ayn" formatted="false">"AYN Odin 3向けのデスクトップとシステム操作。\n"</string>
     <string name="text_oled_black_background_and_burn_in_protection" formatted="false">"• OLED向けの黒背景と焼き付き防止\n"</string>
@@ -241,17 +220,20 @@
     <string name="header_unread">未取得</string>
     <string name="header_full">満充電</string>
     <string name="header_fan">ファン %1$s RPM</string>
-    <string name="afk_countdown_hint">"%1$d 秒後に画面保護を開始\nダブルタップでキャンセル・終了"</string>
+    <plurals name="afk_countdown_hint">
+        <item quantity="other">%1$d 秒後に画面保護を開始\nダブルタップでキャンセル・終了</item>
+    </plurals>
 
     <!-- Icon order and application library -->
     <string name="app_library">カテゴリを開く</string>
-    <string name="app_library_count">%1$s · %2$d 個</string>
+    <plurals name="app_library_count">
+        <item quantity="other">%1$s · %2$d 個</item>
+    </plurals>
     <string name="app_library_close">戻る</string>
     <string name="app_order_done">並べ替え完了</string>
     <string name="app_actions">アプリ管理</string>
     <string name="app_order_hint">アイコン→移動先をタップ · 長押しでドラッグ · A 選択/配置 · B 戻る</string>
     <string name="app_browse_hint">Y でアプリ操作 · Y 長押しで並べ替え · START 表示順</string>
-    <string name="app_sort_current">表示順：%1$s</string>
     <string name="app_sort_title">アイコンの表示順</string>
     <string name="app_sort_manual">手動</string>
     <string name="app_sort_installed">インストール日時（新しい順）</string>
@@ -261,8 +243,6 @@
     <string name="app_usage_unavailable">この端末では使用履歴を取得できません。</string>
     <string name="app_sort_detail">表示順はカテゴリごとに保存。過去1年以内のシステム使用履歴を参照し、記録のないアプリは末尾に名前順で表示します。</string>
     <string name="app_order_save_failed">表示順を保存できませんでした。もう一度お試しください。</string>
-    <string name="app_sort_usage_missing">最終使用：履歴未取得</string>
-
     <!-- Compact controls; full labels remain available to accessibility. -->
     <string name="dock_performance_title">性能</string>
     <string name="dock_fan_title">ファン</string>
