@@ -302,4 +302,27 @@ Library 和设置页的 Back 操作已在设备上检查；退出 Library 后回
 
 正式 APK 为 `com.odin.desktop / 0.1.27 / 1028`，minSdk 29、targetSdk 35、不可调试，正式清单不含 Debug 组件。SHA-256 `20c7caa278879a52dfe15705d2b5717c2326149ac3849370ff3f0ca19a1dc4aa` 与校验附件及 GitHub asset digest 一致。签名证书与已核验的 v0.1.26 正式 APK 一致，为 `55365fd0f34296a9a23cf798b40a412bd7df300d3e3b72a3b1eecd7e0c972163`。正式附件、清单、证书和校验记录保存在本机忽略目录 `.android-local/releases/v0.1.27/`；用于对比的 v0.1.26 正式 APK 保留在 `.android-local/releases/v0.1.26/`。
 
-本轮多次 `adb devices -l` 均未发现连接设备，无线发现也为空。当前状态为已发布、未安装，待安装版本为 v0.1.27。LR 切入画面仍待实机确认；本轮未采集截图，也未修改设备数据。
+该轮发布时，多次 `adb devices -l` 均未发现连接设备，无线发现也为空。当时 v0.1.27 已发布、未安装，LR 切入画面待实机确认；该轮未采集截图，也未修改设备数据。后续标题修复已随 v0.1.28 安装，并通过下文的原生布局检查。
+
+## v0.1.28 应用条带翻页修复与安装验收
+
+2026-10-05，[v0.1.28](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.28) 正式发布。标签提交 `b92d003cfbbf68930b8d885a42fd243bd01c8787` 的[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37238204810)与[Release 工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37238218576)均成功，headSha 与标签一致。Astra 对最终代码与方案终审通过。
+
+本次处理顶部“全部应用”分类横向图标条快速右移时的长帧。应用扫描在原有 IO 协程中将支持的静态图标准备为最长边不超过 256 px 的位图，并提前提交上传。准备过程保留宽高比、透明度和原边界；动态、状态相关、未知类型和准备失败的图标保留原 Drawable。图标卡片启用原生 View 复用，普通条带缓存前 10 个应用的列表。导航与滚动动画逻辑保留。该版本同时包含 v0.1.27 的 Dashboard 内容区 H1 移除。
+
+本地 Debug/Release 构建、92 项单元测试和全部 8 项共享检查通过；测试无失败、错误或跳过。新增 8 项原生图形测试覆盖位图尺寸、密度、透明像素、矢量与自适应图标、边界恢复及异常回退。Lint 为 0 错误、39 条既有警告，硬件桥自检为 507 项。日志位于 `.android-local/scroll-v0128-build.log` 和 `.android-local/scroll-v0128-checks.log`。
+
+正式 APK 为 `com.odin.desktop / 0.1.28 / 1029`，minSdk 29、targetSdk 35、不可调试，清单不含 Debug 组件。SHA-256 `d51f27af8a4f28706a92382c4c92ff2984bb327c95064ef105820c0938435326` 与 checksum 附件、GitHub asset digest 和设备实际 APK 一致。签名证书与设备原有正式版相同，为 `55365fd0f34296a9a23cf798b40a412bd7df300d3e3b72a3b1eecd7e0c972163`。附件与核验记录位于 `.android-local/releases/v0.1.28/`。
+
+正式 APK 已保留数据覆盖安装到 AYN Odin3 / Android 15，固件为 `Odin3_V1.0.0.187_20260616_193307_user`。首次无线流式安装命令超时；读回确认设备仍为已核验的 Debug 预览，保留字段未变。随后使用非流式覆盖安装成功，并核对了实际 APK 哈希和调试标志。UID `10119`、首次安装时间、数据目录 inode `258045`、HOME `com.odin.desktop`、禁用包列表、语言 zh-Hans、字体倍率 1.0、动画倍率 1.0、省电及充电设置与安装前一致。没有逐行读取私有数据库，不声明所有数据库记录完全一致。旧正式 v0.1.26 APK 保留在 `.android-local/device-analysis/scroll-v0128/original-release.apk`。
+
+实机以同一套输入复测：每段 10 次方向键，间隔 70 ms，共 3 组右移与左移。每段重置 HWUI 统计，并核对 MainActivity 持有焦点、设备为 Awake、UI helper PID 为空。正式版对照如下；“卡顿帧”采用系统 `Janky frames` 计数。
+
+| 方向 | v0.1.26 帧数 / 卡顿帧 | v0.1.28 帧数 / 卡顿帧 | 最高直方图桶 | 慢位图上传次数 |
+| --- | --- | --- | --- | --- |
+| 右移 | 337 / 2 | 347 / 0 | 150 → 5 ms | 2 → 0 |
+| 左移 | 422 / 3 | 345 / 3 | 150 → 42 ms | 3 → 1 |
+
+六段正式版样本共 692 帧、3 个卡顿帧；三段右移的 p50/p90/p95/p99 均为 5 ms。左移仍有 34–42 ms 档的长帧，最大分段 p99 为 36 ms。本轮快速右移未再记录到原有的 150 ms 档长帧。上述直方图桶不是精确最大帧耗时。设备只提供整窗 HWUI 汇总，没有逐帧 CSV；数据不能分离图标、背景与焦点动画的开销，也不能证明唯一根因或长期流畅度。原始 gfx 与汇总位于 `.android-local/device-analysis/scroll-v0128/`。
+
+正式版原生布局检查确认：R1 从“全部应用”进入 Dashboard，只有顶部导航显示“仪表盘”，内容区直接从统计卡片开始；L1 返回“全部应用”。该分类仍显示 27 个应用，A 在 `[+]` 处打开完整分类，B 恢复来源分类及 `[+]` 位置。设置页可打开，B 返回来源应用条带。未采集截图，不将布局检查描述为切入动画逐帧视觉验收。临时常亮值已从 `15` 恢复为原值 `0`，UI helper 已清理。安装、布局与恢复记录位于该目录的 `formal-release-push-after.json`、`formal-release-navigation.json`、`display-setting-restored.json` 和 `final-restored-device.json`。
