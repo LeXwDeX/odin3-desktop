@@ -56,6 +56,7 @@ class Intent(context: Context? = null, cls: Class<*>? = null) {
     fun addFlags(flags: Int) = this
     companion object {
         const val ACTION_PACKAGE_ADDED = "added"; const val ACTION_PACKAGE_REMOVED = "removed"; const val ACTION_PACKAGE_REPLACED = "replaced"
+        const val ACTION_PACKAGE_CHANGED = "changed"
         const val ACTION_BOOT_COMPLETED = "android.intent.action.BOOT_COMPLETED"
         const val ACTION_LOCKED_BOOT_COMPLETED = "android.intent.action.LOCKED_BOOT_COMPLETED"
         const val FLAG_ACTIVITY_NEW_TASK = 0x10000000
@@ -180,6 +181,7 @@ class LauncherViewModel {
     var backCalls = 0; var modalOpen = false
     fun refreshAppLanguage() {}
     fun scanInstalledApps() { scans++ }
+    fun onPackagesChanged() { if (visible) scans++ }
     fun loadHardwareStates() { hardwareLoads++ }
     fun setLauncherVisible(value: Boolean) { if (value != visible) visibilityChanges++; visible = value }
     fun onBack(): Boolean { backCalls++; val handled = modalOpen; modalOpen = false; return handled }

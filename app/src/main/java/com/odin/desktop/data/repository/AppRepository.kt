@@ -5,7 +5,11 @@ import com.odin.desktop.data.model.AppSortMode
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.content.res.Resources
+import android.graphics.drawable.Drawable
 import android.os.Build
+import android.os.SystemClock
 import com.odin.desktop.data.entity.AppMappingEntity
 import com.odin.desktop.data.entity.TabEntity
 import com.odin.desktop.data.entity.TabKind
@@ -17,11 +21,16 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicLong
 
 class AppRepository(
     private val context: Context,
     private val database: OdinDatabase,
-    private val classifier: AppClassifier = AndroidAppClassifier
+    private val classifier: AppClassifier = AndroidAppClassifier,
+    private val elapsedRealtime: () -> Long = { SystemClock.elapsedRealtime() },
+    private val iconPreparer: (Drawable, Resources) -> Drawable = AppIconPreparation::prepare
 ) {
     private val displayPreferences = context.getSharedPreferences("app_display", Context.MODE_PRIVATE)
     var usageStatsAvailable: Boolean = false
@@ -36,18 +45,56 @@ class AppRepository(
         displayPreferences.edit().putString("sort_$tabId", mode.name).apply()
     }
 
-    private fun lastUsedTimes(): Map<String, Long> {
+    private data class CatalogSnapshot(
+        val generation: Long, val configuration: Configuration,
+        val completedAt: Long, val apps: List<InstalledApp>
+    )
+    private data class UsageSnapshot(
+        val generation: Long, val completedAt: Long, val times: Map<String, Long>
+    )
+    private data class IconKey(
+        val packageName: String, val activityName: String, val updateTime: Long,
+        val installTime: Long, val resourceId: Int, val sourceDir: String?
+    )
+    private val catalogGeneration = AtomicLong()
+    private val scanMutex = Mutex()
+    private var catalogSnapshot: CatalogSnapshot? = null
+    private var usageSnapshot: UsageSnapshot? = null
+    private var iconGeneration = -1L
+    private var iconConfiguration: Configuration? = null
+    private val preparedIcons = mutableMapOf<IconKey, Drawable>()
+
+    /** Package broadcasts invalidate metadata even while Home is hidden. */
+    fun invalidateInstalledApps() {
+        catalogGeneration.incrementAndGet()
+    }
+
+    private fun isRecent(completedAt: Long, lifetime: Long): Boolean =
+        (elapsedRealtime() - completedAt).let { it >= 0L && it < lifetime }
+
+    private suspend fun lastUsedTimes(generation: Long): Map<String, Long> {
         val ops = context.getSystemService(android.app.AppOpsManager::class.java)
         usageStatsAvailable = ops?.unsafeCheckOpNoThrow(
             android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName
         ) == android.app.AppOpsManager.MODE_ALLOWED
-        if (!usageStatsAvailable) return emptyMap()
+        if (!usageStatsAvailable) {
+            usageSnapshot = null
+            return emptyMap()
+        }
+        usageSnapshot?.takeIf { it.generation == generation && isRecent(it.completedAt, 5_000L) }
+            ?.let { return it.times }
+        usageSnapshot = null
         return try {
             val now = System.currentTimeMillis()
             val usage = context.getSystemService(android.app.usage.UsageStatsManager::class.java)
             val records = usage?.queryAndAggregateUsageStats(now - 365L * 24 * 60 * 60 * 1000, now)
+            currentCoroutineContext().ensureActive()
             if (records == null) usageStatsAvailable = false
-            records.orEmpty().mapValues { it.value.lastTimeUsed }.filterValues { it > 0L }
+            val times = records.orEmpty().mapValues { it.value.lastTimeUsed }.filterValues { it > 0L }
+            if (records != null && catalogGeneration.get() == generation) {
+                usageSnapshot = UsageSnapshot(generation, elapsedRealtime(), times)
+            }
+            times
         } catch (_: SecurityException) {
             usageStatsAvailable = false
             emptyMap()
@@ -61,25 +108,64 @@ class AppRepository(
     val gamePackages: Flow<List<String>> = appMappingDao.getGamePackageNamesFlow()
 
     suspend fun getInstalledLaunchableApps(): List<InstalledApp> = withContext(Dispatchers.IO) {
+        scanMutex.withLock {
+            val generation = catalogGeneration.get()
+            val configuration = Configuration(context.resources.configuration)
+            val catalog = catalogSnapshot?.takeIf {
+                it.generation == generation && it.configuration == configuration && isRecent(it.completedAt, 60_000L)
+            }?.apps ?: readAppCatalog(generation, configuration).also { apps ->
+                currentCoroutineContext().ensureActive()
+                if (catalogGeneration.get() == generation && context.resources.configuration == configuration) {
+                    catalogSnapshot = CatalogSnapshot(generation, configuration, elapsedRealtime(), apps)
+                }
+            }
+            val lastUsed = lastUsedTimes(generation)
+            currentCoroutineContext().ensureActive()
+            catalog.map { app ->
+                val time = lastUsed[app.packageName]
+                if (time == app.lastTimeUsed) app else app.copy(lastTimeUsed = time)
+            }
+        }
+    }
+
+    private suspend fun readAppCatalog(generation: Long, configuration: Configuration): List<InstalledApp> {
         val pm = context.packageManager
-        val lastUsed = lastUsedTimes()
-        launchableActivities().distinctBy { it.activityInfo?.packageName }.mapNotNull { resolveInfo ->
+        if (iconGeneration != generation || iconConfiguration != configuration) {
+            preparedIcons.clear()
+            iconGeneration = generation
+            iconConfiguration = configuration
+        }
+        val usedIconKeys = mutableSetOf<IconKey>()
+        val apps = launchableActivities().distinctBy { it.activityInfo?.packageName }.mapNotNull { resolveInfo ->
+            currentCoroutineContext().ensureActive()
             val activity = resolveInfo.activityInfo ?: return@mapNotNull null
             val packageName = activity.packageName
             if (packageName == context.packageName) return@mapNotNull null
             val label = runCatching { resolveInfo.loadLabel(pm).toString() }.getOrDefault(packageName)
-            val loadedIcon = runCatching { resolveInfo.loadIcon(pm) }.getOrElse { pm.defaultActivityIcon }
-            val icon = AppIconPreparation.prepare(loadedIcon, context.resources)
             val appInfo = activity.applicationInfo
-            val firstInstallTime = runCatching {
+            val packageInfo = runCatching {
                 @Suppress("DEPRECATION")
-                pm.getPackageInfo(packageName, 0).firstInstallTime
-            }.getOrDefault(0L)
+                pm.getPackageInfo(packageName, 0)
+            }.getOrNull()
+            val key = packageInfo?.let {
+                IconKey(packageName, activity.name, it.lastUpdateTime, it.firstInstallTime,
+                    resolveInfo.iconResource, appInfo.sourceDir)
+            }
+            val icon = key?.let(preparedIcons::get) ?: run {
+                val loaded = runCatching { resolveInfo.loadIcon(pm) }.getOrElse { pm.defaultActivityIcon }
+                iconPreparer(loaded, context.resources).also { prepared ->
+                    if (key != null) preparedIcons[key] = prepared
+                }
+            }
+            if (key != null) usedIconKeys.add(key)
             InstalledApp(packageName, activity.name, label, icon,
                 (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
                 appInfo.category == ApplicationInfo.CATEGORY_GAME,
-                firstInstallTime, lastUsed[packageName])
+                packageInfo?.firstInstallTime ?: 0L)
         }.sortedBy { it.label }
+        currentCoroutineContext().ensureActive()
+        preparedIcons.keys.retainAll(usedIconKeys)
+        return apps
     }
 
     private fun launchableActivities(): List<android.content.pm.ResolveInfo> {

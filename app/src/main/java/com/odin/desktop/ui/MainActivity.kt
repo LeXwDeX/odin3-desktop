@@ -37,7 +37,7 @@ class MainActivity : AppCompatActivity() {
 
     private val packageReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
-            viewModel.scanInstalledApps()
+            viewModel.onPackagesChanged()
         }
     }
 
@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
             addAction(android.content.Intent.ACTION_PACKAGE_ADDED)
             addAction(android.content.Intent.ACTION_PACKAGE_REMOVED)
             addAction(android.content.Intent.ACTION_PACKAGE_REPLACED)
+            addAction(android.content.Intent.ACTION_PACKAGE_CHANGED)
             addDataScheme("package")
         }
         registerReceiver(packageReceiver, filter)

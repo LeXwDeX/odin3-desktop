@@ -73,7 +73,7 @@ The Dashboard shows internal-storage categories, mounted external-storage capaci
 
 ![Dashboard in English](docs/screenshots/v0.1.26/dashboard-en.png)
 
-Entering the Dashboard starts a sample immediately. Each sampler then refreshes at **6-second intervals three times**, followed by **30-second intervals**. Leaving the Dashboard or hiding the launcher stops collection; returning starts the initial cadence again. Slow queries complete before another sample is requested, so work does not accumulate. The smaller battery and fan display in the home-screen header has its own refresh schedule.
+Entering the Dashboard starts a sample immediately. Each sampler then refreshes at **6-second intervals three times**, followed by **30-second intervals**. Complete app-storage totals are reused for up to **60 seconds**, and successful app-memory (PSS) samples for up to **30 seconds**, including brief visits to other tabs. Free capacity, mounted volumes and live metrics keep their normal refresh schedule. Access changes invalidate cached diagnostic results. Leaving the Dashboard or hiding the launcher stops collection; returning starts the initial cadence again. Slow queries complete before another sample is requested, so work does not accumulate. The smaller battery and fan display in the home-screen header has its own refresh schedule.
 
 Statistics that cannot be read are marked unavailable. Usage access is needed for some storage and memory details. The launcher avoids presenting incomplete app-memory totals as complete measurements.
 

@@ -78,6 +78,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun setLauncherVisible(visible: Boolean) {
         launcherVisible = visible
         if (!visible) {
+            scanJob?.cancel()
+            scanJob = null
             telemetryJob?.cancel()
             telemetryJob = null
             _telemetry.value = LauncherTelemetry()
@@ -213,6 +215,11 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val pendingOrders = mutableMapOf<Long, List<String>>()
     private var scanJob: Job? = null
 
+    fun onPackagesChanged() {
+        appRepository.invalidateInstalledApps()
+        if (launcherVisible) scanInstalledApps()
+    }
+
     private fun activeAppTab(): TabEntity? = _tabs.value.getOrNull(_selectedTabIndex.value)
 
     fun setGridColumns(columns: Int) { gridColumns = columns.coerceAtLeast(1) }
@@ -330,17 +337,23 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             appRepository.getAppsForTabFlow(currentTab.id).collectLatest { mappings ->
                 if (_isReorderingApps.value) return@collectLatest
                 val allTab = currentTab.kind == com.odin.desktop.data.entity.TabKind.ALL_APPS
-                val members = if (allTab) allApps.map { it.packageName }.toSet()
-                    else mappings.map { it.packageName }.toSet()
-                val saved = pendingOrders[currentTab.id] ?: mappings.map { it.packageName }
-                val manual = if (allTab) orderAllApps(allApps, saved) else {
-                    val appMap = allApps.associateBy { it.packageName }
-                    (saved + mappings.map { it.packageName }).distinct().filter { it in members }
-                        .mapNotNull(appMap::get)
+                val saved = pendingOrders[currentTab.id]?.toList() ?: mappings.map { it.packageName }
+                val sortMode = _sortMode.value
+                val locale = context.resources.configuration.locales[0]
+                val currentBeforeCalculation = _currentTabApps.value
+                val (members, sorted) = withContext(Dispatchers.Default) {
+                    val members = if (allTab) allApps.map { it.packageName }.toSet()
+                        else mappings.map { it.packageName }.toSet()
+                    val manual = if (allTab) orderAllApps(allApps, saved) else {
+                        val appMap = allApps.associateBy { it.packageName }
+                        (saved + mappings.map { it.packageName }).distinct().filter { it in members }
+                            .mapNotNull(appMap::get)
+                    }
+                    members to sortApps(manual, sortMode, locale)
                 }
+                if (_isReorderingApps.value || _currentTabApps.value !== currentBeforeCalculation) return@collectLatest
                 _currentTabAppPackages.value = members
-                _currentTabApps.value = sortApps(manual, _sortMode.value,
-                    context.resources.configuration.locales[0])
+                _currentTabApps.value = sorted
                 _selectedAppIndex.value = _selectedAppIndex.value.coerceIn(0, (visibleAppCount() - 1).coerceAtLeast(0))
             }
         }
@@ -987,6 +1000,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (!_isAllAppsOpen.value && _currentTabApps.value.size > HOME_APP_LIMIT &&
             _selectedAppIndex.value >= HOME_APP_LIMIT) return
         val tab = activeAppTab() ?: return
+        filterJob?.cancel()
+        filterJob = null
         _isReorderingApps.value = true
         _pickedAppIndex.value = null
         _selectedAppIndex.value = _selectedAppIndex.value.coerceAtMost(_currentTabApps.value.lastIndex)

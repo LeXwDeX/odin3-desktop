@@ -41,11 +41,11 @@ import java.util.concurrent.TimeUnit
 /** Collection owns the samplers; cancelling collection stops all refresh loops. */
 class DashboardRepository(context: Context) {
     private val app = context.applicationContext
-    private val storageLock = Mutex()
-    @Volatile private var storageCache: CachedStorage? = null
+    private val appStorageCache = RecentSampleCache<SamplingAccess, Long>(60_000L, SystemClock::elapsedRealtime)
+    private val pssCache = RecentSampleCache<PssAccess, PssSample>(30_000L, SystemClock::elapsedRealtime)
 
     fun observe(): Flow<DashboardState> = channelFlow {
-        var state = DashboardState(storage = storageCache?.takeIf { it.localeTags == app.resources.configuration.locales.toLanguageTags() }?.value ?: StorageUsage())
+        var state = DashboardState()
         val stateLock = Mutex()
         val sampler = LiveSampler(app)
         val dumpSampler = SystemDumpSampler(app)
@@ -85,7 +85,13 @@ class DashboardRepository(context: Context) {
         }
         launch(Dispatchers.IO) {
             dashboardRefreshes().collect {
-                val value = dumpSampler.nonSystemPss()
+                var failure: PssSample? = null
+                val value = pssCache.sample(::pssAccess) { access ->
+                    val sample = dumpSampler.nonSystemPss()
+                    failure = sample
+                    sample.takeIf { access.allowed && it.bytes != null }
+                } ?: failure?.takeIf { it.bytes == null } ?: PssSample(null, app.getString(R.string.text_app_pss_value,
+                    diagnosticPermissionNote(app) ?: app.getString(R.string.text_process_diagnostics_unavailable_or_timed_out)))
                 publish {
                     pss = value
                     it.copy(memory = it.memory.copy(nonSystemAppBytes = value.bytes, note = value.note))
@@ -94,14 +100,17 @@ class DashboardRepository(context: Context) {
         }
     }.conflate()
 
-    private suspend fun storageSnapshot(): StorageUsage = storageLock.withLock {
-        val access = hasUsageAccess(app)
-        val localeTags = app.resources.configuration.locales.toLanguageTags()
-        val value = readStorage(access)
-        currentCoroutineContext().ensureActive()
-        storageCache = CachedStorage(value, localeTags)
-        value
-    }
+    private suspend fun storageSnapshot(): StorageUsage = readStorage(samplingAccess())
+
+    private fun samplingAccess() = SamplingAccess(
+        hasUsageAccess(app), Build.VERSION.SDK_INT < 30 || hasPermission(app, Manifest.permission.QUERY_ALL_PACKAGES)
+    )
+
+    private fun pssAccess() = PssAccess(
+        samplingAccess(), hasPermission(app, Manifest.permission.DUMP),
+        hasPermission(app, Manifest.permission.PACKAGE_USAGE_STATS),
+        app.resources.configuration.locales.toLanguageTags()
+    )
 
     private suspend fun readExternalStorage(): List<ExternalStorageUsage> {
         val manager = app.getSystemService(StorageManager::class.java) ?: return emptyList()
@@ -137,7 +146,7 @@ class DashboardRepository(context: Context) {
     }
 
     @Suppress("DEPRECATION")
-    private suspend fun readStorage(hasAccess: Boolean): StorageUsage {
+    private suspend fun readStorage(access: SamplingAccess): StorageUsage {
         val fs = readOrNull { StatFs(Environment.getDataDirectory().absolutePath) }
             ?: return StorageUsage(loading = false, note = app.getString(R.string.text_internal_storage_is_unavailable))
         val dataTotal = fs.totalBytes
@@ -151,29 +160,44 @@ class DashboardRepository(context: Context) {
             freeBytes = free,
             systemBytes = system,
             loading = false,
-            needsUsageAccess = !hasAccess
+            needsUsageAccess = !access.usage
         )
-        if (!hasAccess) return base.copy(note = app.getString(R.string.text_allow_usage_access_to_measure_apps_system))
+        if (!access.usage) {
+            appStorageCache.invalidate()
+            return base.copy(note = app.getString(R.string.text_allow_usage_access_to_measure_apps_system))
+        }
         if (manager == null) return base.copy(note = app.getString(R.string.text_app_storage_statistics_are_unavailable))
-        if (Build.VERSION.SDK_INT >= 30 && !hasPermission(app, Manifest.permission.QUERY_ALL_PACKAGES)) {
+        if (!access.packages) {
+            appStorageCache.invalidate()
             return base.copy(note = app.getString(R.string.text_the_app_list_is_restricted_total_app))
         }
-        val installed = readOrNull { app.packageManager.getInstalledApplications(0) }
-            ?: return base.copy(note = app.getString(R.string.text_cannot_read_the_app_list))
-        if (installed.isEmpty()) return base.copy(note = app.getString(R.string.text_app_list_unavailable))
-        var appsBytes = 0L
-        for (uid in installed.map { it.uid }.distinct()) {
-            currentCoroutineContext().ensureActive()
-            val stats = readOrNull { manager.queryStatsForUid(StorageManager.UUID_DEFAULT, uid) }
-                ?: return base.copy(
-                    needsUsageAccess = !hasUsageAccess(app),
-                    note = app.getString(R.string.text_some_app_storage_is_unreadable_an_incomplete)
-                )
-            // dataBytes already includes cacheBytes. Shared-UID packages are queried only once.
-            appsBytes += stats.appBytes + stats.dataBytes
-        }
         val dataUsed = dataTotal - free
+        var failureNote: String? = null
+        val appsBytes = appStorageCache.sample(::samplingAccess) { currentAccess ->
+            if (!currentAccess.usage || !currentAccess.packages) return@sample null
+            val installed = readOrNull { app.packageManager.getInstalledApplications(0) }
+            if (installed == null || installed.isEmpty()) {
+                failureNote = app.getString(if (installed == null) R.string.text_cannot_read_the_app_list
+                    else R.string.text_app_list_unavailable)
+                return@sample null
+            }
+            var total = 0L
+            for (uid in installed.map { it.uid }.distinct()) {
+                currentCoroutineContext().ensureActive()
+                val stats = readOrNull { manager.queryStatsForUid(StorageManager.UUID_DEFAULT, uid) }
+                    ?: return@sample null
+                // Shared-UID packages are queried once; dataBytes already includes cacheBytes.
+                total += stats.appBytes + stats.dataBytes
+            }
+            if (total !in 0L..dataUsed) {
+                failureNote = app.getString(R.string.text_storage_snapshots_differ_waiting_for_the_next)
+                return@sample null
+            }
+            total
+        } ?: return base.copy(needsUsageAccess = !hasUsageAccess(app), note = failureNote
+            ?: app.getString(R.string.text_some_app_storage_is_unreadable_an_incomplete))
         if (appsBytes !in 0L..dataUsed) {
+            appStorageCache.invalidate()
             return base.copy(note = app.getString(R.string.text_storage_snapshots_differ_waiting_for_the_next))
         }
         return base.copy(
@@ -184,7 +208,10 @@ class DashboardRepository(context: Context) {
         )
     }
 
-    private data class CachedStorage(val value: StorageUsage, val localeTags: String)
+    private data class SamplingAccess(val usage: Boolean, val packages: Boolean)
+    private data class PssAccess(val storage: SamplingAccess, val dump: Boolean, val usageGrant: Boolean, val localeTags: String) {
+        val allowed: Boolean get() = storage.usage && storage.packages && dump && usageGrant
+    }
 }
 
 private class LiveSampler(private val app: Context) {

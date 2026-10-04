@@ -119,7 +119,16 @@ fun AppIconCollection(
                 if (item == null || item.offset.y < 0 || item.offset.y + item.size.height > height)
                     grid.animateScrollToItem(selectedIndex)
             } else if (!isGrid && selectedIndex in 0 until visibleApps.size + if (hasMore) 1 else 0) {
-                row.animateScrollToItem(selectedIndex, -((width - iconSize) / 2).roundToInt())
+                val targetOffset = ((width - iconSize) / 2).roundToInt()
+                val item = row.layoutInfo.visibleItemsInfo.firstOrNull { it.index == selectedIndex }
+                // At either end, several focused icons share the same clamped scroll position.
+                // Avoid starting another animation when the requested movement is impossible.
+                val alreadyPositioned = item != null && (
+                    kotlin.math.abs(item.offset - targetOffset) <= 1 ||
+                        (!row.canScrollBackward && item.offset <= targetOffset) ||
+                        (!row.canScrollForward && item.offset >= targetOffset)
+                    )
+                if (!alreadyPositioned) row.animateScrollToItem(selectedIndex, -targetOffset)
             }
         }
         Box(Modifier.fillMaxSize().pointerInput(isGrid, collectionKey) {
