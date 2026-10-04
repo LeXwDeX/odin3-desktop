@@ -68,7 +68,8 @@ class AppRepository(
             val packageName = activity.packageName
             if (packageName == context.packageName) return@mapNotNull null
             val label = runCatching { resolveInfo.loadLabel(pm).toString() }.getOrDefault(packageName)
-            val icon = runCatching { resolveInfo.loadIcon(pm) }.getOrElse { pm.defaultActivityIcon }
+            val loadedIcon = runCatching { resolveInfo.loadIcon(pm) }.getOrElse { pm.defaultActivityIcon }
+            val icon = AppIconPreparation.prepare(loadedIcon, context.resources)
             val appInfo = activity.applicationInfo
             val firstInstallTime = runCatching {
                 @Suppress("DEPRECATION")

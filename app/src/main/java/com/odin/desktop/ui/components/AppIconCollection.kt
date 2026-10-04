@@ -53,7 +53,9 @@ fun AppIconCollection(
     modifier: Modifier = Modifier
 ) {
     val palette = LocalOdinPalette.current
-    val visibleApps = if (isGrid || isReordering) apps else apps.take(HOME_APP_LIMIT)
+    val visibleApps = remember(apps, isGrid, isReordering) {
+        if (isGrid || isReordering) apps else apps.take(HOME_APP_LIMIT)
+    }
     val hasMore = !isGrid && !isReordering && apps.size > HOME_APP_LIMIT
     val row = key(collectionKey) { rememberLazyListState() }
     val grid = rememberLazyGridState()

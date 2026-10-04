@@ -89,7 +89,12 @@ fun AppCard(
             scaleX = scale.value
             scaleY = scale.value
         }) {
-        AndroidView(factory = { context -> ImageView(context).apply { scaleType = ImageView.ScaleType.FIT_CENTER } },
-            update = { it.setImageDrawable(app.icon) }, modifier = Modifier.fillMaxSize())
+        AndroidView(
+            factory = { context -> ImageView(context).apply { scaleType = ImageView.ScaleType.FIT_CENTER } },
+            onReset = { it.setImageDrawable(null) },
+            onRelease = { it.setImageDrawable(null) },
+            update = { it.setImageDrawable(app.icon) },
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
