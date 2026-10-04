@@ -293,3 +293,13 @@ Library 和设置页的 Back 操作已在设备上检查；退出 Library 后回
 正式版英文截图和返回路径已完成设备验收。五张 1920 × 1080、字体倍率 1.0 的原生照片直接来自 v0.1.26 正式 APK，逐张查看后未做像素编辑，复制前后 SHA-256 一致；文件为 `home-en.png`、`library-en.png`、`dashboard-en.png`、`lights-en.png` 和 `orientation-en.png`，位于 `docs/screenshots/v0.1.26/`。核验记录为 `.android-local/device-analysis/console-v0126-wifi/readme-screenshots-verification.json`。逐张检查未发现系统栏重叠。Library 显示 All apps · 27 apps，首屏 18 个；按 Back 后回到 All apps 主页条带，仍显示 27 apps、`[+]` 和 View group，且 `[+]` 保持选择状态。Settings → Orientation 按 Back 后回到同一 All apps 主页。没有点击 LED 色块或硬件控制。
 
 完成验收后，设备恢复 zh-Hans 和字体倍率 1.0。正式 APK 仍为不可调试的 1027；设备实际 APK SHA-256 与发布附件一致。恢复后的 MainActivity 持有焦点，设备为 Awake，helper PID 为空；`final-restored-device.json` 与 `baseline-release-install.json` 的已保留字段完全一致。正式版安装状态记录已更新为已验证。用户对新材质的整体视觉反馈尚未收到；尚未测量长时功耗和续航。
+
+## v0.1.27 仪表盘标题修复
+
+2026-10-05，[v0.1.27](https://github.com/LeXwDeX/odin3-desktop/releases/tag/v0.1.27) 正式发布。标签提交 `c6f845c8c412d2ba1925d81e8e6523d75c337987` 的[主分支 CI](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37235727764)与[Release 工作流](https://github.com/LeXwDeX/odin3-desktop/actions/runs/37235733002)均成功，headSha 与标签一致。
+
+`DashboardContent` 移除内容区重复的 H1“仪表盘”标题及其占位。统计卡片成为内容区第一行。顶部导航名称、页面边距、手柄焦点和动作回调保留。本地 Debug/Release 构建、84 项单元测试和全部 8 项共享检查通过；Lint 为 0 错误、39 条既有警告，硬件桥自检为 507 项。Astra 对最终代码与方案终审通过。构建与检查日志位于 `.android-local/dashboard-v0127-build.log` 和 `.android-local/dashboard-v0127-checks.log`。
+
+正式 APK 为 `com.odin.desktop / 0.1.27 / 1028`，minSdk 29、targetSdk 35、不可调试，正式清单不含 Debug 组件。SHA-256 `20c7caa278879a52dfe15705d2b5717c2326149ac3849370ff3f0ca19a1dc4aa` 与校验附件及 GitHub asset digest 一致。签名证书与已核验的 v0.1.26 正式 APK 一致，为 `55365fd0f34296a9a23cf798b40a412bd7df300d3e3b72a3b1eecd7e0c972163`。正式附件、清单、证书和校验记录保存在本机忽略目录 `.android-local/releases/v0.1.27/`；用于对比的 v0.1.26 正式 APK 保留在 `.android-local/releases/v0.1.26/`。
+
+本轮多次 `adb devices -l` 均未发现连接设备，无线发现也为空。当前状态为已发布、未安装，待安装版本为 v0.1.27。LR 切入画面仍待实机确认；本轮未采集截图，也未修改设备数据。
