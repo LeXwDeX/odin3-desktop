@@ -25,6 +25,8 @@ flowchart TD
 
 各路由只收集自己显示所需的状态。`collectAsVisibleState` 使用 `repeatOnLifecycle(STARTED)`。Dashboard 状态不会由 Dock 持有；硬件读数不会由应用网格持有。关闭的弹窗只收集各自的打开状态，其余数据在弹窗打开后才订阅。
 
+Dashboard 内容区直接从统计卡片开始，不显示重复的 H1 页面标题。顶部导航保留 Dashboard 名称。LR 切入时不会再创建内容区的“仪表盘”大标题，也不预留空标题行。
+
 `AppIconCollection` 保持应用条带、全屏网格、`[+]` 入口、焦点滚动和拖拽排序的现有职责。Y 键、D-pad、A/B、肩键仍由 `MainActivity.dispatchKeyEvent` 转交 `GamepadKeyHandler` 与 ViewModel 处理。此次 UI 拆分不改变 Room 数据、导航状态或 MainActivity 的入口 API。
 
 ## 动态背景与暂停边界

@@ -59,7 +59,6 @@ fun DashboardContent(
     onAction: (DashboardAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val palette = LocalOdinPalette.current
     BoxWithConstraints(modifier.fillMaxSize()) {
         val wide = maxWidth >= 620.dp
         val scrollState = rememberScrollState()
@@ -67,8 +66,6 @@ fun DashboardContent(
             modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(horizontal = OdinSpacing.page, vertical = OdinSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(OdinSpacing.md)
         ) {
-            OdinStableTextLine(LocalContext.current.getString(R.string.page_dashboard),
-                color = palette.text, style = OdinTypography.h1)
             if (wide) {
                 Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(OdinSpacing.md)) {
                     StorageCards(state.storage, state.externalStorage, Modifier.weight(1.35f).fillMaxHeight())
