@@ -151,6 +151,32 @@ class AppCatalogCacheTest {
         assertEquals(1, iconsDrawn)
     }
 
+    @Test fun defaultUsageModeNeedsTheGrantedPermissionAndExplicitDenialWins() = runBlocking {
+        install("one", "One")
+        val ops = context.getSystemService(AppOpsManager::class.java)
+        val usage = context.getSystemService(UsageStatsManager::class.java)
+        fun usageMode(mode: Int) = shadowOf(ops).setMode(AppOpsManager.OPSTR_GET_USAGE_STATS,
+            android.os.Process.myUid(), context.packageName, mode)
+        val wallNow = System.currentTimeMillis()
+        shadowOf(usage).addUsageStats(UsageStatsManager.INTERVAL_BEST, UsageStatsBuilder.newBuilder()
+            .setPackageName("one").setFirstTimeStamp(wallNow - 10_000).setLastTimeStamp(wallNow)
+            .setLastTimeUsed(wallNow - 1_000).build())
+        shadowOf(context).denyPermissions(android.Manifest.permission.PACKAGE_USAGE_STATS)
+        usageMode(AppOpsManager.MODE_DEFAULT)
+        assertNull(repo.getInstalledLaunchableApps().single().lastTimeUsed)
+        assertFalse(repo.usageStatsAvailable)
+        shadowOf(context).grantPermissions(android.Manifest.permission.PACKAGE_USAGE_STATS)
+        assertEquals(wallNow - 1_000, repo.getInstalledLaunchableApps().single().lastTimeUsed)
+        assertTrue(repo.usageStatsAvailable)
+        usageMode(AppOpsManager.MODE_IGNORED)
+        assertNull(repo.getInstalledLaunchableApps().single().lastTimeUsed)
+        assertFalse(repo.usageStatsAvailable)
+        usageMode(AppOpsManager.MODE_DEFAULT)
+        shadowOf(context).denyPermissions(android.Manifest.permission.PACKAGE_USAGE_STATS)
+        assertNull(repo.getInstalledLaunchableApps().single().lastTimeUsed)
+        assertFalse(repo.usageStatsAvailable)
+    }
+
     private fun install(pkg: String, label: String, updateTime: Long = 10L, activityName: String = "$pkg.Main") {
         val app = ApplicationInfo().apply { packageName = pkg; sourceDir = "/apps/$pkg.apk" }
         val entry = ResolveInfo().apply {

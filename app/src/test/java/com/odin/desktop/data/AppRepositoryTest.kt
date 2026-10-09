@@ -83,6 +83,24 @@ class AppRepositoryTest {
         assertFalse(db.tabDao().getTabById(first)!!.isDefault)
     }
 
+    @Test fun reorderingAfterDeletedTabsKeepsRemainingOrder() = runBlocking {
+        // Seeded Games (0) and System (1) were deleted, leaving gaps before these tabs.
+        val dao = db.tabDao()
+        val all = dao.getTabById(dao.insertTab(TabEntity(name = "All", kind = TabKind.ALL_APPS, sortOrder = 2)))!!
+        dao.insertTab(TabEntity(name = "B", sortOrder = 3))
+        val c = dao.getTabById(dao.insertTab(TabEntity(name = "C", sortOrder = 4)))!!
+        repo.moveTabUp(all)
+        repo.moveTabDown(c)
+        assertEquals(listOf("All", "B", "C"), dao.getAllTabs().map { it.name })
+        assertEquals(listOf(2, 3, 4), dao.getAllTabs().map { it.sortOrder })
+        repo.moveTabUp(c)
+        assertEquals(listOf("All", "C", "B"), dao.getAllTabs().map { it.name })
+        assertEquals(listOf(0, 1, 2), dao.getAllTabs().map { it.sortOrder })
+        repo.moveTabDown(dao.getTabById(all.id)!!)
+        assertEquals(listOf("C", "All", "B"), dao.getAllTabs().map { it.name })
+        assertEquals(listOf(0, 1, 2), dao.getAllTabs().map { it.sortOrder })
+    }
+
     @Test fun concurrentAddsRemainUniqueAndContiguouslyOrdered() = runBlocking {
         val tab = repo.createTab("Apps")
         (0 until 16).map { n -> async(Dispatchers.IO) { repo.addAppToTab(tab, "app.$n") } }.awaitAll()

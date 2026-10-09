@@ -115,6 +115,17 @@ class AfkOverlayService : Service() {
             return START_NOT_STICKY
         }
 
+        // startForegroundService() obliges every start to reach startForeground() first; stopping
+        // without it makes the system kill this process, which is also the Home launcher.
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (error: RuntimeException) {
+            android.util.Log.e("AfkOverlayService", "Could not enter foreground", error)
+            Toast.makeText(this, getString(R.string.text_idle_screen_failed_to_start_the_picture), Toast.LENGTH_LONG).show()
+            stopAfk()
+            return START_NOT_STICKY
+        }
+
         // A queued start can arrive after Power has already put the device to sleep.
         if (!getSystemService(PowerManager::class.java).isInteractive) {
             stopAfk()
@@ -128,7 +139,6 @@ class AfkOverlayService : Service() {
         }
 
         try {
-            startForeground(NOTIFICATION_ID, buildNotification())
             acquireWakeLock()
             showOverlay()
         } catch (error: RuntimeException) {
@@ -279,6 +289,7 @@ class AfkOverlayService : Service() {
     }
 
     private fun refreshNotificationLanguage() {
+        if (overlayView == null) return
         getSystemService(android.app.NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
     }
 

@@ -130,12 +130,22 @@ class LauncherHardwareControls(
             }
         }
         refreshJoystickLight()
-        runCatching { HardwareController.getJoystickColor(context) }.onSuccess { _joystickColor.value = it.substringBefore(',') }
-        runCatching { HardwareController.isChargingSeparationEnabled(context) }.onSuccess { _chargingSeparation.value = it }
-        runCatching { HardwareController.isChargePowerLimit5V(context) }.onSuccess { _chargePowerLimit.value = it }
-        runCatching { HardwareController.isChargeLimit80Enabled(context) }.onSuccess { _chargeLimit80.value = it }
-        runCatching { HardwareController.isAirplaneModeOn(context) }.onSuccess { _airplaneMode.value = it }
-        _isDefaultHome.value = HardwareController.isDefaultHome(context)
+        val color = runCatching { HardwareController.getJoystickColor(context) }.getOrNull()
+        val separation = runCatching { HardwareController.isChargingSeparationEnabled(context) }.getOrNull()
+        val powerLimit = runCatching { HardwareController.isChargePowerLimit5V(context) }.getOrNull()
+        val limit80 = runCatching { HardwareController.isChargeLimit80Enabled(context) }.getOrNull()
+        val airplane = runCatching { HardwareController.isAirplaneModeOn(context) }.getOrNull()
+        val defaultHome = runCatching { HardwareController.isDefaultHome(context) }.getOrNull()
+        // A queued toggle owns its optimistic value until its write finishes or reports failure.
+        // This runs under hardwareLock, so such a job cannot write between this read and publish.
+        withContext(Dispatchers.Main) {
+            if (color != null && colorJob?.isActive != true) _joystickColor.value = color.substringBefore(',')
+            if (separation != null && chargeSeparationJob?.isActive != true) _chargingSeparation.value = separation
+            if (powerLimit != null && chargePowerJob?.isActive != true) _chargePowerLimit.value = powerLimit
+            if (limit80 != null) _chargeLimit80.value = limit80
+            if (airplane != null && airplaneJob?.isActive != true) _airplaneMode.value = airplane
+            if (defaultHome != null) _isDefaultHome.value = defaultHome
+        }
     }
 
     private fun changeHardware(refreshPerformance: Boolean = false, action: () -> Unit) {
