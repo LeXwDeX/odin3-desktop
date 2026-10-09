@@ -125,7 +125,12 @@ fun ConfigDialog(
                 horizontalArrangement = Arrangement.spacedBy(OdinSpacing.xl)
             ) {
                 // 左侧设置分类导航
-                OdinSurface(Modifier.width(220.dp).fillMaxHeight(), SurfaceRole.NAVIGATION) {
+                OdinSurface(
+                    Modifier.width(220.dp).fillMaxHeight().clickable(
+                        interactionSource = remember { MutableInteractionSource() }, indication = null
+                    ) { /* Consume clicks inside the panel. */ },
+                    SurfaceRole.NAVIGATION
+                ) {
                     LazyColumn(
                         state = menuScrollState,
                         modifier = Modifier.fillMaxSize(),
@@ -147,7 +152,12 @@ fun ConfigDialog(
                 }
 
                 // 右侧子内容配置区
-                OdinSurface(Modifier.weight(1f).fillMaxHeight(), SurfaceRole.PANEL) {
+                OdinSurface(
+                    Modifier.weight(1f).fillMaxHeight().clickable(
+                        interactionSource = remember { MutableInteractionSource() }, indication = null
+                    ) { /* Consume clicks inside the panel. */ },
+                    SurfaceRole.PANEL
+                ) {
                     when (selectedSection) {
                         0 -> ColorSection(currentJoystickColor, inSubMenu, subFocusIndex, onColorSelect)
                         1 -> OrientationSection(currentOrientation, inSubMenu, subFocusIndex, onOrientationSelect)

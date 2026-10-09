@@ -25,12 +25,15 @@ variants.add_argument("--unguarded-readback-variant", action="store_true",
                       help="In temporary compiled source only, remove the guard against publishing stale cooling readback")
 variants.add_argument("--unguarded-light-variant", action="store_true",
                       help="In temporary source only, reproduce stale light observer updates")
+variants.add_argument("--unguarded-toggle-variant", action="store_true",
+                      help="In temporary source only, let hardware readback overwrite a pending airplane toggle")
 args = parser.parse_args()
 METHODS = ("enqueueCoolingAction", "cyclePerformanceMode", "cycleFanMode",
            "refreshHardwareStates")
 # changeHardware shares the hardware mutex/readback and is extracted as another
 # production entry point, even though the cooling-specific tests do not invoke it.
-METHODS += ("changeHardware", "toggleJoystickLight", "refreshJoystickLight", "setJoystickColor")
+METHODS += ("changeHardware", "toggleJoystickLight", "refreshJoystickLight", "setJoystickColor",
+            "toggleAirplaneMode")
 
 
 def jar(group, name, version):
@@ -67,7 +70,8 @@ fields = ("_performanceMode", "_fanMode", "hardwareLock",
           "coolingJob", "coolingIntentPending", "coolingIntentRevision", "pendingCoolingActions",
           "_joystickLightEnabled", "_joystickColor", "_chargingSeparation", "_chargePowerLimit",
           "_chargeLimit80", "_airplaneMode", "_orientationMode", "_isDefaultHome",
-          "lightJob", "lightIntentPending", "lightIntentRevision", "pendingLightTarget", "colorJob")
+          "lightJob", "lightIntentPending", "lightIntentRevision", "pendingLightTarget", "colorJob",
+          "chargePowerJob", "chargeSeparationJob", "airplaneJob")
 declarations = []
 for name in fields:
     match = re.search(rf"^    (?:@Volatile )?private (?:val|var) {name}\b[^\n]*", source, re.M)
@@ -99,6 +103,12 @@ if args.unguarded_light_variant:
     production = production.replace("if (lightIntentPending) return", "")
     production = production.replace("if (!lightIntentPending && revision == lightIntentRevision.get())", "if (true)")
     print("NEGATIVE CONTROL: temporary source publishes stale light readback", flush=True)
+if args.unguarded_toggle_variant:
+    guard = "airplaneJob?.isActive != true"
+    if production.count(guard) != 1:
+        raise SystemExit("Cannot reproduce stale toggle readback: expected exact production guard is missing")
+    production = production.replace(guard, "true")
+    print("NEGATIVE CONTROL: temporary source publishes readback over a pending airplane toggle", flush=True)
 
 compiler = [jar("org.jetbrains.kotlin", name, version) for name, version in [
     ("kotlin-compiler-embeddable", "2.0.0"), ("kotlin-stdlib", "2.0.0"),
@@ -147,6 +157,11 @@ class CoolingViewModelHarness {
     }
     suspend fun awaitLights() {
         withTimeout(5_000) { lightJob?.join(); colorJob?.join() }
+        check(scopeFailures.isEmpty())
+    }
+    fun airplaneSelection() = _airplaneMode.value
+    suspend fun awaitAirplane() {
+        withTimeout(5_000) { airplaneJob?.join() }
         check(scopeFailures.isEmpty())
     }
     fun close() { viewModelScope.cancel() }
@@ -221,6 +236,7 @@ object HardwareController {
     @Volatile var fan = 0
     @Volatile var lights = false
     @Volatile var color = "#ff00e5ff"
+    @Volatile var airplane = false
     val calls = CopyOnWriteArrayList<String>()
     val performanceTargets = CopyOnWriteArrayList<Pair<Int, Int?>>()
     private val gates = ConcurrentHashMap<String, Gate>()
@@ -229,7 +245,7 @@ object HardwareController {
         gates.values.forEach { it.release() }; gates.clear(); failures.clear(); calls.clear()
         performanceTargets.clear()
         this.performance = performance; this.fan = fan
-        lights = false; color = "#ff00e5ff"
+        lights = false; color = "#ff00e5ff"; airplane = false
         android.widget.Toast.shown = 0
     }
     fun blockNext(operation: String) = Gate().also { gates[operation] = it }
@@ -273,7 +289,12 @@ object HardwareController {
     fun isChargingSeparationEnabled(context: Any) = false
     fun isChargePowerLimit5V(context: Any) = true
     fun isChargeLimit80Enabled(context: Any) = false
-    fun isAirplaneModeOn(context: Any) = false
+    fun isAirplaneModeOn(context: Any): Boolean {
+        val captured = airplane
+        gates.remove("readAirplane")?.block()
+        return captured
+    }
+    fun setAirplaneMode(context: Any, enabled: Boolean) { before("airplane", enabled.toString()); airplane = enabled }
     fun getOrientationMode(context: Any) = 0
     fun isDefaultHome(context: Any) = true
     fun getMaxCpuGpuTemp() = 40f
@@ -545,6 +566,27 @@ fun main() = runBlocking {
             }
         }
         println("PASS failed light write restores actual state and the next operation still works")
+        fixture { vm ->
+            val staleRead = HardwareController.blockNext("readAirplane")
+            val observer = withContext(Dispatchers.Main) { vm.observerRefresh() }
+            staleRead.awaitEntered()
+            try {
+                withContext(Dispatchers.Main) {
+                    vm.toggleAirplaneMode()
+                    check(vm.airplaneSelection()) { "Press must display airplane ON before hardware starts" }
+                }
+                staleRead.release()
+                observer.join()
+                withContext(Dispatchers.Main) {
+                    check(vm.airplaneSelection()) { "Stale OFF readback reverted a pending airplane toggle" }
+                    vm.awaitAirplane()
+                    check(vm.airplaneSelection() && HardwareController.airplane) {
+                        "Pending airplane toggle must commit and stay visible"
+                    }
+                }
+            } finally { staleRead.release() }
+        }
+        println("PASS readback during a pending toggle cannot revert its optimistic value")
         println("PASS all actual-source cooling UI regressions")
     } finally { MainThread.close() }
 }

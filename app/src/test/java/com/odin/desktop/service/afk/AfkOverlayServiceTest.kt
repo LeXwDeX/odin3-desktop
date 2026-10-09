@@ -186,5 +186,24 @@ class AfkOverlayServiceTest {
         assertNull(field("overlayView"))
         assertNull(field("wakeLock"))
         assertTrue(shadowOf(service).isStoppedBySelf)
+        assertForegroundEnteredThenRemoved()
+    }
+
+    @Test fun startWithoutOverlayPermissionEntersForegroundBeforeStopping() {
+        ShadowSettings.setCanDrawOverlays(false)
+        start()
+        advance(7000)
+        assertFalse(AfkOverlayService.isAfkRunning)
+        assertNull(field("overlayView"))
+        assertNull(field("wakeLock"))
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        assertForegroundEnteredThenRemoved()
+    }
+
+    // startForegroundService() requires startForeground() even when the start is refused. The
+    // shadow clears the notification on removal but keeps its id, which is 0 if never posted.
+    private fun assertForegroundEnteredThenRemoved() {
+        assertEquals(2001, shadowOf(service).lastForegroundNotificationId)
+        assertTrue(shadowOf(service).isForegroundStopped)
     }
 }

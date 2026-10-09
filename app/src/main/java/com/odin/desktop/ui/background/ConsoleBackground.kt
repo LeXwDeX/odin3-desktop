@@ -1,5 +1,6 @@
 package com.odin.desktop.ui.background
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -8,14 +9,13 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import com.odin.desktop.ui.theme.LocalOdinPalette
 import kotlinx.coroutines.delay
@@ -45,7 +45,8 @@ fun ConsoleBackground(modifier: Modifier = Modifier, motionEnabled: Boolean = tr
         }
     }
 
-    Spacer(
+    // The static backdrop never reads `phase`, so ticks cannot re-record it or the UI above it.
+    Box(
         modifier = modifier.fillMaxSize().drawWithCache {
             val width = size.width
             val height = size.height
@@ -63,43 +64,56 @@ fun ConsoleBackground(modifier: Modifier = Modifier, motionEnabled: Boolean = tr
                 center = Offset(width * .53f, height * .42f),
                 radius = max(width, height).coerceAtLeast(1f) * .74f
             )
-            val companionBrush = Brush.verticalGradient(
-                colors = listOf(Color(0x00245B9C), Color(0x24396DB2), Color(0x001A3B78)),
-                startY = height * .25f,
-                endY = height * .62f
-            )
-            val ribbonBrush = Brush.verticalGradient(
-                colors = listOf(
-                    Color(0x002C69B8),
-                    Color(0x704982D0),
-                    Color(0x244579C3),
-                    Color(0x00172E67)
-                ),
-                startY = height * .28f,
-                endY = height * .76f
-            )
-            // Geometry and shaders are rebuilt only if the viewport or palette changes.
-            val companion = buildCompanion(width, height)
-            val ribbon = buildRibbon(width, height)
-
             onDrawBehind {
                 drawRect(background)
                 drawRect(softLight)
-                if (width <= 0f || height <= 0f) return@onDrawBehind
-
-                // Snapshot state is read only here. This invalidates the draw node, not the UI tree.
-                val motion = easedWave(phase.floatValue)
-                clipRect {
-                    translate(left = width * .024f * motion, top = height * .045f * motion) {
-                        scale(scaleX = 1f + .009f * motion, scaleY = 1f + .008f * motion) {
-                            drawPath(companion, companionBrush)
-                            drawPath(ribbon, ribbonBrush)
-                        }
-                    }
-                }
             }
         }
-    )
+    ) {
+        // clipToBounds precedes graphicsLayer so the clip stays on the screen while the layer moves.
+        // Snapshot state is read only in the layer block: ticks update layer properties and
+        // never re-record draw commands.
+        Spacer(
+            modifier = Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .graphicsLayer {
+                    val motion = easedWave(phase.floatValue)
+                    translationX = size.width * .024f * motion
+                    translationY = size.height * .045f * motion
+                    scaleX = 1f + .009f * motion
+                    scaleY = 1f + .008f * motion
+                }
+                .drawWithCache {
+                    val width = size.width
+                    val height = size.height
+                    val companionBrush = Brush.verticalGradient(
+                        colors = listOf(Color(0x00245B9C), Color(0x24396DB2), Color(0x001A3B78)),
+                        startY = height * .25f,
+                        endY = height * .62f
+                    )
+                    val ribbonBrush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x002C69B8),
+                            Color(0x704982D0),
+                            Color(0x244579C3),
+                            Color(0x00172E67)
+                        ),
+                        startY = height * .28f,
+                        endY = height * .76f
+                    )
+                    // Geometry and shaders are rebuilt only if the viewport changes.
+                    val companion = buildCompanion(width, height)
+                    val ribbon = buildRibbon(width, height)
+
+                    onDrawBehind {
+                        if (width <= 0f || height <= 0f) return@onDrawBehind
+                        drawPath(companion, companionBrush)
+                        drawPath(ribbon, ribbonBrush)
+                    }
+                }
+        )
+    }
 }
 
 /** The rear sheet is subdued and partly overlaps the main sheet. */

@@ -74,9 +74,16 @@ class AppRepository(
 
     private suspend fun lastUsedTimes(generation: Long): Map<String, Long> {
         val ops = context.getSystemService(android.app.AppOpsManager::class.java)
-        usageStatsAvailable = ops?.unsafeCheckOpNoThrow(
+        usageStatsAvailable = when (ops?.unsafeCheckOpNoThrow(
             android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), context.packageName
-        ) == android.app.AppOpsManager.MODE_ALLOWED
+        )) {
+            android.app.AppOpsManager.MODE_ALLOWED -> true
+            // The platform also serves usage stats in MODE_DEFAULT once the permission is granted (e.g. pm grant).
+            android.app.AppOpsManager.MODE_DEFAULT -> context.checkSelfPermission(
+                android.Manifest.permission.PACKAGE_USAGE_STATS
+            ) == PackageManager.PERMISSION_GRANTED
+            else -> false
+        }
         if (!usageStatsAvailable) {
             usageSnapshot = null
             return emptyMap()
@@ -202,9 +209,10 @@ class AppRepository(
         val index = all.indexOfFirst { it.id == tab.id }
         if (index > 0) {
             val prev = all[index - 1]
-            all[index - 1] = all[index].copy(sortOrder = index - 1)
-            all[index] = prev.copy(sortOrder = index)
-            tabDao.updateTabs(all)
+            all[index - 1] = all[index]
+            all[index] = prev
+            // deleteTab leaves sortOrder gaps, so renumber every row rather than only the swapped pair.
+            tabDao.updateTabs(all.mapIndexed { order, row -> row.copy(sortOrder = order) })
         }
     }
 
@@ -213,9 +221,9 @@ class AppRepository(
         val index = all.indexOfFirst { it.id == tab.id }
         if (index in 0 until all.size - 1) {
             val next = all[index + 1]
-            all[index + 1] = all[index].copy(sortOrder = index + 1)
-            all[index] = next.copy(sortOrder = index)
-            tabDao.updateTabs(all)
+            all[index + 1] = all[index]
+            all[index] = next
+            tabDao.updateTabs(all.mapIndexed { order, row -> row.copy(sortOrder = order) })
         }
     }
 
