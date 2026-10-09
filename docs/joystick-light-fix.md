@@ -8,6 +8,8 @@
 
 `tools/android python3 tools/cooling-ui-regression.py` 直接提取生产方法，以真实协程和单线程 Main dispatcher 验证延迟读回、写入交错、失败恢复及连续 1,001 次新输入。新增四组灯光回归通过；`--unguarded-light-variant` 只在临时编译副本中移除保护，会在“Observer replaced a pending light selection”处按预期失败，证明确实检出了旧问题。
 
+2026-10-09（v0.1.30）补充：飞行模式、充电功率限制、旁路充电和摇杆灯颜色也有同类竞态。这些开关没有请求版本。刷新现在先在 IO 线程读取，再在主线程发布；对应写入任务仍在执行时，不发布该字段。回归夹具与负面对照 `--unguarded-toggle-variant` 见 `tools/cooling-ui-regression.py`，发布记录见 [v0.1.30](releases.md#v0130-缺陷与性能修复)。
+
 这些测试证明应用状态与请求队列的一致性，不能证明实体灯的瞬时发光行为。若实体灯仍闪烁，需要继续核对原厂灯光服务的时序。
 
 修复版安装后，用户继续按动手柄灯开关，反馈“没遇到问题”。这是本次现场复测结果，不代表所有固件与输入时序都已覆盖。
